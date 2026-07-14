@@ -1,0 +1,265 @@
+// Elecplan Portal — Database Schema
+// This is a starting point for Claude Code to build from, generated from the
+// design work in elecplan-build-spec.md. Adjust field types/relations as the
+// real build progresses — this covers the entities behind every screen we designed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  EMPLOYEE
+}
+
+enum JobStatus {
+  QUOTED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETE
+  INVOICED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  OVERDUE
+}
+
+enum LeadStage {
+  NEW
+  QUOTED
+  WON
+  LOST
+}
+
+enum SmsStatus {
+  SENT
+  CONFIRMED
+  DECLINED
+  FAILED
+}
+
+enum CertStatus {
+  ISSUED
+  PENDING
+  EXPIRING
+}
+
+enum InspectionStatus {
+  PASSED
+  SCHEDULED
+  FAILED
+}
+
+enum TimesheetStatus {
+  PENDING
+  APPROVED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  phone         String?
+  role          Role      @default(EMPLOYEE)
+  licenseNumber String?
+  licenseExpiry DateTime?
+  createdAt     DateTime  @default(now())
+
+  assignedJobs  Job[]        @relation("AssignedEmployee")
+  timesheets    Timesheet[]
+  reminders     Reminder[]
+  certificates  Certificate[]
+  jobEvents     JobEvent[]
+}
+
+model Client {
+  id           String   @id @default(cuid())
+  name         String
+  contactName  String?
+  phone        String?
+  email        String?
+  address      String?
+  billingNotes String?
+  createdAt    DateTime @default(now())
+
+  leads    Lead[]
+  jobs     Job[]
+  quotes   Quote[]
+  invoices Invoice[]
+  reviews  Review[]
+}
+
+model Lead {
+  id          String    @id @default(cuid())
+  client      Client    @relation(fields: [clientId], references: [id])
+  clientId    String
+  description String
+  stage       LeadStage @default(NEW)
+  value       Decimal
+  source      String?
+  createdAt   DateTime  @default(now())
+}
+
+model Job {
+  id            String     @id @default(cuid())
+  title         String
+  client        Client     @relation(fields: [clientId], references: [id])
+  clientId      String
+  address       String
+  status        JobStatus  @default(SCHEDULED)
+  assignedTo    User?      @relation("AssignedEmployee", fields: [assignedToId], references: [id])
+  assignedToId  String?
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  notes         String?
+  createdAt     DateTime   @default(now())
+
+  events        JobEvent[]
+  quotes        Quote[]
+  invoices      Invoice[]
+  certificates  Certificate[]
+  inspections   Inspection[]
+  documents     Document[]
+  photos        ProjectPhoto[]
+  smsLogs       SmsLog[]
+}
+
+model JobEvent {
+  id        String   @id @default(cuid())
+  job       Job      @relation(fields: [jobId], references: [id])
+  jobId     String
+  type      String   // job | call | admin | material
+  startsAt  DateTime
+  endsAt    DateTime
+  assignedTo User?   @relation(fields: [assignedToId], references: [id])
+  assignedToId String?
+}
+
+model Quote {
+  id        String      @id @default(cuid())
+  job       Job?        @relation(fields: [jobId], references: [id])
+  jobId     String?
+  client    Client      @relation(fields: [clientId], references: [id])
+  clientId  String
+  amount    Decimal
+  status    QuoteStatus @default(DRAFT)
+  xeroId    String?
+  createdAt DateTime    @default(now())
+}
+
+model Invoice {
+  id         String        @id @default(cuid())
+  job        Job?          @relation(fields: [jobId], references: [id])
+  jobId      String?
+  client     Client?       @relation(fields: [clientId], references: [id])
+  clientId   String?
+  supplier   String?       // for supplier bills instead of client invoices
+  amount     Decimal
+  dueDate    DateTime
+  status     InvoiceStatus @default(UNPAID)
+  xeroId     String?
+  createdAt  DateTime      @default(now())
+}
+
+model Certificate {
+  id           String     @id @default(cuid())
+  job          Job        @relation(fields: [jobId], references: [id])
+  jobId        String
+  certNumber   String     @unique
+  type         String     // Certificate of Electrical Safety | Certificate of Compliance
+  electrician  User       @relation(fields: [electricianId], references: [id])
+  electricianId String
+  issuedDate   DateTime?
+  status       CertStatus @default(PENDING)
+}
+
+model Inspection {
+  id     String            @id @default(cuid())
+  job    Job               @relation(fields: [jobId], references: [id])
+  jobId  String
+  type   String
+  date   DateTime
+  status InspectionStatus  @default(SCHEDULED)
+}
+
+model StockItem {
+  id       String @id @default(cuid())
+  name     String
+  unit     String
+  onHand   Int
+  parLevel Int
+  supplier String?
+}
+
+model Timesheet {
+  id        String          @id @default(cuid())
+  user      User            @relation(fields: [userId], references: [id])
+  userId    String
+  date      DateTime
+  hours     Decimal
+  status    TimesheetStatus @default(PENDING)
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  job        Job?     @relation(fields: [jobId], references: [id])
+  jobId      String?
+  name       String
+  fileUrl    String
+  type       String
+  uploadedAt DateTime @default(now())
+}
+
+model ProjectPhoto {
+  id         String   @id @default(cuid())
+  job        Job      @relation(fields: [jobId], references: [id])
+  jobId      String
+  fileUrl    String
+  uploadedAt DateTime @default(now())
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  title     String
+  dueDate   DateTime?
+  tag       String?
+  completed Boolean  @default(false)
+}
+
+model Review {
+  id       String   @id @default(cuid())
+  client   Client   @relation(fields: [clientId], references: [id])
+  clientId String
+  rating   Int
+  text     String?
+  source   String?
+  createdAt DateTime @default(now())
+}
+
+model SmsLog {
+  id           String    @id @default(cuid())
+  job          Job       @relation(fields: [jobId], references: [id])
+  jobId        String
+  phoneNumber  String
+  message      String
+  status       SmsStatus @default(SENT)
+  providerId   String?
+  createdAt    DateTime  @default(now())
+}
