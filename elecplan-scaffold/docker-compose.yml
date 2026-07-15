@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: elecplan-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: elecplan
+    ports:
+      - "5432:5432"
+    volumes:
+      - elecplan-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d elecplan"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  elecplan-pgdata:

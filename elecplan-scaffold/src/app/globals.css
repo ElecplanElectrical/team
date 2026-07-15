@@ -1,0 +1,63 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap");
+@import "tailwindcss";
+
+:root {
+  --bg: #0a0d12;
+  --text: #edeff2;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Interactive card hover — ported verbatim from the mockup FONT_IMPORT. */
+.hover-glow {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.hover-glow:hover {
+  border-color: rgba(61, 197, 240, 0.5) !important;
+  box-shadow:
+    0 0 0 1px rgba(61, 197, 240, 0.15),
+    0 8px 24px rgba(61, 197, 240, 0.12);
+  transform: translateY(-1px);
+}
+
+.side-panel {
+  width: 280px;
+}
+.search-box {
+  width: 320px;
+}
+@media (max-width: 767px) {
+  .side-panel {
+    width: 100%;
+  }
+  .search-box {
+    width: 100%;
+  }
+}
+
+/* Subtle dark scrollbars to match the theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #242a33 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #242a33;
+  border-radius: 8px;
+}

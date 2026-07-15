@@ -76,6 +76,7 @@ model User {
   email         String    @unique
   phone         String?
   role          Role      @default(EMPLOYEE)
+  passwordHash  String?
   licenseNumber String?
   licenseExpiry DateTime?
   createdAt     DateTime  @default(now())
@@ -141,8 +142,10 @@ model Job {
 
 model JobEvent {
   id        String   @id @default(cuid())
-  job       Job      @relation(fields: [jobId], references: [id])
-  jobId     String
+  // Optional: calendar has non-job events (calls, admin, materials) too.
+  job       Job?     @relation(fields: [jobId], references: [id])
+  jobId     String?
+  title     String?  // falls back to the linked job's title when empty
   type      String   // job | call | admin | material
   startsAt  DateTime
   endsAt    DateTime
