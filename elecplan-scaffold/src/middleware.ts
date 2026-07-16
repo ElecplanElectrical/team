@@ -10,6 +10,12 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth?.user;
   const role = req.auth?.user?.role;
 
+  // Public, token-gated page: accepting an invite / reset link. Always allowed,
+  // even without a session (the token in the URL is the credential).
+  if (nextUrl.pathname === "/set-password") {
+    return NextResponse.next();
+  }
+
   // Login page: bounce authenticated users to their landing screen.
   if (nextUrl.pathname === "/login") {
     if (isLoggedIn && role) {

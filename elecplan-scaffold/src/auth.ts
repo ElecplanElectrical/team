@@ -26,7 +26,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() },
         });
-        if (!user?.passwordHash) return null;
+        // No password set yet (invited, not accepted) or deactivated → no login.
+        if (!user?.passwordHash || !user.active) return null;
 
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;

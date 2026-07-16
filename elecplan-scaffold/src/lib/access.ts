@@ -96,3 +96,19 @@ export function canAccess(role: Role, screen: Screen): boolean {
 export function landingPath(role: Role): string {
   return role === "ADMIN" ? "/dashboard" : "/calendar";
 }
+
+/**
+ * Roles an actor may assign when inviting or editing a user. Admins manage
+ * everyone; supervisors manage crew (employees) only; employees manage no one.
+ * Used to prevent privilege escalation via the Employees screen.
+ */
+export function assignableRoles(actor: Role): Role[] {
+  if (actor === "ADMIN") return ["ADMIN", "SUPERVISOR", "EMPLOYEE"];
+  if (actor === "SUPERVISOR") return ["EMPLOYEE"];
+  return [];
+}
+
+/** Whether `actor` may manage (reset/deactivate/edit) a user with role `target`. */
+export function canManageUser(actor: Role, target: Role): boolean {
+  return assignableRoles(actor).includes(target);
+}

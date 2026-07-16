@@ -5,7 +5,6 @@ import { screenForPath, type Screen } from "@/lib/access";
 
 // Which build phase each not-yet-built screen belongs to (from the spec).
 const PHASE: Partial<Record<Screen, string>> = {
-  employees: "Phase 1 (next up)",
   quotes: "Phase 2 (Money)",
   bills: "Phase 2 (Money)",
   dashboard: "Phase 2 (Money)",
@@ -30,12 +29,13 @@ export default async function PlaceholderPage({
   const { screen: segment } = await params;
   const screen = screenForPath("/" + segment);
 
-  // Calendar, Jobs and Clients have real routes; anything unknown 404s.
+  // Calendar, Jobs, Clients and Employees have real routes; unknown 404s.
   if (
     !screen ||
     screen === "calendar" ||
     screen === "timelines" ||
-    screen === "clients"
+    screen === "clients" ||
+    screen === "employees"
   ) {
     notFound();
   }

@@ -70,6 +70,11 @@ enum TimesheetStatus {
   APPROVED
 }
 
+enum PasswordTokenType {
+  INVITE
+  RESET
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String
@@ -77,15 +82,34 @@ model User {
   phone         String?
   role          Role      @default(EMPLOYEE)
   passwordHash  String?
+  active        Boolean   @default(true)
   licenseNumber String?
   licenseExpiry DateTime?
   createdAt     DateTime  @default(now())
 
-  assignedJobs  Job[]        @relation("AssignedEmployee")
-  timesheets    Timesheet[]
-  reminders     Reminder[]
-  certificates  Certificate[]
-  jobEvents     JobEvent[]
+  assignedJobs   Job[]        @relation("AssignedEmployee")
+  timesheets     Timesheet[]
+  reminders      Reminder[]
+  certificates   Certificate[]
+  jobEvents      JobEvent[]
+  passwordTokens PasswordToken[]
+}
+
+// One-time tokens for the invite ("set your password") and password-reset
+// flows. Only the SHA-256 hash of the token is stored — the raw token lives
+// only in the link handed to the user. Single-use (usedAt) and time-limited
+// (expiresAt). See src/lib/tokens.ts and src/app/api/set-password.
+model PasswordToken {
+  id        String            @id @default(cuid())
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String            @unique
+  type      PasswordTokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime          @default(now())
+
+  @@index([userId])
 }
 
 model Client {

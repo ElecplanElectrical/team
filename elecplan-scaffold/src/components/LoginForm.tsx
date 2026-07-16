@@ -118,6 +118,10 @@ export default function LoginForm({
         </button>
       </form>
 
+      <p className="text-xs mt-4 text-center" style={{ color: COLORS.textFaint }}>
+        Forgot your password? Ask your admin to send you a reset link.
+      </p>
+
       {demoLogins && demoLogins.length > 0 && (
         <div
           className="mt-5 pt-4 text-xs"

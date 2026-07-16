@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { COLORS, FONTS } from "@/lib/theme";
 import { SCREEN_PATH } from "@/lib/access";
@@ -106,6 +106,14 @@ export default function Sidebar({
               {ROLE_TITLE[role]}
             </p>
           </div>
+          <Link
+            href="/account"
+            aria-label="Account settings"
+            className="p-1 rounded hover:opacity-80"
+            style={{ color: COLORS.textFaint }}
+          >
+            <Settings size={14} />
+          </Link>
           <button
             type="button"
             aria-label="Sign out"
