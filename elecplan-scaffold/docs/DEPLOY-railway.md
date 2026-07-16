@@ -65,21 +65,27 @@ release Railway runs `prisma migrate deploy` (pre-deploy) then `pnpm start`.
 Watch the logs; once the healthcheck on `/api/health` passes, the service is
 live on its temporary `*.up.railway.app` URL.
 
-## Step 5 — Seed accounts (one-time)
+## Step 5 — Create the owner account (one-time)
 
-The demo seed **wipes and recreates** the tables it owns — only run it on an
-empty production DB, or replace it with real accounts first (see "Before real
-users" below).
-
-With `SEED_PASSWORD` set, run the seed once against the Railway DB — either from
-the Railway service shell:
+**Recommended (owner only, no demo data).** Creates just the admin account and
+prints a one-time "set your password" link. Idempotent and safe on a live DB —
+it never wipes tables. Run it in the Railway service shell:
 
 ```bash
-pnpm db:seed
+OWNER_NAME="Luke Phillips" \
+OWNER_EMAIL="luke@elecplan.com.au" \
+APP_ORIGIN="https://team.elecplan.com.au" \
+pnpm db:seed:owner
 ```
 
-or locally with `DATABASE_URL` pointed at the Railway Postgres public
-connection string.
+Open the printed `https://team.elecplan.com.au/set-password?token=…` link,
+choose a password, and sign in. Invite the rest of the crew from the Employees
+screen once you're in.
+
+> **Alternative — full demo data.** To load the demo users + Melbourne
+> clients/jobs for a quick tyre-kick instead, set a strong `SEED_PASSWORD` and
+> run `pnpm db:seed`. ⚠️ That seed **wipes and recreates** its tables, so only
+> use it on an empty DB and delete the demo data before real use.
 
 ## Step 6 — Custom domain + GoDaddy DNS
 
