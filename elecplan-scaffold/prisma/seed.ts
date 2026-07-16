@@ -50,9 +50,9 @@ async function main() {
   // --- Users ---------------------------------------------------------------
   const luke = await prisma.user.create({
     data: {
-      name: "Luke Bennett",
+      name: "Luke Phillips",
       email: "luke@elecplan.com.au",
-      phone: "+61 400 111 222",
+      phone: "0468339432",
       role: Role.ADMIN,
       passwordHash,
     },

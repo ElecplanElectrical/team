@@ -1,8 +1,27 @@
 # Elecplan Portal — Starting Point for Claude Code
 
-This folder is the handoff from design to real build. It's not a running app yet —
-it's the database schema and config that Claude Code should build the actual
-application around.
+This started as the handoff from design to real build, and it's now a running
+Next.js app: Auth.js login, Prisma schema, seeded demo data, and the core
+screens (calendar, jobs, clients) are wired up. See "Run it locally" below to
+start it, or the sections further down for the original build plan and how to
+extend it.
+
+## Run it locally
+
+```bash
+pnpm install
+pnpm db:up        # start the Postgres container
+pnpm db:migrate   # apply migrations
+pnpm db:seed      # create demo accounts + sample data
+pnpm dev          # http://localhost:3000
+```
+
+Then sign in at http://localhost:3000/login (the login screen also has
+one-click demo buttons). Password for every demo account is `password123`:
+
+- `luke@elecplan.com.au` — Admin
+- `reyne@elecplan.com.au` — Supervisor
+- `dean@elecplan.com.au` — Employee
 
 ## What's in here
 
