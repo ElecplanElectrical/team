@@ -45,7 +45,11 @@ async function main() {
   await prisma.stockItem.deleteMany();
   await prisma.user.deleteMany();
 
-  const passwordHash = await bcrypt.hash("password123", 10);
+  // Password for the seeded accounts. Override via SEED_PASSWORD in any
+  // internet-reachable environment — never ship the `password123` default to
+  // production. See docs/DEPLOY-railway.md.
+  const seedPassword = process.env.SEED_PASSWORD ?? "password123";
+  const passwordHash = await bcrypt.hash(seedPassword, 10);
 
   // --- Users ---------------------------------------------------------------
   const luke = await prisma.user.create({
@@ -303,7 +307,11 @@ async function main() {
     { email: dean.email, role: dean.role },
     { email: sam.email, role: sam.role },
   ]);
-  console.log("Password for all demo accounts: password123");
+  console.log(
+    process.env.SEED_PASSWORD
+      ? "Password for all seeded accounts: (from SEED_PASSWORD env)"
+      : "Password for all demo accounts: password123",
+  );
 }
 
 main()
