@@ -5,7 +5,7 @@
     "buildCommand": "pnpm build"
   },
   "deploy": {
-    "preDeployCommand": "pnpm prisma migrate deploy",
+    "preDeployCommand": "pnpm prisma migrate deploy && pnpm db:seed",
     "startCommand": "pnpm start",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
