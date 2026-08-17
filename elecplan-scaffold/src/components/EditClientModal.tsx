@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
-import { COLORS, FONTS, ON_ACCENT } from "@/lib/theme";
+import { Building2, X } from "lucide-react";
 
 export type EditableClient = {
   id: string;
@@ -14,15 +13,9 @@ export type EditableClient = {
   billingNotes: string | null;
 };
 
-export default function EditClientModal({
-  client,
-  onClose,
-  onDone,
-}: {
-  client: EditableClient;
-  onClose: () => void;
-  onDone: () => void;
-}) {
+const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72" };
+
+export default function EditClientModal({ client, onClose, onDone }: { client: EditableClient; onClose: () => void; onDone: () => void }) {
   const [name, setName] = useState(client.name);
   const [contactName, setContactName] = useState(client.contactName ?? "");
   const [phone, setPhone] = useState(client.phone ?? "");
@@ -35,110 +28,40 @@ export default function EditClientModal({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!name.trim()) {
-      setError("Client name is required.");
-      return;
-    }
-
+    if (!name.trim()) return setError("Client name is required.");
     setSaving(true);
-    const res = await fetch(`/api/clients/${client.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.trim(),
-        contactName: contactName.trim() || null,
-        phone: phone.trim() || null,
-        email: email.trim() || null,
-        address: address.trim() || null,
-        billingNotes: billingNotes.trim() || null,
-      }),
-    });
+    const res = await fetch(`/api/clients/${client.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), contactName: contactName.trim() || null, phone: phone.trim() || null, email: email.trim() || null, address: address.trim() || null, billingNotes: billingNotes.trim() || null }) });
     setSaving(false);
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      setError(body?.error ?? "Could not update the client.");
-      return;
-    }
+    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not update the client."); return; }
     onDone();
   }
 
-  const fieldStyle: React.CSSProperties = {
-    background: COLORS.cardAlt,
-    border: `1px solid ${COLORS.border}`,
-    color: COLORS.text,
-  };
+  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.6)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-lg overflow-hidden"
-        style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: `1px solid ${COLORS.borderSoft}` }}
-        >
-          <h2 className="text-base font-semibold" style={{ fontFamily: FONTS.display, color: COLORS.text }}>
-            Edit client
-          </h2>
-          <button type="button" aria-label="Close" onClick={onClose} style={{ color: COLORS.textMute }}>
-            <X size={18} />
-          </button>
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
+    <section className="w-full max-w-xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
+      <header className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><Building2 size={18} /></span>
+        <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>Edit client</h2><p className="mt-1 truncate text-xs" style={{ color: UI.faint }}>{client.name}</p></div>
+        <button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button>
+      </header>
+
+      <form onSubmit={submit} className="max-h-[82vh] overflow-auto p-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Business / client name" className="md:col-span-2"><input value={name} onChange={(e) => setName(e.target.value)} className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} autoFocus /></Field>
+          <Field label="Contact name"><input value={contactName} onChange={(e) => setContactName(e.target.value)} className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
+          <Field label="Phone"><input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
+          <Field label="Email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
+          <div className="hidden md:block" />
+          <Field label="Address" className="md:col-span-2"><input value={address} onChange={(e) => setAddress(e.target.value)} className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
+          <Field label="Billing notes" className="md:col-span-2"><textarea value={billingNotes} onChange={(e) => setBillingNotes(e.target.value)} rows={3} className="w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none" style={field} /></Field>
         </div>
 
-        <form onSubmit={submit} className="p-5 flex flex-col gap-3 max-h-[80vh] overflow-auto">
-          <Field label="Business / client name">
-            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} autoFocus />
-          </Field>
-
-          <Field label="Contact name">
-            <input value={contactName} onChange={(e) => setContactName(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
-          </Field>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Phone">
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
-            </Field>
-            <Field label="Email">
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
-            </Field>
-          </div>
-
-          <Field label="Address">
-            <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
-          </Field>
-
-          <Field label="Billing notes">
-            <textarea value={billingNotes} onChange={(e) => setBillingNotes(e.target.value)} rows={3} className="w-full rounded-md px-3 py-2 text-sm outline-none resize-none" style={fieldStyle} />
-          </Field>
-
-          {error && <p className="text-xs" style={{ color: COLORS.coral }}>{error}</p>}
-
-          <div className="flex justify-end gap-2 mt-1">
-            <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium" style={{ background: COLORS.cardAlt, color: COLORS.textMute }}>
-              Cancel
-            </button>
-            <button type="submit" disabled={saving} className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60" style={{ background: COLORS.accent, color: ON_ACCENT }}>
-              {saving ? "Saving…" : "Save changes"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+        {error && <p className="mt-4 text-xs" style={{ color: UI.red }}>{error}</p>}
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving} className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Save changes"}</button></div>
+      </form>
+    </section>
+  </div>;
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium" style={{ color: COLORS.textMute }}>{label}</span>
-      {children}
-    </label>
-  );
-}
+function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) { return <label className={`flex flex-col gap-1.5 ${className}`}><span className="text-xs font-medium" style={{ color: UI.mute }}>{label}</span>{children}</label>; }
