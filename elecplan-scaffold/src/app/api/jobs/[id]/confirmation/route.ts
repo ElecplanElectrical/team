@@ -59,7 +59,7 @@ export async function POST(
 
   const to = normalizeAustralianMobile(job.client.phone);
   const firstName = (job.client.contactName || job.client.name).trim().split(/\s+/)[0] || "there";
-  const message = `Hi ${firstName}, your Elecplan booking for ${job.title} is confirmed for ${bookingTime(job.scheduledStart)} at ${job.address}. If you need to change the booking, please contact Elecplan. – Elecplan`;
+  const message = `Hi ${firstName}, your Elecplan booking for ${job.title} is confirmed for ${bookingTime(job.scheduledStart)} at ${job.address}. If you need to change the booking, please contact Elecplan. - Elecplan`;
 
   try {
     const result = await sendSms(to, message);
