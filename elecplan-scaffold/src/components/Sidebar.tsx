@@ -7,7 +7,7 @@ import { LogOut, Settings } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { SCREEN_PATH } from "@/lib/access";
 import { navGroupsFor, ROLE_TITLE, initialsOf } from "@/lib/nav";
-import { LOGO_WORDMARK } from "@/lib/logo";
+import { LOGO_MARK } from "@/lib/logo";
 
 const UI = {
   sidebar: "linear-gradient(180deg,#02101f 0%,#031321 100%)",
@@ -25,9 +25,14 @@ export default function Sidebar({ role, name }: { role: Role; name: string }) {
 
   return (
     <aside className="hidden shrink-0 flex-col px-2.5 py-5 md:flex md:w-[74px] xl:w-[220px] xl:px-3" style={{ background: UI.sidebar, borderRight: `1px solid ${UI.border}` }}>
-      <Link href="/dashboard" className="mb-6 flex h-9 items-center px-2 xl:px-3" aria-label="Elecplan dashboard">
+      <Link href="/dashboard" className="mb-6 flex h-11 items-center justify-center xl:justify-start xl:px-2" aria-label="Elecplan dashboard">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: "100%", height: "auto", objectFit: "contain", display: "block" }} />
+        <img
+          src={LOGO_MARK}
+          alt="Elecplan"
+          className="h-10 w-10 rounded-full object-contain xl:h-11 xl:w-11"
+          style={{ display: "block", boxShadow: "0 8px 24px rgba(0,0,0,.22)" }}
+        />
       </Link>
 
       <nav className="flex-1 overflow-y-auto pr-0.5" aria-label="Elecplan navigation">
