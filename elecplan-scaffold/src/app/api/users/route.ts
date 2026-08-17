@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess, assignableRoles } from "@/lib/access";
 import { recordAudit } from "@/lib/audit";
+import { consumeRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import {
   generateToken,
   expiryFromNow,
@@ -21,16 +22,20 @@ const createSchema = z.object({
 export async function POST(req: Request) {
   const actor = await getSessionUser();
   if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canAccess(actor.role, "employees")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccess(actor.role, "employees")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const limit = await consumeRateLimit(`user-invite:actor:${actor.id}`, 20, 60 * 60 * 1000);
+  if (!limit.allowed) {
+    await recordAudit({ actor, action: "USER_INVITE_RATE_LIMITED", entityType: "User", details: { retryAfterSeconds: limit.retryAfterSeconds } });
+    return NextResponse.json(
+      { error: "Too many user invitations have been created. Try again later." },
+      { status: 429, headers: rateLimitHeaders(limit) },
+    );
   }
 
   const parsed = createSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid input", issues: parsed.error.flatten() },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
   }
   const d = parsed.data;
 
@@ -39,12 +44,7 @@ export async function POST(req: Request) {
   }
 
   const existing = await prisma.user.findUnique({ where: { email: d.email } });
-  if (existing) {
-    return NextResponse.json(
-      { error: "A user with that email already exists." },
-      { status: 409 },
-    );
-  }
+  if (existing) return NextResponse.json({ error: "A user with that email already exists." }, { status: 409 });
 
   const { raw, hash } = generateToken();
   const user = await prisma.user.create({
@@ -53,24 +53,12 @@ export async function POST(req: Request) {
       email: d.email,
       phone: d.phone || null,
       role: d.role,
-      passwordTokens: {
-        create: {
-          tokenHash: hash,
-          type: "INVITE",
-          expiresAt: expiryFromNow(INVITE_TTL_HOURS),
-        },
-      },
+      passwordTokens: { create: { tokenHash: hash, type: "INVITE", expiresAt: expiryFromNow(INVITE_TTL_HOURS) } },
     },
     select: { id: true, name: true, email: true, role: true },
   });
 
-  await recordAudit({
-    actor,
-    action: "USER_INVITED",
-    entityType: "User",
-    entityId: user.id,
-    details: { targetEmail: user.email, targetRole: user.role },
-  });
+  await recordAudit({ actor, action: "USER_INVITED", entityType: "User", entityId: user.id, details: { targetEmail: user.email, targetRole: user.role } });
 
   const inviteUrl = setPasswordUrl(new URL(req.url).origin, raw);
   return NextResponse.json({ user, inviteUrl }, { status: 201 });
