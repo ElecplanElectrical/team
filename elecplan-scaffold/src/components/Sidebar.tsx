@@ -29,7 +29,6 @@ export default function Sidebar({
         borderRight: `1px solid ${COLORS.borderSoft}`,
       }}
     >
-      {/* Wordmark */}
       <div className="px-2 mb-5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -44,7 +43,6 @@ export default function Sidebar({
         />
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 overflow-y-auto flex flex-col gap-4">
         {groups.map((group, gi) => (
           <div key={group.heading ?? gi} className="flex flex-col gap-0.5">
@@ -80,7 +78,6 @@ export default function Sidebar({
         ))}
       </nav>
 
-      {/* Identity + logout */}
       <div
         className="mt-4 pt-3"
         style={{ borderTop: `1px solid ${COLORS.borderSoft}` }}
@@ -107,8 +104,8 @@ export default function Sidebar({
             </p>
           </div>
           <Link
-            href="/account"
-            aria-label="Account settings"
+            href={role === "ADMIN" ? "/settings" : "/account"}
+            aria-label={role === "ADMIN" ? "Security settings" : "Account settings"}
             className="p-1 rounded hover:opacity-80"
             style={{ color: COLORS.textFaint }}
           >
