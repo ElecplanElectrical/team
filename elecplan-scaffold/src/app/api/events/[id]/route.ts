@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { EVENT_TYPES } from "@/lib/theme";
@@ -13,10 +14,7 @@ const patchSchema = z.object({
   endsAt: z.string().datetime().optional(),
 });
 
-async function syncCanonicalJobEvent(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  jobId: string,
-) {
+async function syncCanonicalJobEvent(tx: Prisma.TransactionClient, jobId: string) {
   const canonical = await tx.jobEvent.findFirst({
     where: { jobId, type: "job" },
     orderBy: { startsAt: "asc" },
