@@ -36,18 +36,24 @@ export default function LoginForm({
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-    setLoading(false);
-    if (!res || res.error) {
-      setError("Incorrect email or password.");
-      return;
+
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (!res || res.error) {
+        setError("Incorrect email or password.");
+        return;
+      }
+      router.push(callbackUrl);
+      router.refresh();
+    } catch {
+      setError("Could not reach Elecplan. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    router.push(callbackUrl);
-    router.refresh();
   }
 
   const inputStyle: React.CSSProperties = {
@@ -85,18 +91,18 @@ export default function LoginForm({
             <p className="mt-2 text-sm leading-6" style={{ color: UI.mute }}>Use your Elecplan account to continue.</p>
           </div>
 
-          <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4">
+          <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4" aria-busy={loading}>
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-medium" style={{ color: UI.mute }}>Email</span>
-              <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none transition focus:ring-2 focus:ring-blue-500/30" style={inputStyle} placeholder="you@elecplan.com.au" />
+              <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none" style={inputStyle} placeholder="you@elecplan.com.au" autoCapitalize="none" spellCheck={false} />
             </label>
 
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-medium" style={{ color: UI.mute }}>Password</span>
-              <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none transition focus:ring-2 focus:ring-blue-500/30" style={inputStyle} placeholder="••••••••" />
+              <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none" style={inputStyle} placeholder="••••••••" />
             </label>
 
-            {error && <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} />{error}</div>}
+            {error && <div role="alert" className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} />{error}</div>}
 
             <button type="submit" disabled={loading} className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white", boxShadow: "0 10px 28px rgba(22,141,255,.24)" }}><LogIn size={16} />{loading ? "Signing in…" : "Sign in"}</button>
           </form>
