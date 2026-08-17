@@ -349,3 +349,12 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([actorId])
 }
+
+model RateLimitBucket {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+  expiresAt   DateTime
+
+  @@index([expiresAt])
+}
