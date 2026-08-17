@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess, assignableRoles } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 import {
   generateToken,
   expiryFromNow,
@@ -17,8 +18,6 @@ const createSchema = z.object({
   role: z.enum(["ADMIN", "SUPERVISOR", "EMPLOYEE"]),
 });
 
-// Invite a new user: creates the account with no password and returns a
-// one-time "set your password" link for the admin to copy and hand off.
 export async function POST(req: Request) {
   const actor = await getSessionUser();
   if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -35,7 +34,6 @@ export async function POST(req: Request) {
   }
   const d = parsed.data;
 
-  // Prevent privilege escalation: only assign roles you're allowed to.
   if (!assignableRoles(actor.role).includes(d.role)) {
     return NextResponse.json({ error: "You cannot assign that role." }, { status: 403 });
   }
@@ -55,7 +53,6 @@ export async function POST(req: Request) {
       email: d.email,
       phone: d.phone || null,
       role: d.role,
-      // passwordHash stays null until they accept the invite via the link.
       passwordTokens: {
         create: {
           tokenHash: hash,
@@ -65,6 +62,14 @@ export async function POST(req: Request) {
       },
     },
     select: { id: true, name: true, email: true, role: true },
+  });
+
+  await recordAudit({
+    actor,
+    action: "USER_INVITED",
+    entityType: "User",
+    entityId: user.id,
+    details: { targetEmail: user.email, targetRole: user.role },
   });
 
   const inviteUrl = setPasswordUrl(new URL(req.url).origin, raw);
