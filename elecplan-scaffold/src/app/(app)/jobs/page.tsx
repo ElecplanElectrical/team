@@ -47,7 +47,11 @@ export default async function JobsPage() {
     client: j.client.name,
     address: j.address,
     crew: j.assignedTo?.name ?? null,
+    assignedToId: j.assignedToId,
     status: j.status,
+    scheduledStart: j.scheduledStart?.toISOString() ?? null,
+    scheduledEnd: j.scheduledEnd?.toISOString() ?? null,
+    notes: j.notes,
   }));
 
   return (
