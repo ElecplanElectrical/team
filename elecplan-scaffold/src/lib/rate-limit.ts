@@ -13,8 +13,30 @@ export type RateLimitResult = {
   justBlocked: boolean;
 };
 
+const CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
+let lastCleanupAt = 0;
+let cleanupInFlight: Promise<void> | null = null;
+
 export function rateLimitIdentity(value: string): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+async function maybeCleanupExpiredBuckets(now: Date): Promise<void> {
+  if (now.getTime() - lastCleanupAt < CLEANUP_INTERVAL_MS) return;
+  if (cleanupInFlight) return cleanupInFlight;
+
+  lastCleanupAt = now.getTime();
+  cleanupInFlight = prisma.rateLimitBucket
+    .deleteMany({ where: { expiresAt: { lt: now } } })
+    .then(() => undefined)
+    .catch(() => {
+      lastCleanupAt = 0;
+    })
+    .finally(() => {
+      cleanupInFlight = null;
+    });
+
+  return cleanupInFlight;
 }
 
 export async function consumeRateLimit(
@@ -24,6 +46,10 @@ export async function consumeRateLimit(
 ): Promise<RateLimitResult> {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + windowMs);
+
+  // Best-effort maintenance only: limiter correctness does not depend on cleanup succeeding.
+  void maybeCleanupExpiredBuckets(now);
+
   const rows = await prisma.$queryRaw<BucketRow[]>`
     INSERT INTO "RateLimitBucket" ("key", "count", "windowStart", "expiresAt")
     VALUES (${key}, 1, ${now}, ${expiresAt})
