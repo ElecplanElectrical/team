@@ -15,16 +15,40 @@ export default async function CalendarPage({
   const start = weekStartFrom(week);
   const end = addDays(start, 7);
 
+  // Railway runs in UTC while Elecplan schedules in Melbourne time. Query a
+  // one-day safety margin either side, then let CalendarView place events by
+  // the browser's local calendar day. This prevents early-Monday Melbourne
+  // bookings from being filtered out by a UTC week boundary.
+  const queryStart = addDays(start, -1);
+  const queryEnd = addDays(end, 1);
+
   const where: Prisma.JobEventWhereInput = {
-    startsAt: { gte: start, lt: end },
+    startsAt: { gte: queryStart, lt: queryEnd },
   };
   if (user.role === "EMPLOYEE") where.assignedToId = user.id;
 
-  const [rows, jobs, employees] = await Promise.all([
+  const scheduledJobWhere: Prisma.JobWhereInput = {
+    scheduledStart: { not: null, gte: queryStart, lt: queryEnd },
+    scheduledEnd: { not: null },
+    ...(user.role === "EMPLOYEE" ? { assignedToId: user.id } : {}),
+  };
+
+  const [rows, scheduledJobs, jobs, employees] = await Promise.all([
     prisma.jobEvent.findMany({
       where,
       include: { job: { select: { title: true } } },
       orderBy: { startsAt: "asc" },
+    }),
+    prisma.job.findMany({
+      where: scheduledJobWhere,
+      select: {
+        id: true,
+        title: true,
+        assignedToId: true,
+        scheduledStart: true,
+        scheduledEnd: true,
+      },
+      orderBy: { scheduledStart: "asc" },
     }),
     prisma.job.findMany({
       where: user.role === "EMPLOYEE" ? { assignedToId: user.id } : {},
@@ -40,16 +64,36 @@ export default async function CalendarPage({
         }),
   ]);
 
-  const events = rows.map((ev) => ({
-    id: ev.id,
-    title: ev.title || ev.job?.title || "(untitled)",
-    customTitle: ev.title,
-    type: ev.type,
-    jobId: ev.jobId,
-    assignedToId: ev.assignedToId,
-    startsAt: ev.startsAt.toISOString(),
-    endsAt: ev.endsAt.toISOString(),
-  }));
+  const linkedJobIds = new Set(rows.flatMap((event) => event.jobId ? [event.jobId] : []));
+
+  const events = [
+    ...rows.map((ev) => ({
+      id: ev.id,
+      title: ev.title || ev.job?.title || "(untitled)",
+      customTitle: ev.title,
+      type: ev.type,
+      jobId: ev.jobId,
+      assignedToId: ev.assignedToId,
+      startsAt: ev.startsAt.toISOString(),
+      endsAt: ev.endsAt.toISOString(),
+      fallback: false,
+    })),
+    // Older or partially-created scheduled jobs may not have a JobEvent row.
+    // Show them directly from the Job schedule so a booking can never vanish.
+    ...scheduledJobs
+      .filter((job) => !linkedJobIds.has(job.id) && job.scheduledStart && job.scheduledEnd)
+      .map((job) => ({
+        id: `job-fallback:${job.id}`,
+        title: job.title,
+        customTitle: null,
+        type: "job",
+        jobId: job.id,
+        assignedToId: job.assignedToId,
+        startsAt: job.scheduledStart!.toISOString(),
+        endsAt: job.scheduledEnd!.toISOString(),
+        fallback: true,
+      })),
+  ];
 
   return (
     <CalendarView
