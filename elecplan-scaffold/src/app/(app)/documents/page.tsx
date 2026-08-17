@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAccess } from "@/lib/session";
+import { storageConfigured } from "@/lib/storage";
 import DocumentsView from "@/components/DocumentsView";
 
 export default async function DocumentsPage() {
@@ -28,6 +29,8 @@ export default async function DocumentsPage() {
       }))}
       jobs={jobs}
       canDelete={user.role !== "EMPLOYEE"}
+      storageReady={storageConfigured()}
+      canConfigureStorage={user.role === "ADMIN"}
     />
   );
 }
