@@ -275,21 +275,29 @@ model Timesheet {
 }
 
 model Document {
-  id         String   @id @default(cuid())
-  job        Job?     @relation(fields: [jobId], references: [id])
-  jobId      String?
-  name       String
-  fileUrl    String
-  type       String
-  uploadedAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  job          Job?     @relation(fields: [jobId], references: [id])
+  jobId        String?
+  name         String
+  fileUrl      String
+  type         String
+  storageKey   String?  @unique
+  originalName String?
+  contentType  String?
+  sizeBytes    Int?
+  uploadedAt   DateTime @default(now())
 }
 
 model ProjectPhoto {
-  id         String   @id @default(cuid())
-  job        Job      @relation(fields: [jobId], references: [id])
-  jobId      String
-  fileUrl    String
-  uploadedAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  job          Job      @relation(fields: [jobId], references: [id])
+  jobId        String
+  fileUrl      String
+  storageKey   String?  @unique
+  originalName String?
+  contentType  String?
+  sizeBytes    Int?
+  uploadedAt   DateTime @default(now())
 }
 
 model Reminder {
