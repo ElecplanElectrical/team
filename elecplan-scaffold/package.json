@@ -2,7 +2,7 @@
   "name": "elecplan-app",
   "version": "0.1.0",
   "private": true,
-   "engines": {
+  "engines": {
     "node": ">=20.9.0"
   },
   "scripts": {
@@ -14,9 +14,11 @@
     "db:up": "docker compose up -d",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
     "db:seed": "prisma db seed",
     "db:seed:owner": "tsx prisma/seed-owner.ts",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "deploy:check": "tsx scripts/deploy-check.ts && prisma migrate status"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
