@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 const schema = z.object({
   certNumber: z.string().trim().min(1).max(80),
@@ -25,6 +26,24 @@ export async function POST(req: Request) {
   }
 
   const data = parsed.data;
+  if (data.status !== "PENDING" && !data.issuedDate) {
+    return NextResponse.json({ error: "Issued and expiring certificates require an issued date" }, { status: 400 });
+  }
+
+  const [job, electrician] = await Promise.all([
+    prisma.job.findUnique({ where: { id: data.jobId }, select: { id: true } }),
+    prisma.user.findFirst({
+      where: { id: data.electricianId, active: true },
+      select: { id: true, licenseNumber: true },
+    }),
+  ]);
+
+  if (!job) return NextResponse.json({ error: "Linked job not found" }, { status: 404 });
+  if (!electrician) return NextResponse.json({ error: "Issuing electrician not found or inactive" }, { status: 400 });
+  if (!electrician.licenseNumber?.trim()) {
+    return NextResponse.json({ error: "Issuing electrician must have a licence number recorded" }, { status: 400 });
+  }
+
   try {
     const certificate = await prisma.certificate.create({
       data: {
@@ -36,6 +55,22 @@ export async function POST(req: Request) {
         status: data.status,
       },
     });
+
+    await recordAudit({
+      actor: user,
+      action: "CERTIFICATE_CREATED",
+      entityType: "Certificate",
+      entityId: certificate.id,
+      details: {
+        certNumber: certificate.certNumber,
+        type: certificate.type,
+        jobId: certificate.jobId,
+        electricianId: certificate.electricianId,
+        status: certificate.status,
+        issuedDate: certificate.issuedDate?.toISOString().slice(0, 10) ?? null,
+      },
+    });
+
     return NextResponse.json(certificate, { status: 201 });
   } catch {
     return NextResponse.json(
