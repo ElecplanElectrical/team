@@ -1,20 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { ShieldCheck, UserPlus, X } from "lucide-react";
 import type { Role } from "@prisma/client";
-import { COLORS, FONTS, ON_ACCENT } from "@/lib/theme";
 import { ROLE_TITLE } from "@/lib/nav";
 
-export default function InviteUserModal({
-  assignableRoles,
-  onClose,
-  onInvited,
-}: {
-  assignableRoles: Role[];
-  onClose: () => void;
-  onInvited: (info: { url: string; name: string }) => void;
-}) {
+const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72" };
+
+export default function InviteUserModal({ assignableRoles, onClose, onInvited }: { assignableRoles: Role[]; onClose: () => void; onInvited: (info: { url: string; name: string }) => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,154 +18,39 @@ export default function InviteUserModal({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!name.trim() || !email.trim()) {
-      setError("Name and email are required.");
-      return;
-    }
+    if (!name.trim() || !email.trim()) return setError("Name and email are required.");
     setSaving(true);
-    const res = await fetch("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim() || null,
-        role,
-      }),
-    });
+    const res = await fetch("/api/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim() || null, role }) });
     setSaving(false);
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      setError(body?.error ?? "Could not create the user. Check the details and try again.");
-      return;
-    }
+    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not create the user. Check the details and try again."); return; }
     const body = await res.json();
     onInvited({ url: body.inviteUrl, name: name.trim() });
   }
 
-  const fieldStyle: React.CSSProperties = {
-    background: COLORS.cardAlt,
-    border: `1px solid ${COLORS.border}`,
-    color: COLORS.text,
-  };
+  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.6)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-lg overflow-hidden"
-        style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: `1px solid ${COLORS.borderSoft}` }}
-        >
-          <h2
-            className="text-base font-semibold"
-            style={{ fontFamily: FONTS.display, color: COLORS.text }}
-          >
-            Invite team member
-          </h2>
-          <button type="button" aria-label="Close" onClick={onClose} style={{ color: COLORS.textMute }}>
-            <X size={18} />
-          </button>
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
+    <section className="w-full max-w-xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
+      <header className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><UserPlus size={18} /></span>
+        <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>Invite team member</h2><p className="mt-1 text-xs" style={{ color: UI.faint }}>Create their account and generate a one-time password setup link.</p></div>
+        <button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button>
+      </header>
+
+      <form onSubmit={submit} className="max-h-[82vh] overflow-auto p-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Full name" className="md:col-span-2"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Jordan Fielding" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} autoFocus /></Field>
+          <Field label="Email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@elecplan.com.au" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
+          <Field label="Phone"><input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="04xx xxx xxx" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
+          <Field label="Role"><select value={role} onChange={(e) => setRole(e.target.value as Role)} className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field}>{assignableRoles.map((assignableRole) => <option key={assignableRole} value={assignableRole}>{ROLE_TITLE[assignableRole]}</option>)}</select></Field>
         </div>
 
-        <form onSubmit={submit} className="p-5 flex flex-col gap-3">
-          <Field label="Full name">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Jordan Fielding"
-              className="w-full rounded-md px-3 py-2 text-sm outline-none"
-              style={fieldStyle}
-              autoFocus
-            />
-          </Field>
-
-          <Field label="Email">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@elecplan.com.au"
-              className="w-full rounded-md px-3 py-2 text-sm outline-none"
-              style={fieldStyle}
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Phone (optional)">
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+61 …"
-                className="w-full rounded-md px-3 py-2 text-sm outline-none"
-                style={fieldStyle}
-              />
-            </Field>
-            <Field label="Role">
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as Role)}
-                className="w-full rounded-md px-3 py-2 text-sm outline-none"
-                style={fieldStyle}
-              >
-                {assignableRoles.map((r) => (
-                  <option key={r} value={r} style={{ background: COLORS.cardAlt }}>
-                    {ROLE_TITLE[r]}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          {error && (
-            <p className="text-xs" style={{ color: COLORS.coral }}>
-              {error}
-            </p>
-          )}
-
-          <p className="text-xs" style={{ color: COLORS.textFaint }}>
-            Creates the account and generates a one-time link for them to set
-            their own password. You&apos;ll get the link to send them.
-          </p>
-
-          <div className="flex justify-end gap-2 mt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm font-medium"
-              style={{ background: COLORS.cardAlt, color: COLORS.textMute }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60"
-              style={{ background: COLORS.accent, color: ON_ACCENT }}
-            >
-              {saving ? "Creating…" : "Create & get link"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+        <div className="mt-4 flex gap-3 rounded-xl p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><ShieldCheck size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><p className="text-xs leading-5" style={{ color: UI.faint }}>The setup link is single-use and expires. You’ll copy it after the account is created and send it to the team member yourself.</p></div>
+        {error && <p className="mt-4 text-xs" style={{ color: UI.red }}>{error}</p>}
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving} className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Creating…" : "Create & get link"}</button></div>
+      </form>
+    </section>
+  </div>;
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium" style={{ color: COLORS.textMute }}>
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
+function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) { return <label className={`flex flex-col gap-1.5 ${className}`}><span className="text-xs font-medium" style={{ color: UI.mute }}>{label}</span>{children}</label>; }
