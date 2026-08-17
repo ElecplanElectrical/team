@@ -2,8 +2,9 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0a0d12;
-  --text: #edeff2;
+  --bg: #03101f;
+  --text: #f4f8ff;
+  --focus: #25c7ff;
 }
 
 html,
@@ -11,14 +12,79 @@ body {
   height: 100%;
 }
 
-body {
+html {
   background: var(--bg);
-  color: var(--text);
-  font-family: "Inter", sans-serif;
-  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
 }
 
-/* Interactive card hover — ported verbatim from the mockup FONT_IMPORT. */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+::selection {
+  background: rgba(37, 199, 255, 0.24);
+  color: #ffffff;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  transition:
+    opacity 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+button:not(:disabled):active,
+a:active {
+  transform: translateY(1px);
+}
+
+input,
+select,
+textarea {
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #617993;
+  opacity: 1;
+}
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: none;
+  border-color: rgba(37, 199, 255, 0.58) !important;
+  box-shadow: 0 0 0 3px rgba(37, 199, 255, 0.12);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
+/* Interactive card hover used across desktop surfaces. */
 .hover-glow {
   transition:
     border-color 0.2s ease,
@@ -39,25 +105,50 @@ body {
 .search-box {
   width: 320px;
 }
+
 @media (max-width: 767px) {
-  .side-panel {
-    width: 100%;
-  }
+  .side-panel,
   .search-box {
     width: 100%;
   }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
-/* Subtle dark scrollbars to match the theme. */
+/* Subtle dark scrollbars to match the portal shell. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #242a33 transparent;
+  scrollbar-color: #24415d transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
 *::-webkit-scrollbar-thumb {
-  background: #242a33;
-  border-radius: 8px;
+  background: #24415d;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #315776;
+  background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus2, MessageSquareText, X } from "lucide-react";
+import { AlertTriangle, CalendarPlus2, CheckCircle2, MessageSquareText, X } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { EVENT_TYPES } from "@/lib/theme";
 
-const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72" };
+const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", green: "#18d3a0", red: "#ff5e72" };
 
 export default function NewEventModal({
   jobs,
@@ -34,42 +34,56 @@ export default function NewEventModal({
   const [end, setEnd] = useState("10:00");
   const [assignedToId, setAssignedToId] = useState(crewOnly ? currentUserId : "");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function save(sendConfirmation: boolean) {
     if (saving) return;
     setError(null);
+    setNotice(null);
     const startsAt = new Date(`${date}T${start}:00`);
     const endsAt = new Date(`${date}T${end}:00`);
     if (!(endsAt > startsAt)) return setError("End time must be after start time.");
     if (sendConfirmation && (!jobId || type !== "job")) return setError("Select a linked job before sending a client confirmation.");
 
     setSaving(true);
-    const res = await fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title || null, type, jobId: crewOnly ? null : jobId || null, assignedToId: crewOnly ? currentUserId : assignedToId || null, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() }) });
-    if (!res.ok) { setSaving(false); const body = await res.json().catch(() => null); setError(body?.error ?? "Could not create the event. Check the details and try again."); return; }
-
-    if (sendConfirmation && jobId) {
-      const textRes = await fetch(`/api/jobs/${jobId}/confirmation`, { method: "POST" });
-      if (!textRes.ok) {
-        const body = await textRes.json().catch(() => null);
-        window.alert(`Event created, but the client text was not sent. ${body?.error ?? "Check SMS configuration and the client phone number."}`);
-      } else {
-        window.alert("Event created and client confirmation text sent.");
+    try {
+      const res = await fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title || null, type, jobId: crewOnly ? null : jobId || null, assignedToId: crewOnly ? currentUserId : assignedToId || null, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() }) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Could not create the event. Check the details and try again.");
+        return;
       }
-    }
 
-    setSaving(false);
-    onDone();
+      if (sendConfirmation && jobId) {
+        const textRes = await fetch(`/api/jobs/${jobId}/confirmation`, { method: "POST" });
+        if (!textRes.ok) {
+          const body = await textRes.json().catch(() => null);
+          setNotice(`Event created, but the client text was not sent. ${body?.error ?? "Check SMS settings and the client phone number."}`);
+          onDone();
+          return;
+        }
+        setNotice("Event created and the client confirmation text was sent.");
+        onDone();
+        return;
+      }
+
+      onDone();
+    } catch {
+      setError("Could not reach Elecplan. Check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
   const canTextClient = !crewOnly && type === "job" && Boolean(jobId);
 
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
-    <section className="w-full max-w-xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose} role="presentation">
+    <section className="w-full max-w-xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="new-event-title">
       <header className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}>
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><CalendarPlus2 size={18} /></span>
-        <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>New calendar event</h2><p className="mt-1 text-xs leading-5" style={{ color: UI.faint }}>{crewOnly ? "Add a personal calendar item. Job scheduling stays with admins and supervisors." : "Create a job-linked or general team event."}</p></div>
+        <div className="min-w-0 flex-1"><h2 id="new-event-title" className="text-base font-semibold" style={{ color: UI.text }}>New calendar event</h2><p className="mt-1 text-xs leading-5" style={{ color: UI.faint }}>{crewOnly ? "Add a personal calendar item. Job scheduling stays with admins and supervisors." : "Create a job-linked or general team event."}</p></div>
         <button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button>
       </header>
 
@@ -85,7 +99,8 @@ export default function NewEventModal({
         </div>
 
         {canTextClient && <div className="mt-4 rounded-xl p-3 text-xs leading-5" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}`, color: UI.faint }}>Client SMS remains manual. “Create & text client” creates the event first, then sends one confirmation to the linked job’s client mobile.</div>}
-        {error && <p className="mt-4 text-xs" style={{ color: UI.red }}>{error}</p>}
+        {notice && <div className="mt-4 flex gap-2 rounded-lg p-3 text-xs leading-5" style={{ background: "rgba(25,211,160,.08)", border: "1px solid rgba(25,211,160,.22)", color: UI.green }}><CheckCircle2 size={14} className="mt-0.5 shrink-0" /><span>{notice}</span></div>}
+        {error && <div className="mt-4 flex gap-2 rounded-lg p-3 text-xs leading-5" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} className="mt-0.5 shrink-0" /><span>{error}</span></div>}
 
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
           <button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button>
