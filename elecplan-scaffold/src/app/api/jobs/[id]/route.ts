@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 const updateSchema = z.object({
   status: z.enum(["QUOTED", "SCHEDULED", "IN_PROGRESS", "COMPLETE", "INVOICED"]).optional(),
@@ -49,7 +50,19 @@ export async function PATCH(
   }
 
   const { id } = await context.params;
-  const current = await prisma.job.findUnique({ where: { id }, select: { id: true } });
+  const current = await prisma.job.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      address: true,
+      status: true,
+      assignedToId: true,
+      scheduledStart: true,
+      scheduledEnd: true,
+      notes: true,
+    },
+  });
   if (!current) return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
   if (d.assignedToId) {
@@ -125,6 +138,27 @@ export async function PATCH(
       }
 
       return updated;
+    });
+
+    const changedFields = Object.keys(d);
+    await recordAudit({
+      actor: user,
+      action: "JOB_UPDATED",
+      entityType: "Job",
+      entityId: job.id,
+      details: {
+        changedFields,
+        statusFrom: d.status !== undefined ? current.status : undefined,
+        statusTo: d.status !== undefined ? job.status : undefined,
+        assignedToIdFrom: d.assignedToId !== undefined ? current.assignedToId : undefined,
+        assignedToIdTo: d.assignedToId !== undefined ? job.assignedToId : undefined,
+        scheduleChanged,
+        scheduledStart: scheduleChanged ? job.scheduledStart?.toISOString() ?? null : undefined,
+        scheduledEnd: scheduleChanged ? job.scheduledEnd?.toISOString() ?? null : undefined,
+        titleChanged: d.title !== undefined && current.title !== job.title,
+        addressChanged: d.address !== undefined && current.address !== job.address,
+        notesChanged: d.notes !== undefined && current.notes !== job.notes,
+      },
     });
 
     return NextResponse.json(job);
