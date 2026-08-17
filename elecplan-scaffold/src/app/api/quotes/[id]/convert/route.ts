@@ -62,7 +62,12 @@ export async function POST(
       });
 
       if (quote.jobId) {
-        await tx.job.update({ where: { id: quote.jobId }, data: { status: "INVOICED" } });
+        // Invoicing must not make scheduled or in-progress work disappear from operations.
+        // Only promote an already-complete job to the terminal invoiced state.
+        await tx.job.updateMany({
+          where: { id: quote.jobId, status: "COMPLETE" },
+          data: { status: "INVOICED" },
+        });
       }
       return created;
     });
