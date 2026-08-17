@@ -3,7 +3,7 @@ import { requireAccess } from "@/lib/session";
 import DocumentsView from "@/components/DocumentsView";
 
 export default async function DocumentsPage() {
-  await requireAccess("documents");
+  const user = await requireAccess("documents");
 
   const [documents, jobs] = await Promise.all([
     prisma.document.findMany({
@@ -27,6 +27,7 @@ export default async function DocumentsPage() {
         uploadedAt: doc.uploadedAt.toISOString(),
       }))}
       jobs={jobs}
+      canDelete={user.role !== "EMPLOYEE"}
     />
   );
 }
