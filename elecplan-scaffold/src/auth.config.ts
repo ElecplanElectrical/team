@@ -12,6 +12,7 @@ export const authConfig = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 12 * 60 * 60,
   },
   providers: [],
   callbacks: {
@@ -24,8 +25,6 @@ export const authConfig = {
     },
     session({ session, token }) {
       if (session.user) {
-        // token is Record<string, unknown> (see src/types/next-auth.d.ts note);
-        // these keys are set in the jwt() callback above.
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
       }
