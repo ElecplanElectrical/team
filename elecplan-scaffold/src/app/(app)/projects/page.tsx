@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAccess } from "@/lib/session";
+import { storageConfigured } from "@/lib/storage";
 import ProjectsView from "@/components/ProjectsView";
 
 export default async function ProjectsPage() {
@@ -9,5 +10,5 @@ export default async function ProjectsPage() {
     prisma.job.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, title: true } }),
   ]);
 
-  return <ProjectsView photos={photos.map((photo) => ({ id: photo.id, fileUrl: photo.fileUrl, uploadedAt: photo.uploadedAt.toISOString(), job: photo.job.title, address: photo.job.address, client: photo.job.client.name }))} jobs={jobs} canDelete={user.role !== "EMPLOYEE"} />;
+  return <ProjectsView photos={photos.map((photo) => ({ id: photo.id, fileUrl: photo.fileUrl, uploadedAt: photo.uploadedAt.toISOString(), job: photo.job.title, address: photo.job.address, client: photo.job.client.name }))} jobs={jobs} canDelete={user.role !== "EMPLOYEE"} storageReady={storageConfigured()} canConfigureStorage={user.role === "ADMIN"} />;
 }
