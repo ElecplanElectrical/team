@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { MessageSquareText, X } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { COLORS, FONTS, ON_ACCENT, EVENT_TYPES } from "@/lib/theme";
 
@@ -18,7 +18,7 @@ export default function NewEventModal({
   employees: { id: string; name: string }[];
   role: Role;
   currentUserId: string;
-  defaultDate: string; // YYYY-MM-DD
+  defaultDate: string;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -34,8 +34,8 @@ export default function NewEventModal({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function save(sendConfirmation: boolean) {
+    if (saving) return;
     setError(null);
     const startsAt = new Date(`${date}T${start}:00`);
     const endsAt = new Date(`${date}T${end}:00`);
@@ -43,6 +43,11 @@ export default function NewEventModal({
       setError("End time must be after start time.");
       return;
     }
+    if (sendConfirmation && (!jobId || type !== "job")) {
+      setError("Select a linked job before sending a client confirmation.");
+      return;
+    }
+
     setSaving(true);
     const res = await fetch("/api/events", {
       method: "POST",
@@ -56,11 +61,24 @@ export default function NewEventModal({
         endsAt: endsAt.toISOString(),
       }),
     });
-    setSaving(false);
+
     if (!res.ok) {
+      setSaving(false);
       setError("Could not create the event. Check the details and try again.");
       return;
     }
+
+    if (sendConfirmation && jobId) {
+      const textRes = await fetch(`/api/jobs/${jobId}/confirmation`, { method: "POST" });
+      if (!textRes.ok) {
+        const body = await textRes.json().catch(() => null);
+        window.alert(`Event created, but the client text was not sent. ${body?.error ?? "Check SMS configuration and the client phone number."}`);
+      } else {
+        window.alert("Event created and client confirmation text sent.");
+      }
+    }
+
+    setSaving(false);
     onDone();
   }
 
@@ -69,6 +87,8 @@ export default function NewEventModal({
     border: `1px solid ${COLORS.border}`,
     color: COLORS.text,
   };
+
+  const canTextClient = role !== "EMPLOYEE" && type === "job" && Boolean(jobId);
 
   return (
     <div
@@ -85,135 +105,79 @@ export default function NewEventModal({
           className="flex items-center justify-between px-5 py-4"
           style={{ borderBottom: `1px solid ${COLORS.borderSoft}` }}
         >
-          <h2
-            className="text-base font-semibold"
-            style={{ fontFamily: FONTS.display, color: COLORS.text }}
-          >
+          <h2 className="text-base font-semibold" style={{ fontFamily: FONTS.display, color: COLORS.text }}>
             New event
           </h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            style={{ color: COLORS.textMute }}
-          >
+          <button type="button" aria-label="Close" onClick={onClose} style={{ color: COLORS.textMute }}>
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={submit} className="p-5 flex flex-col gap-3">
+        <form onSubmit={(e) => { e.preventDefault(); void save(false); }} className="p-5 flex flex-col gap-3">
           <Field label="Title (optional)">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Switchboard site visit"
-              className="w-full rounded-md px-3 py-2 text-sm outline-none"
-              style={fieldStyle}
-            />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Switchboard site visit" className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Type">
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                className="w-full rounded-md px-3 py-2 text-sm outline-none capitalize"
-                style={fieldStyle}
-              >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
+              <select value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none capitalize" style={fieldStyle}>
+                {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </Field>
             <Field label="Job (optional)">
-              <select
-                value={jobId}
-                onChange={(e) => setJobId(e.target.value)}
-                className="w-full rounded-md px-3 py-2 text-sm outline-none"
-                style={fieldStyle}
-              >
+              <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle}>
                 <option value="">— none —</option>
-                {jobs.map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {j.title}
-                  </option>
-                ))}
+                {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
               </select>
             </Field>
           </div>
 
           <Field label="Date">
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-md px-3 py-2 text-sm outline-none"
-              style={fieldStyle}
-            />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Start">
-              <input
-                type="time"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-                className="w-full rounded-md px-3 py-2 text-sm outline-none"
-                style={fieldStyle}
-              />
+              <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
             </Field>
             <Field label="End">
-              <input
-                type="time"
-                value={end}
-                onChange={(e) => setEnd(e.target.value)}
-                className="w-full rounded-md px-3 py-2 text-sm outline-none"
-                style={fieldStyle}
-              />
+              <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
             </Field>
           </div>
 
           {role !== "EMPLOYEE" && (
             <Field label="Assign to (optional)">
-              <select
-                value={assignedToId}
-                onChange={(e) => setAssignedToId(e.target.value)}
-                className="w-full rounded-md px-3 py-2 text-sm outline-none"
-                style={fieldStyle}
-              >
+              <select value={assignedToId} onChange={(e) => setAssignedToId(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle}>
                 <option value="">— unassigned —</option>
-                {employees.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
+                {employees.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </Field>
           )}
 
-          {error && (
-            <p className="text-xs" style={{ color: COLORS.coral }}>
-              {error}
+          {canTextClient && (
+            <p className="text-[11px]" style={{ color: COLORS.textFaint }}>
+              Client texts are always manual. “Create & text client” sends one confirmation using the linked job’s client phone number.
             </p>
           )}
 
-          <div className="flex justify-end gap-2 mt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm font-medium"
-              style={{ background: COLORS.cardAlt, color: COLORS.textMute }}
-            >
+          {error && <p className="text-xs" style={{ color: COLORS.coral }}>{error}</p>}
+
+          <div className="flex justify-end gap-2 mt-1 flex-wrap">
+            <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium" style={{ background: COLORS.cardAlt, color: COLORS.textMute }}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60"
-              style={{ background: COLORS.accent, color: ON_ACCENT }}
-            >
+            {canTextClient && (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void save(true)}
+                className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60 flex items-center gap-1.5"
+                style={{ border: `1px solid ${COLORS.accent}`, color: COLORS.accent }}
+              >
+                <MessageSquareText size={14} /> Create & text client
+              </button>
+            )}
+            <button type="submit" disabled={saving} className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60" style={{ background: COLORS.accent, color: ON_ACCENT }}>
               {saving ? "Saving…" : "Create event"}
             </button>
           </div>
@@ -223,18 +187,10 @@ export default function NewEventModal({
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium" style={{ color: COLORS.textMute }}>
-        {label}
-      </span>
+      <span className="text-xs font-medium" style={{ color: COLORS.textMute }}>{label}</span>
       {children}
     </label>
   );

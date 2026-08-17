@@ -31,21 +31,45 @@ export async function POST(req: Request) {
   }
   const data = parsed.data;
 
-  // Employees may only schedule events for themselves.
   const assignedToId =
     user.role === "EMPLOYEE" ? user.id : data.assignedToId ?? null;
+  const startsAt = new Date(data.startsAt);
+  const endsAt = new Date(data.endsAt);
 
   try {
-    const event = await prisma.jobEvent.create({
-      data: {
-        title: data.title?.trim() || null,
-        type: data.type,
-        jobId: data.jobId ?? null,
-        assignedToId,
-        startsAt: new Date(data.startsAt),
-        endsAt: new Date(data.endsAt),
-      },
+    const event = await prisma.$transaction(async (tx) => {
+      const created = await tx.jobEvent.create({
+        data: {
+          title: data.title?.trim() || null,
+          type: data.type,
+          jobId: data.jobId ?? null,
+          assignedToId,
+          startsAt,
+          endsAt,
+        },
+      });
+
+      if (data.type === "job" && data.jobId) {
+        const existing = await tx.job.findUnique({
+          where: { id: data.jobId },
+          select: { status: true },
+        });
+        if (!existing) throw new Error("JOB_NOT_FOUND");
+
+        await tx.job.update({
+          where: { id: data.jobId },
+          data: {
+            scheduledStart: startsAt,
+            scheduledEnd: endsAt,
+            assignedToId,
+            ...(existing.status === "QUOTED" ? { status: "SCHEDULED" as const } : {}),
+          },
+        });
+      }
+
+      return created;
     });
+
     return NextResponse.json(event, { status: 201 });
   } catch {
     return NextResponse.json(
