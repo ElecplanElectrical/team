@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock3, Plus, Search, X } from "lucide-react";
+import { AlertTriangle, Clock3, Plus, Search, X } from "lucide-react";
 import type { Role } from "@prisma/client";
 import TopBar from "@/components/TopBar";
 
@@ -23,11 +23,21 @@ export default function TimesheetsView({ entries, role }: { entries: TimesheetRo
   const filtered = useMemo(() => { const needle = query.trim().toLowerCase(); return needle ? entries.filter((entry) => entry.userName.toLowerCase().includes(needle)) : entries; }, [entries, query]);
 
   async function approve(id: string, status: "PENDING" | "APPROVED") {
-    setBusy(id); setError(null);
-    const res = await fetch(`/api/timesheets/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
-    setBusy(null);
-    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not update timesheet."); return; }
-    router.refresh();
+    setBusy(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/timesheets/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Could not update timesheet.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Could not reach Elecplan. Check your connection and try again.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
@@ -36,7 +46,7 @@ export default function TimesheetsView({ entries, role }: { entries: TimesheetRo
     <TopBar title="Timesheets" subtitle="Track submitted and approved hours" rightSlot={<button type="button" onClick={() => setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={16} /> Add hours</button>} />
     <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}><div className="mx-auto w-full max-w-[1700px] space-y-3">
       <div className="grid gap-3 sm:grid-cols-4"><Metric label="Entries" value={String(entries.length)} /><Metric label="Hours" value={totalHours.toFixed(1)} /><Metric label="Pending" value={String(pending.length)} accent={pending.length ? UI.orange : undefined} /><Metric label="Approved" value={String(approved.length)} /></div>
-      {error && <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{error}</div>}
+      {error && <div role="alert" className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}><AlertTriangle size={15} />{error}</div>}
       <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search timesheets…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={field} /></div></div><div className="hidden grid-cols-[minmax(240px,1.4fr)_150px_120px_150px] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Employee</span><span>Date</span><span>Hours</span><span>Status</span></div>{filtered.map((entry) => <div key={entry.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[minmax(240px,1.4fr)_150px_120px_150px] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><Clock3 size={16} /></span><span className="text-sm font-semibold" style={{ color: UI.text }}>{entry.userName}</span></div><span className="text-xs" style={{ color: UI.mute }}>{new Date(entry.date).toLocaleDateString("en-AU")}</span><span className="text-sm font-semibold" style={{ color: UI.text }}>{entry.hours.toFixed(1)}h</span>{role === "EMPLOYEE" ? <span className="inline-flex w-fit rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: entry.status === "APPROVED" ? "rgba(25,211,162,.10)" : "rgba(255,159,28,.10)", color: entry.status === "APPROVED" ? UI.green : UI.orange, border: `1px solid ${entry.status === "APPROVED" ? "rgba(25,211,162,.24)" : "rgba(255,159,28,.24)"}` }}>{entry.status === "APPROVED" ? "Approved" : "Pending"}</span> : <select aria-label={`Update ${entry.userName} timesheet status`} value={entry.status} disabled={busy === entry.id} onChange={(e) => void approve(entry.id, e.target.value as "PENDING" | "APPROVED")} className="rounded-lg px-2.5 py-2 text-xs outline-none disabled:opacity-60" style={field}><option value="PENDING">Pending</option><option value="APPROVED">Approved</option></select>}</div>)}{filtered.length === 0 && <div className="px-5 py-14 text-center text-sm" style={{ color: UI.faint }}>No timesheets match your search.</div>}<div className="px-4 py-3 text-[11px]" style={{ color: UI.faint }}>Showing {filtered.length} of {entries.length} entries</div></section>
     </div></div>
     {showNew && <NewTimesheet onClose={() => setShowNew(false)} onDone={() => { setShowNew(false); router.refresh(); }} />}
@@ -44,9 +54,32 @@ export default function TimesheetsView({ entries, role }: { entries: TimesheetRo
 }
 
 function NewTimesheet({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [date, setDate] = useState(""); const [hours, setHours] = useState("8"); const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null); const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
-  async function submit(e: React.FormEvent) { e.preventDefault(); setSaving(true); setError(null); const res = await fetch("/api/timesheets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ date: new Date(`${date}T12:00:00`).toISOString(), hours: Number(hours) }) }); setSaving(false); if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not add hours."); return; } onDone(); }
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}><div className="w-full max-w-md rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }} onClick={(e) => e.stopPropagation()}><div className="flex justify-between border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}><h2 className="font-semibold" style={{ color: UI.text }}>Add timesheet</h2><button type="button" onClick={onClose} style={{ color: UI.mute }}><X size={18} /></button></div><form onSubmit={submit} className="flex flex-col gap-3 p-5"><label className="flex flex-col gap-1.5"><span className="text-xs" style={{ color: UI.mute }}>Date</span><input required type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm" style={field} /></label><label className="flex flex-col gap-1.5"><span className="text-xs" style={{ color: UI.mute }}>Hours</span><input required type="number" min="0.25" max="24" step="0.25" value={hours} onChange={(e) => setHours(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm" style={field} /></label>{error && <p className="text-xs" style={{ color: UI.red }}>{error}</p>}<div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm" style={{ background: UI.panelAlt, color: UI.mute }}>Cancel</button><button type="submit" disabled={saving} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Submit hours"}</button></div></form></div></div>;
+  const [date, setDate] = useState("");
+  const [hours, setHours] = useState("8");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/timesheets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ date: new Date(`${date}T12:00:00`).toISOString(), hours: Number(hours) }) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Could not add hours.");
+        return;
+      }
+      onDone();
+    } catch {
+      setError("Could not reach Elecplan. Check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose} role="presentation"><section className="w-full max-w-md overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="new-timesheet-title"><div className="flex items-start justify-between border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}><div><h2 id="new-timesheet-title" className="font-semibold" style={{ color: UI.text }}>Add timesheet</h2><p className="mt-1 text-xs" style={{ color: UI.faint }}>Submit the hours worked for a day.</p></div><button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button></div><form onSubmit={submit} className="flex flex-col gap-3 p-5" aria-busy={saving}><label className="flex flex-col gap-1.5"><span className="text-xs" style={{ color: UI.mute }}>Date</span><input required type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} autoFocus /></label><label className="flex flex-col gap-1.5"><span className="text-xs" style={{ color: UI.mute }}>Hours</span><input required type="number" inputMode="decimal" min="0.25" max="24" step="0.25" value={hours} onChange={(e) => setHours(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} /></label>{error && <div role="alert" className="flex gap-2 rounded-lg p-3 text-xs leading-5" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} className="mt-0.5 shrink-0" /><span>{error}</span></div>}<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Submit hours"}</button></div></form></section></div>;
 }
 
 function Metric({ label, value, accent }: { label: string; value: string; accent?: string }) { return <div className="rounded-xl p-4" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="text-[11px]" style={{ color: UI.faint }}>{label}</div><div className="mt-1 text-xl font-semibold" style={{ color: accent ?? UI.text }}>{value}</div></div>; }
