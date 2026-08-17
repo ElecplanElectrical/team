@@ -1,51 +1,44 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { recentAuditRows } from "@/lib/audit";
-import { COLORS } from "@/lib/theme";
+import TopBar from "@/components/TopBar";
+
+const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", cyan: "#25c7ff" };
 
 function detailSummary(value: unknown): string {
   if (!value || typeof value !== "object") return "";
-  const pairs = Object.entries(value as Record<string, unknown>)
+  return Object.entries(value as Record<string, unknown>)
     .filter(([, v]) => v !== null && v !== undefined && typeof v !== "object")
     .slice(0, 4)
-    .map(([key, val]) => `${key}: ${String(val)}`);
-  return pairs.join(" · ");
+    .map(([key, val]) => `${key}: ${String(val)}`)
+    .join(" · ");
 }
 
 export default async function AuditPage() {
   const user = await requireUser();
   if (user.role !== "ADMIN") notFound();
-
   const rows = await recentAuditRows(200);
+  const actors = new Set(rows.map((row) => row.actorEmail ?? row.actorId ?? "System")).size;
+  const actions = new Set(rows.map((row) => row.action)).size;
 
-  return (
-    <div className="flex-1 overflow-auto p-4 md:p-8">
-      <div className="max-w-6xl mx-auto flex flex-col gap-5">
-        <div>
-          <Link href="/settings" className="text-xs font-semibold" style={{ color: COLORS.accent }}>← Settings & security</Link>
-          <h1 className="text-2xl font-semibold mt-2" style={{ color: COLORS.text }}>Audit log</h1>
-          <p className="text-sm mt-1" style={{ color: COLORS.textMute }}>
-            Recent security-sensitive actions. Secret values and message bodies are intentionally excluded.
-          </p>
-        </div>
-
-        <div className="rounded-lg overflow-hidden" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}>
-          <div className="hidden md:grid grid-cols-[170px_180px_170px_150px_1fr] gap-3 px-4 py-2.5 text-xs font-semibold" style={{ color: COLORS.textFaint, borderBottom: `1px solid ${COLORS.borderSoft}` }}>
-            <span>TIME</span><span>ACTOR</span><span>ACTION</span><span>ENTITY</span><span>DETAILS</span>
-          </div>
-          {rows.map((row, index) => (
-            <div key={row.id} className="grid grid-cols-1 md:grid-cols-[170px_180px_170px_150px_1fr] gap-1 md:gap-3 px-4 py-3 text-xs" style={{ borderTop: index === 0 ? "none" : `1px solid ${COLORS.borderSoft}` }}>
-              <span style={{ color: COLORS.textMute }}>{row.createdAt.toLocaleString("en-AU", { timeZone: "Australia/Melbourne" })}</span>
-              <span className="truncate" style={{ color: COLORS.text }}>{row.actorEmail ?? row.actorId ?? "System"}</span>
-              <span className="font-semibold" style={{ color: COLORS.text }}>{row.action}</span>
-              <span className="truncate" style={{ color: COLORS.textMute }}>{row.entityType}{row.entityId ? ` · ${row.entityId}` : ""}</span>
-              <span className="truncate" style={{ color: COLORS.textFaint }}>{detailSummary(row.details) || "—"}</span>
-            </div>
-          ))}
-          {rows.length === 0 && <div className="px-4 py-10 text-center text-sm" style={{ color: COLORS.textFaint }}>No audit events recorded yet.</div>}
-        </div>
+  return <>
+    <TopBar title="Security audit" subtitle="Recent sensitive portal activity · admin only" />
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+      <div className="mx-auto w-full max-w-[1700px] space-y-3">
+        <Link href="/settings" className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: UI.cyan }}><ArrowLeft size={13} /> Back to Settings</Link>
+        <div className="grid gap-3 sm:grid-cols-3"><Metric label="Recent events" value={String(rows.length)} /><Metric label="Actors" value={String(actors)} /><Metric label="Action types" value={String(actions)} /></div>
+        <div className="rounded-xl px-4 py-3 text-xs leading-5" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}><span className="mr-2 inline-flex align-middle" style={{ color: UI.cyan }}><ShieldCheck size={15} /></span>Secret values and message bodies are intentionally excluded from audit metadata.</div>
+        <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
+          <div className="hidden grid-cols-[170px_minmax(180px,1fr)_190px_180px_minmax(220px,1.3fr)] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ color: UI.faint, borderColor: UI.borderSoft }}><span>Time</span><span>Actor</span><span>Action</span><span>Entity</span><span>Details</span></div>
+          {rows.map((row) => <div key={row.id} className="grid grid-cols-1 gap-2 border-b px-4 py-4 text-xs md:grid-cols-[170px_minmax(180px,1fr)_190px_180px_minmax(220px,1.3fr)] md:gap-4" style={{ borderColor: UI.borderSoft }}><span style={{ color: UI.mute }}>{row.createdAt.toLocaleString("en-AU", { timeZone: "Australia/Melbourne" })}</span><span className="truncate" style={{ color: UI.text }}>{row.actorEmail ?? row.actorId ?? "System"}</span><span className="font-semibold" style={{ color: UI.cyan }}>{row.action}</span><span className="truncate" style={{ color: UI.mute }}>{row.entityType}{row.entityId ? ` · ${row.entityId}` : ""}</span><span className="truncate" style={{ color: UI.faint }}>{detailSummary(row.details) || "—"}</span></div>)}
+          {rows.length === 0 && <div className="px-4 py-14 text-center text-sm" style={{ color: UI.faint }}>No audit events recorded yet.</div>}
+          <div className="px-4 py-3 text-[11px]" style={{ color: UI.faint }}>Showing the most recent {rows.length} audit events</div>
+        </section>
       </div>
     </div>
-  );
+  </>;
 }
+
+function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl p-4" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="text-[11px]" style={{ color: UI.faint }}>{label}</div><div className="mt-1 text-xl font-semibold" style={{ color: UI.text }}>{value}</div></div>; }
