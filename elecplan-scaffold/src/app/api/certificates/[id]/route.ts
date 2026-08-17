@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 const schema = z.object({
   status: z.enum(["PENDING", "ISSUED", "EXPIRING"]),
@@ -23,11 +24,49 @@ export async function PATCH(
   }
 
   const { id } = await params;
+  const before = await prisma.certificate.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      certNumber: true,
+      status: true,
+      issuedDate: true,
+      jobId: true,
+      electricianId: true,
+    },
+  });
+  if (!before) return NextResponse.json({ error: "Certificate not found" }, { status: 404 });
+
+  if (parsed.data.status !== "PENDING" && !before.issuedDate) {
+    return NextResponse.json(
+      { error: "Add an issued date before marking this certificate as issued or expiring" },
+      { status: 409 },
+    );
+  }
+
   try {
     const certificate = await prisma.certificate.update({
       where: { id },
       data: { status: parsed.data.status },
     });
+
+    if (before.status !== certificate.status) {
+      await recordAudit({
+        actor: user,
+        action: "CERTIFICATE_STATUS_CHANGED",
+        entityType: "Certificate",
+        entityId: certificate.id,
+        details: {
+          certNumber: before.certNumber,
+          jobId: before.jobId,
+          electricianId: before.electricianId,
+          from: before.status,
+          to: certificate.status,
+          issuedDate: before.issuedDate?.toISOString().slice(0, 10) ?? null,
+        },
+      });
+    }
+
     return NextResponse.json(certificate);
   } catch {
     return NextResponse.json({ error: "Certificate not found" }, { status: 404 });
