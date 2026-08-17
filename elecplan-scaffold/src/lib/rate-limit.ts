@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 
 type BucketRow = {
@@ -9,7 +10,12 @@ export type RateLimitResult = {
   allowed: boolean;
   remaining: number;
   retryAfterSeconds: number;
+  justBlocked: boolean;
 };
+
+export function rateLimitIdentity(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
 
 export async function consumeRateLimit(
   key: string,
@@ -39,14 +45,25 @@ export async function consumeRateLimit(
 
   const bucket = rows[0];
   if (!bucket) {
-    return { allowed: false, remaining: 0, retryAfterSeconds: Math.ceil(windowMs / 1000) };
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfterSeconds: Math.ceil(windowMs / 1000),
+      justBlocked: true,
+    };
   }
 
   return {
     allowed: bucket.count <= limit,
     remaining: Math.max(0, limit - bucket.count),
     retryAfterSeconds: Math.max(1, Math.ceil((bucket.expiresAt.getTime() - now.getTime()) / 1000)),
+    justBlocked: bucket.count === limit + 1,
   };
+}
+
+export async function clearRateLimits(keys: string[]): Promise<void> {
+  if (keys.length === 0) return;
+  await prisma.rateLimitBucket.deleteMany({ where: { key: { in: keys } } });
 }
 
 export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
