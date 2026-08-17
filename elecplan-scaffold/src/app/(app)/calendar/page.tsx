@@ -18,7 +18,6 @@ export default async function CalendarPage({
   const where: Prisma.JobEventWhereInput = {
     startsAt: { gte: start, lt: end },
   };
-  // Crew members only see their own schedule.
   if (user.role === "EMPLOYEE") where.assignedToId = user.id;
 
   const [rows, jobs, employees] = await Promise.all([
@@ -29,12 +28,13 @@ export default async function CalendarPage({
     }),
     prisma.job.findMany({
       where: user.role === "EMPLOYEE" ? { assignedToId: user.id } : {},
-      select: { id: true, title: true },
+      select: { id: true, title: true, client: { select: { name: true } } },
       orderBy: { title: "asc" },
     }),
     user.role === "EMPLOYEE"
       ? Promise.resolve([])
       : prisma.user.findMany({
+          where: { active: true },
           select: { id: true, name: true },
           orderBy: { name: "asc" },
         }),
@@ -55,7 +55,7 @@ export default async function CalendarPage({
     <CalendarView
       weekStart={weekKey(start)}
       events={events}
-      jobs={jobs}
+      jobs={jobs.map((job) => ({ id: job.id, title: job.title, client: job.client.name }))}
       employees={employees}
       role={user.role}
       currentUserId={user.id}
