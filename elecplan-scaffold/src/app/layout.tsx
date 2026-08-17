@@ -1,9 +1,25 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import PwaRegister from "@/components/PwaRegister";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Elecplan",
   description: "Elecplan job management portal",
+  applicationName: "Elecplan Team",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/elecplan-app-icon.svg",
+    apple: "/elecplan-app-icon.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Elecplan",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#07131f",
 };
 
 export default function RootLayout({
@@ -13,7 +29,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        <PwaRegister />
+      </body>
     </html>
   );
 }
