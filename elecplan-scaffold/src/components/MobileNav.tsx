@@ -7,15 +7,13 @@ import { Bell, Menu, X } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { SCREEN_PATH } from "@/lib/access";
 import { navGroupsFor } from "@/lib/nav";
+import { LOGO_WORDMARK } from "@/lib/logo";
 
 const UI = {
   bg: "rgba(2,14,27,.97)",
   panel: "#07192b",
   border: "rgba(73,145,214,.22)",
-  text: "#f4f8ff",
   mute: "#93a8c1",
-  blue: "#168dff",
-  cyan: "#25c7ff",
 };
 
 export default function MobileNav({ role }: { role: Role }) {
@@ -29,8 +27,9 @@ export default function MobileNav({ role }: { role: Role }) {
         <button type="button" onClick={() => setOpen(true)} aria-label="Open navigation" className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}>
           <Menu size={18} />
         </button>
-        <Link href="/dashboard" className="text-lg font-semibold tracking-[-0.05em]" style={{ color: UI.text }}>
-          <span style={{ color: UI.cyan }}>elec</span>plan
+        <Link href="/dashboard" aria-label="Elecplan dashboard" className="flex h-9 items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: 112, height: "auto", objectFit: "contain", display: "block" }} />
         </Link>
         <button type="button" aria-label="Notifications" className="relative flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}>
           <Bell size={16} />
@@ -43,7 +42,8 @@ export default function MobileNav({ role }: { role: Role }) {
           <button type="button" aria-label="Close navigation overlay" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <aside className="absolute inset-y-0 left-0 w-[82%] max-w-[320px] overflow-y-auto p-4 shadow-2xl" style={{ background: "linear-gradient(180deg,#02101f,#031321)", borderRight: `1px solid ${UI.border}` }}>
             <div className="mb-6 flex items-center justify-between">
-              <span className="text-xl font-semibold tracking-[-0.05em]" style={{ color: UI.text }}><span style={{ color: UI.cyan }}>elec</span>plan</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: 126, height: "auto", objectFit: "contain", display: "block" }} />
               <button type="button" onClick={() => setOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}><X size={17} /></button>
             </div>
             <nav className="space-y-5">
@@ -56,8 +56,8 @@ export default function MobileNav({ role }: { role: Role }) {
                       const active = pathname === href || pathname.startsWith(href + "/");
                       const Icon = item.icon;
                       return (
-                        <Link key={item.screen} href={href} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" style={{ background: active ? "linear-gradient(90deg,rgba(17,112,255,.58),rgba(19,93,205,.18))" : "transparent", color: active ? UI.text : UI.mute }}>
-                          <Icon size={17} style={{ color: active ? UI.cyan : undefined }} />
+                        <Link key={item.screen} href={href} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" style={{ background: active ? "linear-gradient(90deg,rgba(17,112,255,.58),rgba(19,93,205,.18))" : "transparent", color: active ? "#f4f8ff" : UI.mute }}>
+                          <Icon size={17} style={{ color: active ? "#25c7ff" : undefined }} />
                           {item.label}
                         </Link>
                       );
