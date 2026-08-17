@@ -1,72 +1,24 @@
 "use client";
 
-import { X } from "lucide-react";
-import { COLORS, FONTS, ON_ACCENT } from "@/lib/theme";
+import { Link2, ShieldCheck, X } from "lucide-react";
 import CopyField from "@/components/CopyField";
 
-/**
- * Shows a generated one-time link (invite or reset) for the admin to copy and
- * send to the crew member however they like — SMS, WhatsApp, in person. The
- * link is shown once; there's no email delivery.
- */
-export default function LinkResultModal({
-  title,
-  blurb,
-  url,
-  onClose,
-}: {
-  title: string;
-  blurb: string;
-  url: string;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.6)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-lg overflow-hidden"
-        style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: `1px solid ${COLORS.borderSoft}` }}
-        >
-          <h2
-            className="text-base font-semibold"
-            style={{ fontFamily: FONTS.display, color: COLORS.text }}
-          >
-            {title}
-          </h2>
-          <button type="button" aria-label="Close" onClick={onClose} style={{ color: COLORS.textMute }}>
-            <X size={18} />
-          </button>
-        </div>
+const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff" };
 
-        <div className="p-5 flex flex-col gap-3">
-          <p className="text-sm" style={{ color: COLORS.textMute }}>
-            {blurb}
-          </p>
-          <CopyField value={url} />
-          <p className="text-xs" style={{ color: COLORS.textFaint }}>
-            This link works once and expires. It won&apos;t be shown again — copy
-            it now.
-          </p>
-          <div className="flex justify-end mt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm font-semibold"
-              style={{ background: COLORS.accent, color: ON_ACCENT }}
-            >
-              Done
-            </button>
-          </div>
-        </div>
+export default function LinkResultModal({ title, blurb, url, onClose }: { title: string; blurb: string; url: string; onClose: () => void }) {
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
+    <section className="w-full max-w-lg overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
+      <header className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><Link2 size={18} /></span>
+        <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>{title}</h2><p className="mt-1 text-xs leading-5" style={{ color: UI.faint }}>{blurb}</p></div>
+        <button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button>
+      </header>
+
+      <div className="p-5">
+        <CopyField value={url} />
+        <div className="mt-4 flex gap-3 rounded-xl p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><ShieldCheck size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><p className="text-xs leading-5" style={{ color: UI.faint }}>This link is single-use and expires. Copy it now and send it directly to the team member.</p></div>
+        <div className="mt-5 flex justify-end"><button type="button" onClick={onClose} className="rounded-lg px-5 py-2.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}>Done</button></div>
       </div>
-    </div>
-  );
+    </section>
+  </div>;
 }
