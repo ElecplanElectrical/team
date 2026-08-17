@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 
 const clientSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(160),
@@ -42,6 +43,22 @@ export async function POST(req: Request) {
         billingNotes: d.billingNotes || null,
       },
     });
+
+    await recordAudit({
+      actor: user,
+      action: "CLIENT_CREATED",
+      entityType: "Client",
+      entityId: client.id,
+      details: {
+        name: client.name,
+        hasContactName: Boolean(client.contactName),
+        hasPhone: Boolean(client.phone),
+        hasEmail: Boolean(client.email),
+        hasAddress: Boolean(client.address),
+        hasBillingNotes: Boolean(client.billingNotes),
+      },
+    });
+
     return NextResponse.json(client, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Could not create client" }, { status: 400 });

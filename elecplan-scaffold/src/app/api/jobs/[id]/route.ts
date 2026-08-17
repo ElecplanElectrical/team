@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 const updateSchema = z.object({
   status: z.enum(["QUOTED", "SCHEDULED", "IN_PROGRESS", "COMPLETE", "INVOICED"]).optional(),
@@ -19,47 +20,42 @@ export async function PATCH(
 ) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (user.role === "EMPLOYEE") {
-    return NextResponse.json({ error: "Only admins and supervisors can update jobs" }, { status: 403 });
-  }
+  if (user.role === "EMPLOYEE") return NextResponse.json({ error: "Only admins and supervisors can update jobs" }, { status: 403 });
 
   const parsed = updateSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success || Object.keys(parsed.data).length === 0) {
-    return NextResponse.json({ error: "Invalid job update" }, { status: 400 });
-  }
-  if (parsed.data.status === "INVOICED" && user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Only admins can mark jobs as invoiced" }, { status: 403 });
-  }
+  if (!parsed.success || Object.keys(parsed.data).length === 0) return NextResponse.json({ error: "Invalid job update" }, { status: 400 });
+  if (parsed.data.status === "INVOICED" && user.role !== "ADMIN") return NextResponse.json({ error: "Only admins can mark jobs as invoiced" }, { status: 403 });
 
   const d = parsed.data;
   const hasStart = Object.prototype.hasOwnProperty.call(d, "scheduledStart");
   const hasEnd = Object.prototype.hasOwnProperty.call(d, "scheduledEnd");
   const scheduleChanged = hasStart || hasEnd;
-  if (hasStart !== hasEnd) {
-    return NextResponse.json({ error: "Scheduled start and end must be updated together" }, { status: 400 });
-  }
+  if (hasStart !== hasEnd) return NextResponse.json({ error: "Scheduled start and end must be updated together" }, { status: 400 });
 
   const start = d.scheduledStart ? new Date(d.scheduledStart) : null;
   const end = d.scheduledEnd ? new Date(d.scheduledEnd) : null;
-  if (scheduleChanged && Boolean(start) !== Boolean(end)) {
-    return NextResponse.json({ error: "Scheduled start and end must both be set or both be cleared" }, { status: 400 });
-  }
-  if (start && end && end <= start) {
-    return NextResponse.json({ error: "End time must be after start time" }, { status: 400 });
-  }
+  if (scheduleChanged && Boolean(start) !== Boolean(end)) return NextResponse.json({ error: "Scheduled start and end must both be set or both be cleared" }, { status: 400 });
+  if (start && end && end <= start) return NextResponse.json({ error: "End time must be after start time" }, { status: 400 });
 
   const { id } = await context.params;
-  const current = await prisma.job.findUnique({ where: { id }, select: { id: true } });
-  if (!current) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+  const before = await prisma.job.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      address: true,
+      status: true,
+      assignedToId: true,
+      scheduledStart: true,
+      scheduledEnd: true,
+      notes: true,
+    },
+  });
+  if (!before) return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
   if (d.assignedToId) {
-    const assignee = await prisma.user.findFirst({
-      where: { id: d.assignedToId, active: true },
-      select: { id: true },
-    });
-    if (!assignee) {
-      return NextResponse.json({ error: "Assigned employee not found or inactive" }, { status: 400 });
-    }
+    const assignee = await prisma.user.findFirst({ where: { id: d.assignedToId, active: true }, select: { id: true } });
+    if (!assignee) return NextResponse.json({ error: "Assigned employee not found or inactive" }, { status: 400 });
   }
 
   try {
@@ -87,45 +83,50 @@ export async function PATCH(
       });
 
       if (scheduleChanged || d.assignedToId !== undefined) {
-        const event = await tx.jobEvent.findFirst({
-          where: { jobId: id, type: "job" },
-          orderBy: { startsAt: "asc" },
-          select: { id: true },
-        });
-
+        const event = await tx.jobEvent.findFirst({ where: { jobId: id, type: "job" }, orderBy: { startsAt: "asc" }, select: { id: true } });
         if (updated.scheduledStart && updated.scheduledEnd) {
           if (event) {
-            await tx.jobEvent.update({
-              where: { id: event.id },
-              data: {
-                startsAt: updated.scheduledStart,
-                endsAt: updated.scheduledEnd,
-                assignedToId: updated.assignedToId,
-              },
-            });
+            await tx.jobEvent.update({ where: { id: event.id }, data: { startsAt: updated.scheduledStart, endsAt: updated.scheduledEnd, assignedToId: updated.assignedToId } });
           } else {
-            await tx.jobEvent.create({
-              data: {
-                jobId: id,
-                type: "job",
-                startsAt: updated.scheduledStart,
-                endsAt: updated.scheduledEnd,
-                assignedToId: updated.assignedToId,
-              },
-            });
+            await tx.jobEvent.create({ data: { jobId: id, type: "job", startsAt: updated.scheduledStart, endsAt: updated.scheduledEnd, assignedToId: updated.assignedToId } });
           }
         } else if (event && scheduleChanged) {
           await tx.jobEvent.delete({ where: { id: event.id } });
         } else if (event && d.assignedToId !== undefined) {
-          await tx.jobEvent.update({
-            where: { id: event.id },
-            data: { assignedToId: updated.assignedToId },
-          });
+          await tx.jobEvent.update({ where: { id: event.id }, data: { assignedToId: updated.assignedToId } });
         }
       }
 
       return updated;
     });
+
+    const changedFields = [
+      before.title !== job.title ? "title" : null,
+      before.address !== job.address ? "address" : null,
+      before.status !== job.status ? "status" : null,
+      before.assignedToId !== job.assignedToId ? "assignedToId" : null,
+      (before.scheduledStart?.getTime() ?? null) !== (job.scheduledStart?.getTime() ?? null) ? "scheduledStart" : null,
+      (before.scheduledEnd?.getTime() ?? null) !== (job.scheduledEnd?.getTime() ?? null) ? "scheduledEnd" : null,
+      before.notes !== job.notes ? "notes" : null,
+    ].filter((field): field is string => Boolean(field));
+
+    if (changedFields.length > 0) {
+      await recordAudit({
+        actor: user,
+        action: "JOB_UPDATED",
+        entityType: "Job",
+        entityId: job.id,
+        details: {
+          title: job.title,
+          changedFields,
+          statusFrom: before.status,
+          statusTo: job.status,
+          assignedToFrom: before.assignedToId,
+          assignedToTo: job.assignedToId,
+          scheduleChanged: changedFields.includes("scheduledStart") || changedFields.includes("scheduledEnd"),
+        },
+      });
+    }
 
     return NextResponse.json(job);
   } catch {

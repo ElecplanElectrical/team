@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 
 const clientSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(160),
@@ -34,6 +35,19 @@ export async function PATCH(
   const { id } = await context.params;
   const d = parsed.data;
 
+  const before = await prisma.client.findUnique({
+    where: { id },
+    select: {
+      name: true,
+      contactName: true,
+      phone: true,
+      email: true,
+      address: true,
+      billingNotes: true,
+    },
+  });
+  if (!before) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+
   try {
     const client = await prisma.client.update({
       where: { id },
@@ -46,6 +60,29 @@ export async function PATCH(
         billingNotes: d.billingNotes || null,
       },
     });
+
+    const changedFields = [
+      before.name !== client.name ? "name" : null,
+      before.contactName !== client.contactName ? "contactName" : null,
+      before.phone !== client.phone ? "phone" : null,
+      before.email !== client.email ? "email" : null,
+      before.address !== client.address ? "address" : null,
+      before.billingNotes !== client.billingNotes ? "billingNotes" : null,
+    ].filter((field): field is string => Boolean(field));
+
+    if (changedFields.length > 0) {
+      await recordAudit({
+        actor: user,
+        action: "CLIENT_UPDATED",
+        entityType: "Client",
+        entityId: client.id,
+        details: {
+          name: client.name,
+          changedFields,
+        },
+      });
+    }
+
     return NextResponse.json(client);
   } catch {
     return NextResponse.json({ error: "Client not found" }, { status: 404 });
