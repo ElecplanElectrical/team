@@ -30,14 +30,7 @@ import {
 } from "@/lib/week";
 import TopBar from "@/components/TopBar";
 import NewEventModal from "@/components/NewEventModal";
-
-type CalEvent = {
-  id: string;
-  title: string;
-  type: string;
-  startsAt: string;
-  endsAt: string;
-};
+import EditEventModal, { type CalendarEvent } from "@/components/EditEventModal";
 
 const HOURS = Array.from(
   { length: CAL_HOUR_END - CAL_HOUR_START },
@@ -68,8 +61,8 @@ export default function CalendarView({
   role,
   currentUserId,
 }: {
-  weekStart: string; // ISO (Monday)
-  events: CalEvent[];
+  weekStart: string;
+  events: CalendarEvent[];
   jobs: { id: string; title: string }[];
   employees: { id: string; name: string }[];
   role: Role;
@@ -77,6 +70,7 @@ export default function CalendarView({
 }) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
 
   const start = parseISO(weekStart);
   const days = weekDays(start);
@@ -92,20 +86,19 @@ export default function CalendarView({
     router.push("/calendar");
   }
 
-  function eventsForDay(di: number): CalEvent[] {
+  function eventsForDay(di: number): CalendarEvent[] {
     return events.filter(
       (ev) => differenceInCalendarDays(parseISO(ev.startsAt), start) === di,
     );
   }
 
-  async function deleteEvent(id: string) {
-    if (!window.confirm("Delete this event?")) return;
-    const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
-    if (res.ok) router.refresh();
-  }
-
   function onCreated() {
     setShowModal(false);
+    router.refresh();
+  }
+
+  function onEdited() {
+    setEditingEvent(null);
     router.refresh();
   }
 
@@ -128,7 +121,6 @@ export default function CalendarView({
       />
 
       <div className="flex-1 overflow-auto p-4 md:p-6 flex flex-col gap-4">
-        {/* Toolbar: nav + legend */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <NavBtn onClick={() => go(-1)} aria-label="Previous week">
@@ -174,10 +166,8 @@ export default function CalendarView({
           </div>
         </div>
 
-        {/* Desktop week grid */}
         <div className="hidden md:block overflow-x-auto">
           <div style={{ minWidth: 56 + 7 * 150 }}>
-            {/* Header */}
             <div
               style={{
                 display: "grid",
@@ -216,14 +206,12 @@ export default function CalendarView({
               })}
             </div>
 
-            {/* Body */}
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: `56px repeat(7, minmax(150px, 1fr))`,
               }}
             >
-              {/* Hour gutter */}
               <div
                 style={{ position: "relative", height: HOURS.length * CAL_ROW_PX }}
               >
@@ -244,7 +232,6 @@ export default function CalendarView({
                 ))}
               </div>
 
-              {/* Day columns */}
               {days.map((d, di) => (
                 <div
                   key={di}
@@ -281,9 +268,9 @@ export default function CalendarView({
                     return (
                       <button
                         key={ev.id}
-                        onClick={() => deleteEvent(ev.id)}
-                        title="Click to delete"
-                        className="absolute rounded-md px-2.5 py-1.5 text-left overflow-hidden"
+                        onClick={() => setEditingEvent(ev)}
+                        title="Edit event"
+                        className="absolute rounded-md px-2.5 py-1.5 text-left overflow-hidden hover:opacity-90"
                         style={{
                           top,
                           height,
@@ -309,7 +296,6 @@ export default function CalendarView({
           </div>
         </div>
 
-        {/* Mobile agenda */}
         <div className="md:hidden flex flex-col gap-4">
           {days.map((d, di) => {
             const dayEvents = eventsForDay(di);
@@ -332,7 +318,7 @@ export default function CalendarView({
                   return (
                     <button
                       key={ev.id}
-                      onClick={() => deleteEvent(ev.id)}
+                      onClick={() => setEditingEvent(ev)}
                       className="rounded-lg px-4 py-3 text-left"
                       style={{
                         background: COLORS.card,
@@ -372,6 +358,18 @@ export default function CalendarView({
           defaultDate={weekKey(days[0])}
           onClose={() => setShowModal(false)}
           onDone={onCreated}
+        />
+      )}
+
+      {editingEvent && (
+        <EditEventModal
+          event={editingEvent}
+          jobs={jobs}
+          employees={employees}
+          role={role}
+          currentUserId={currentUserId}
+          onClose={() => setEditingEvent(null)}
+          onDone={onEdited}
         />
       )}
     </>
