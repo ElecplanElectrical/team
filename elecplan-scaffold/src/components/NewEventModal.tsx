@@ -22,15 +22,15 @@ export default function NewEventModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const crewOnly = role === "EMPLOYEE";
+  const allowedTypes = crewOnly ? EVENT_TYPES.filter((t) => t !== "job") : EVENT_TYPES;
   const [title, setTitle] = useState("");
-  const [type, setType] = useState<string>("job");
+  const [type, setType] = useState<string>(crewOnly ? "call" : "job");
   const [jobId, setJobId] = useState("");
   const [date, setDate] = useState(defaultDate);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
-  const [assignedToId, setAssignedToId] = useState(
-    role === "EMPLOYEE" ? currentUserId : "",
-  );
+  const [assignedToId, setAssignedToId] = useState(crewOnly ? currentUserId : "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -55,8 +55,8 @@ export default function NewEventModal({
       body: JSON.stringify({
         title: title || null,
         type,
-        jobId: jobId || null,
-        assignedToId: assignedToId || null,
+        jobId: crewOnly ? null : jobId || null,
+        assignedToId: crewOnly ? currentUserId : assignedToId || null,
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
       }),
@@ -64,7 +64,8 @@ export default function NewEventModal({
 
     if (!res.ok) {
       setSaving(false);
-      setError("Could not create the event. Check the details and try again.");
+      const body = await res.json().catch(() => null);
+      setError(body?.error ?? "Could not create the event. Check the details and try again.");
       return;
     }
 
@@ -88,48 +89,38 @@ export default function NewEventModal({
     color: COLORS.text,
   };
 
-  const canTextClient = role !== "EMPLOYEE" && type === "job" && Boolean(jobId);
+  const canTextClient = !crewOnly && type === "job" && Boolean(jobId);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.6)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-lg overflow-hidden"
-        style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: `1px solid ${COLORS.borderSoft}` }}
-        >
-          <h2 className="text-base font-semibold" style={{ fontFamily: FONTS.display, color: COLORS.text }}>
-            New event
-          </h2>
-          <button type="button" aria-label="Close" onClick={onClose} style={{ color: COLORS.textMute }}>
-            <X size={18} />
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose}>
+      <div className="w-full max-w-md rounded-lg overflow-hidden" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${COLORS.borderSoft}` }}>
+          <div>
+            <h2 className="text-base font-semibold" style={{ fontFamily: FONTS.display, color: COLORS.text }}>New event</h2>
+            {crewOnly && <p className="text-xs mt-0.5" style={{ color: COLORS.textFaint }}>Personal calendar item. Job scheduling is managed by admins and supervisors.</p>}
+          </div>
+          <button type="button" aria-label="Close" onClick={onClose} style={{ color: COLORS.textMute }}><X size={18} /></button>
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); void save(false); }} className="p-5 flex flex-col gap-3">
           <Field label="Title (optional)">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Switchboard site visit" className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Supplier call" className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className={crewOnly ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
             <Field label="Type">
               <select value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none capitalize" style={fieldStyle}>
-                {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {allowedTypes.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </Field>
-            <Field label="Job (optional)">
-              <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle}>
-                <option value="">— none —</option>
-                {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
-              </select>
-            </Field>
+            {!crewOnly && (
+              <Field label="Job (optional)">
+                <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle}>
+                  <option value="">— none —</option>
+                  {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
+                </select>
+              </Field>
+            )}
           </div>
 
           <Field label="Date">
@@ -145,7 +136,7 @@ export default function NewEventModal({
             </Field>
           </div>
 
-          {role !== "EMPLOYEE" && (
+          {!crewOnly && (
             <Field label="Assign to (optional)">
               <select value={assignedToId} onChange={(e) => setAssignedToId(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle}>
                 <option value="">— unassigned —</option>
@@ -154,26 +145,13 @@ export default function NewEventModal({
             </Field>
           )}
 
-          {canTextClient && (
-            <p className="text-[11px]" style={{ color: COLORS.textFaint }}>
-              Client texts are always manual. “Create & text client” sends one confirmation using the linked job’s client phone number.
-            </p>
-          )}
-
+          {canTextClient && <p className="text-[11px]" style={{ color: COLORS.textFaint }}>Client texts are always manual. “Create & text client” sends one confirmation using the linked job’s client phone number.</p>}
           {error && <p className="text-xs" style={{ color: COLORS.coral }}>{error}</p>}
 
           <div className="flex justify-end gap-2 mt-1 flex-wrap">
-            <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium" style={{ background: COLORS.cardAlt, color: COLORS.textMute }}>
-              Cancel
-            </button>
+            <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium" style={{ background: COLORS.cardAlt, color: COLORS.textMute }}>Cancel</button>
             {canTextClient && (
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => void save(true)}
-                className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60 flex items-center gap-1.5"
-                style={{ border: `1px solid ${COLORS.accent}`, color: COLORS.accent }}
-              >
+              <button type="button" disabled={saving} onClick={() => void save(true)} className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60 flex items-center gap-1.5" style={{ border: `1px solid ${COLORS.accent}`, color: COLORS.accent }}>
                 <MessageSquareText size={14} /> Create & text client
               </button>
             )}
@@ -188,10 +166,5 @@ export default function NewEventModal({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium" style={{ color: COLORS.textMute }}>{label}</span>
-      {children}
-    </label>
-  );
+  return <label className="flex flex-col gap-1.5"><span className="text-xs font-medium" style={{ color: COLORS.textMute }}>{label}</span>{children}</label>;
 }

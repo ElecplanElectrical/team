@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { EVENT_TYPES } from "@/lib/theme";
+import { recordAudit } from "@/lib/audit";
 
 const patchSchema = z.object({
   title: z.string().trim().max(120).optional().nullable(),
@@ -17,7 +18,7 @@ const patchSchema = z.object({
 async function syncCanonicalJobEvent(tx: Prisma.TransactionClient, jobId: string) {
   const canonical = await tx.jobEvent.findFirst({
     where: { jobId, type: "job" },
-    orderBy: { startsAt: "asc" },
+    orderBy: [{ startsAt: "asc" }, { id: "asc" }],
     select: { startsAt: true, endsAt: true, assignedToId: true },
   });
 
@@ -68,6 +69,25 @@ export async function PATCH(
   }
   const d = parsed.data;
 
+  // Job-linked calendar events are a scheduling control surface for the Job itself.
+  // Crew can view these events, but only admins/supervisors may reschedule, relink,
+  // reassign or delete them. This prevents an employee calendar edit from silently
+  // changing the underlying job schedule.
+  if (user.role === "EMPLOYEE") {
+    if (existing.type === "job" || existing.jobId) {
+      return NextResponse.json(
+        { error: "Job schedule changes must be made by an admin or supervisor" },
+        { status: 403 },
+      );
+    }
+    if (d.type !== undefined || d.jobId !== undefined || d.assignedToId !== undefined) {
+      return NextResponse.json(
+        { error: "Employees can only edit the title and time of their own non-job events" },
+        { status: 403 },
+      );
+    }
+  }
+
   const nextStart = d.startsAt ? new Date(d.startsAt) : existing.startsAt;
   const nextEnd = d.endsAt ? new Date(d.endsAt) : existing.endsAt;
   if (nextEnd <= nextStart) {
@@ -82,9 +102,7 @@ export async function PATCH(
           ...(d.title !== undefined ? { title: d.title?.trim() || null } : {}),
           ...(d.type ? { type: d.type } : {}),
           ...(d.jobId !== undefined ? { jobId: d.jobId } : {}),
-          ...(d.assignedToId !== undefined
-            ? { assignedToId: user.role === "EMPLOYEE" ? user.id : d.assignedToId }
-            : {}),
+          ...(d.assignedToId !== undefined ? { assignedToId: d.assignedToId } : {}),
           ...(d.startsAt ? { startsAt: new Date(d.startsAt) } : {}),
           ...(d.endsAt ? { endsAt: new Date(d.endsAt) } : {}),
         },
@@ -109,6 +127,23 @@ export async function PATCH(
 
       return updated;
     });
+
+    if (existing.type === "job" || event.type === "job" || existing.jobId || event.jobId) {
+      await recordAudit({
+        actor: user,
+        action: "CALENDAR_JOB_EVENT_UPDATED",
+        entityType: "JobEvent",
+        entityId: event.id,
+        details: {
+          previousJobId: existing.jobId,
+          jobId: event.jobId,
+          startsAtChanged: existing.startsAt.getTime() !== event.startsAt.getTime(),
+          endsAtChanged: existing.endsAt.getTime() !== event.endsAt.getTime(),
+          assignedToChanged: existing.assignedToId !== event.assignedToId,
+        },
+      });
+    }
+
     return NextResponse.json(event);
   } catch {
     return NextResponse.json({ error: "Update failed" }, { status: 400 });
@@ -131,6 +166,12 @@ export async function DELETE(
   if (user.role === "EMPLOYEE" && existing.assignedToId !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  if (user.role === "EMPLOYEE" && (existing.type === "job" || existing.jobId)) {
+    return NextResponse.json(
+      { error: "Job schedule changes must be made by an admin or supervisor" },
+      { status: 403 },
+    );
+  }
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -139,6 +180,17 @@ export async function DELETE(
         await syncCanonicalJobEvent(tx, existing.jobId);
       }
     });
+
+    if (existing.type === "job" || existing.jobId) {
+      await recordAudit({
+        actor: user,
+        action: "CALENDAR_JOB_EVENT_DELETED",
+        entityType: "JobEvent",
+        entityId: existing.id,
+        details: { jobId: existing.jobId },
+      });
+    }
+
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Delete failed" }, { status: 400 });
