@@ -1,7 +1,6 @@
 import { requireUser } from "@/lib/session";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
-import { COLORS, FONTS } from "@/lib/theme";
 
 export default async function AppLayout({
   children,
@@ -12,16 +11,16 @@ export default async function AppLayout({
 
   return (
     <div
-      className="w-full min-h-screen flex flex-col md:flex-row"
+      className="flex min-h-screen w-full flex-col md:flex-row"
       style={{
-        background: COLORS.bg,
-        color: COLORS.text,
-        fontFamily: FONTS.body,
+        background: "#03101f",
+        color: "#f4f8ff",
+        fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
       }}
     >
       <Sidebar role={user.role} name={user.name ?? user.email ?? "User"} />
 
-      <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden pt-14 md:pt-0">
         {children}
       </main>
 
