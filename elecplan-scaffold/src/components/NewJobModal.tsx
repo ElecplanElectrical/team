@@ -42,6 +42,14 @@ export default function NewJobModal({
       setError("Job title, client and address are required.");
       return;
     }
+    if (Boolean(scheduledStart) !== Boolean(scheduledEnd)) {
+      setError("Enter both a scheduled start and end, or leave both blank.");
+      return;
+    }
+    if (scheduledStart && scheduledEnd && new Date(scheduledEnd) <= new Date(scheduledStart)) {
+      setError("Scheduled end must be after the start time.");
+      return;
+    }
 
     setSaving(true);
     const res = await fetch("/api/jobs", {
@@ -136,6 +144,9 @@ export default function NewJobModal({
               <input type="datetime-local" value={scheduledEnd} onChange={(e) => setScheduledEnd(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
             </Field>
           </div>
+          <p className="text-xs" style={{ color: COLORS.textFaint }}>
+            Adding both times automatically places the job on the team calendar.
+          </p>
 
           <Field label="Notes">
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Access details, scope, materials, customer notes…" className="w-full rounded-md px-3 py-2 text-sm outline-none resize-none" style={fieldStyle} />
