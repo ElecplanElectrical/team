@@ -5,7 +5,12 @@ import DashboardView from "@/components/DashboardView";
 export default async function DashboardPage() {
   await requireAccess("dashboard");
 
-  const [quotes, invoices, jobs, clients] = await Promise.all([
+  const now = new Date();
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 6);
+  weekAgo.setHours(0, 0, 0, 0);
+
+  const [quotes, invoices, jobs, clients, upcomingJobs, activity] = await Promise.all([
     prisma.quote.findMany({
       select: { amount: true, status: true },
     }),
@@ -16,12 +21,40 @@ export default async function DashboardPage() {
         clientId: true,
         supplier: true,
         dueDate: true,
+        createdAt: true,
       },
     }),
     prisma.job.findMany({
       select: { status: true },
     }),
     prisma.client.count(),
+    prisma.job.findMany({
+      where: {
+        scheduledStart: { gte: now },
+        status: { notIn: ["COMPLETE", "INVOICED"] },
+      },
+      orderBy: { scheduledStart: "asc" },
+      take: 4,
+      select: {
+        id: true,
+        title: true,
+        scheduledStart: true,
+        scheduledEnd: true,
+        status: true,
+        assignedTo: { select: { name: true } },
+        client: { select: { name: true } },
+      },
+    }),
+    prisma.auditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        action: true,
+        entityType: true,
+        createdAt: true,
+      },
+    }),
   ]);
 
   const quotePipeline = quotes
@@ -44,7 +77,6 @@ export default async function DashboardPage() {
     .filter((i) => i.supplier && i.status === "PAID")
     .reduce((sum, i) => sum + Number(i.amount), 0);
 
-  const now = new Date();
   const overdueCount = invoices.filter(
     (i) => i.status !== "PAID" && (i.status === "OVERDUE" || i.dueDate < now),
   ).length;
@@ -55,6 +87,25 @@ export default async function DashboardPage() {
   const completedJobs = jobs.filter(
     (j) => j.status === "COMPLETE" || j.status === "INVOICED",
   ).length;
+  const quotedJobs = jobs.filter((j) => j.status === "QUOTED").length;
+  const scheduledJobs = jobs.filter((j) => j.status === "SCHEDULED").length;
+
+  const cashSeries = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekAgo);
+    date.setDate(weekAgo.getDate() + index);
+    const next = new Date(date);
+    next.setDate(next.getDate() + 1);
+    const revenue = invoices
+      .filter((i) => i.status === "PAID" && i.clientId && i.createdAt >= date && i.createdAt < next)
+      .reduce((sum, i) => sum + Number(i.amount), 0);
+    const bills = invoices
+      .filter((i) => i.status === "PAID" && i.supplier && i.createdAt >= date && i.createdAt < next)
+      .reduce((sum, i) => sum + Number(i.amount), 0);
+    return {
+      label: new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short" }).format(date),
+      value: revenue - bills,
+    };
+  });
 
   return (
     <DashboardView
@@ -68,10 +119,24 @@ export default async function DashboardPage() {
         overdueCount,
         activeJobs,
         completedJobs,
+        quotedJobs,
+        scheduledJobs,
         clients,
         quoteCount: quotes.length,
         invoiceCount: invoices.length,
       }}
+      upcomingJobs={upcomingJobs.map((job) => ({
+        ...job,
+        scheduledStart: job.scheduledStart?.toISOString() ?? null,
+        scheduledEnd: job.scheduledEnd?.toISOString() ?? null,
+        assignedTo: job.assignedTo?.name ?? null,
+        client: job.client.name,
+      }))}
+      activity={activity.map((item) => ({
+        ...item,
+        createdAt: item.createdAt.toISOString(),
+      }))}
+      cashSeries={cashSeries}
     />
   );
 }
