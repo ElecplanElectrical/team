@@ -1,100 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Star } from "lucide-react";
+import { Plus, Search, Star } from "lucide-react";
 import TopBar from "@/components/TopBar";
-import { COLORS, ON_ACCENT } from "@/lib/theme";
 
-type ReviewRow = {
-  id: string;
-  client: string;
-  rating: number;
-  text: string | null;
-  source: string | null;
-  createdAt: string;
-};
-
+type ReviewRow = { id: string; client: string; rating: number; text: string | null; source: string | null; createdAt: string };
 type ClientOption = { id: string; name: string };
+
+const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", green: "#18d3a0", orange: "#ff9f1c", red: "#ff5e72" };
 
 export default function ReviewsView({ reviews, clients }: { reviews: ReviewRow[]; clients: ClientOption[] }) {
   const router = useRouter();
   const [showNew, setShowNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const average = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0;
   const fiveStar = reviews.filter((review) => review.rating === 5).length;
+  const filtered = useMemo(() => { const needle = query.trim().toLowerCase(); return needle ? reviews.filter((review) => [review.client, review.text ?? "", review.source ?? ""].join(" ").toLowerCase().includes(needle)) : reviews; }, [reviews, query]);
 
   async function createReview(formData: FormData) {
-    setSaving(true);
-    setError(null);
-    const res = await fetch("/api/reviews", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId: formData.get("clientId"),
-        rating: Number(formData.get("rating")),
-        text: formData.get("text"),
-        source: formData.get("source"),
-      }),
-    });
+    setSaving(true); setError(null);
+    const res = await fetch("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientId: formData.get("clientId"), rating: Number(formData.get("rating")), text: formData.get("text"), source: formData.get("source") }) });
     setSaving(false);
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      setError(body?.error ?? "Could not save review.");
-      return;
-    }
-    setShowNew(false);
-    router.refresh();
+    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not save review."); return; }
+    setShowNew(false); router.refresh();
   }
 
-  return (
-    <>
-      <TopBar
-        title="Reviews"
-        subtitle={`${average.toFixed(1)} average · ${reviews.length} total`}
-        rightSlot={<button type="button" onClick={() => setShowNew(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-semibold" style={{ background: COLORS.accent, color: ON_ACCENT }}><Plus size={15} /> Add review</button>}
-      />
-      <div className="flex-1 overflow-auto p-4 md:p-8 flex flex-col gap-4">
-        {error && <div className="rounded-md px-4 py-3 text-sm" style={{ background: COLORS.card, border: `1px solid ${COLORS.coral}`, color: COLORS.coral }}>{error}</div>}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Metric label="Average rating" value={reviews.length ? `${average.toFixed(1)} / 5` : "—"} />
-          <Metric label="5-star reviews" value={String(fiveStar)} />
-          <Metric label="Total reviews" value={String(reviews.length)} />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {reviews.map((review) => (
-            <div key={review.id} className="rounded-lg p-4" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="font-semibold" style={{ color: COLORS.text }}>{review.client}</div>
-                <div className="flex items-center gap-1" aria-label={`${review.rating} stars`}>
-                  {Array.from({ length: 5 }, (_, index) => <Star key={index} size={14} fill={index < review.rating ? "currentColor" : "none"} style={{ color: index < review.rating ? COLORS.accent : COLORS.textFaint }} />)}
-                </div>
-              </div>
-              {review.text && <p className="text-sm mt-3 leading-6" style={{ color: COLORS.textMute }}>{review.text}</p>}
-              <div className="text-xs mt-3" style={{ color: COLORS.textFaint }}>{review.source || "Direct"} · {new Date(review.createdAt).toLocaleDateString("en-AU")}</div>
-            </div>
-          ))}
-          {reviews.length === 0 && <div className="rounded-lg p-8 text-center text-sm lg:col-span-2" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.textFaint }}>No reviews recorded yet.</div>}
-        </div>
-      </div>
-
-      {showNew && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,.62)" }} onMouseDown={() => setShowNew(false)}>
-          <form action={createReview} onMouseDown={(event) => event.stopPropagation()} className="w-full max-w-lg rounded-xl p-5 flex flex-col gap-4" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}>
-            <div><div className="text-lg font-semibold" style={{ color: COLORS.text }}>Add review</div><div className="text-xs mt-1" style={{ color: COLORS.textFaint }}>Record a client review already received by Elecplan.</div></div>
-            <label className="text-xs" style={{ color: COLORS.textMute }}>Client<select name="clientId" required className="mt-1 w-full rounded-md px-3 py-2" style={{ background: COLORS.cardAlt, border: `1px solid ${COLORS.border}`, color: COLORS.text }}><option value="">Select client</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label>
-            <label className="text-xs" style={{ color: COLORS.textMute }}>Rating<select name="rating" defaultValue="5" className="mt-1 w-full rounded-md px-3 py-2" style={{ background: COLORS.cardAlt, border: `1px solid ${COLORS.border}`, color: COLORS.text }}>{[5,4,3,2,1].map((rating) => <option key={rating} value={rating}>{rating} star{rating === 1 ? "" : "s"}</option>)}</select></label>
-            <label className="text-xs" style={{ color: COLORS.textMute }}>Source<input name="source" placeholder="Google, Facebook, direct..." className="mt-1 w-full rounded-md px-3 py-2" style={{ background: COLORS.cardAlt, border: `1px solid ${COLORS.border}`, color: COLORS.text }} /></label>
-            <label className="text-xs" style={{ color: COLORS.textMute }}>Review<textarea name="text" rows={4} className="mt-1 w-full rounded-md px-3 py-2 resize-none" style={{ background: COLORS.cardAlt, border: `1px solid ${COLORS.border}`, color: COLORS.text }} /></label>
-            <div className="flex justify-end gap-2"><button type="button" onClick={() => setShowNew(false)} className="px-3 py-2 text-sm" style={{ color: COLORS.textMute }}>Cancel</button><button disabled={saving} className="px-4 py-2 rounded-md text-sm font-semibold disabled:opacity-60" style={{ background: COLORS.accent, color: ON_ACCENT }}>{saving ? "Saving..." : "Save review"}</button></div>
-          </form>
-        </div>
-      )}
-    </>
-  );
+  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
+  return <>
+    <TopBar title="Reviews" subtitle="Track client reputation and feedback" rightSlot={<button type="button" onClick={() => setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={16} /> Add review</button>} />
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}><div className="mx-auto w-full max-w-[1700px] space-y-3">
+      <div className="grid gap-3 sm:grid-cols-3"><Metric label="Average rating" value={reviews.length ? `${average.toFixed(1)} / 5` : "—"} /><Metric label="5-star reviews" value={String(fiveStar)} /><Metric label="Total reviews" value={String(reviews.length)} /></div>
+      {error && <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{error}</div>}
+      <section className="rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search reviews…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={field} /></div></div><div className="grid gap-3 p-3 lg:grid-cols-2">{filtered.map((review) => <article key={review.id} className="rounded-xl p-4" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-semibold" style={{ color: UI.text }}>{review.client}</h3><p className="mt-1 text-[11px]" style={{ color: UI.faint }}>{review.source || "Direct"} · {new Date(review.createdAt).toLocaleDateString("en-AU")}</p></div><div className="flex items-center gap-1" aria-label={`${review.rating} stars`}>{Array.from({ length: 5 }, (_, index) => <Star key={index} size={14} fill={index < review.rating ? "currentColor" : "none"} style={{ color: index < review.rating ? UI.orange : UI.faint }} />)}</div></div>{review.text && <p className="mt-4 text-sm leading-6" style={{ color: UI.mute }}>{review.text}</p>}</article>)}{filtered.length === 0 && <div className="rounded-xl p-10 text-center text-sm lg:col-span-2" style={{ background: UI.panelAlt, color: UI.faint }}>No reviews match your search.</div>}</div><div className="border-t px-4 py-3 text-[11px]" style={{ borderColor: UI.borderSoft, color: UI.faint }}>Showing {filtered.length} of {reviews.length} reviews</div></section>
+    </div></div>
+    {showNew && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onMouseDown={() => setShowNew(false)}><form action={createReview} onMouseDown={(event) => event.stopPropagation()} className="flex w-full max-w-lg flex-col gap-4 rounded-t-2xl p-5 md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div><div className="text-lg font-semibold" style={{ color: UI.text }}>Add review</div><div className="mt-1 text-xs" style={{ color: UI.faint }}>Record a client review already received by Elecplan.</div></div><label className="text-xs" style={{ color: UI.mute }}>Client<select name="clientId" required className="mt-1 w-full rounded-lg px-3 py-2.5" style={field}><option value="">Select client</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label><label className="text-xs" style={{ color: UI.mute }}>Rating<select name="rating" defaultValue="5" className="mt-1 w-full rounded-lg px-3 py-2.5" style={field}>{[5,4,3,2,1].map((rating) => <option key={rating} value={rating}>{rating} star{rating === 1 ? "" : "s"}</option>)}</select></label><label className="text-xs" style={{ color: UI.mute }}>Source<input name="source" placeholder="Google, Facebook, direct..." className="mt-1 w-full rounded-lg px-3 py-2.5" style={field} /></label><label className="text-xs" style={{ color: UI.mute }}>Review<textarea name="text" rows={4} className="mt-1 w-full resize-none rounded-lg px-3 py-2.5" style={field} /></label><div className="flex justify-end gap-2"><button type="button" onClick={() => setShowNew(false)} className="rounded-lg px-3 py-2.5 text-sm" style={{ background: UI.panelAlt, color: UI.mute }}>Cancel</button><button disabled={saving} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving..." : "Save review"}</button></div></form></div>}
+  </>;
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-lg p-4" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}><div className="text-xs" style={{ color: COLORS.textFaint }}>{label}</div><div className="text-xl font-semibold mt-1" style={{ color: COLORS.text }}>{value}</div></div>;
-}
+function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl p-4" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="text-[11px]" style={{ color: UI.faint }}>{label}</div><div className="mt-1 text-xl font-semibold" style={{ color: UI.text }}>{value}</div></div>; }
