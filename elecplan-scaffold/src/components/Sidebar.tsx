@@ -32,12 +32,8 @@ export default function Sidebar({ role, name }: { role: Role; name: string }) {
         <img
           src={LOGO_WORDMARK}
           alt="elecplan"
-          className="hidden h-auto max-h-8 w-auto max-w-[170px] xl:block"
+          style={{ width: "100%", maxWidth: 170, height: "auto", objectFit: "contain", display: "block" }}
         />
-        <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md xl:hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_WORDMARK} alt="elecplan" className="h-7 w-auto max-w-none" style={{ transform: "translateX(26%)" }} />
-        </span>
       </Link>
 
       <nav className="flex-1 overflow-y-auto pr-0.5">
