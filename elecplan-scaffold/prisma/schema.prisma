@@ -95,10 +95,6 @@ model User {
   passwordTokens PasswordToken[]
 }
 
-// One-time tokens for the invite ("set your password") and password-reset
-// flows. Only the SHA-256 hash of the token is stored — the raw token lives
-// only in the link handed to the user. Single-use (usedAt) and time-limited
-// (expiresAt). See src/lib/tokens.ts and src/app/api/set-password.
 model PasswordToken {
   id        String            @id @default(cuid())
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -141,87 +137,123 @@ model Lead {
 }
 
 model Job {
-  id            String     @id @default(cuid())
-  title         String
-  client        Client     @relation(fields: [clientId], references: [id])
-  clientId      String
-  address       String
-  status        JobStatus  @default(SCHEDULED)
-  assignedTo    User?      @relation("AssignedEmployee", fields: [assignedToId], references: [id])
-  assignedToId  String?
+  id             String    @id @default(cuid())
+  title          String
+  client         Client    @relation(fields: [clientId], references: [id])
+  clientId       String
+  address        String
+  status         JobStatus @default(SCHEDULED)
+  assignedTo     User?     @relation("AssignedEmployee", fields: [assignedToId], references: [id])
+  assignedToId   String?
   scheduledStart DateTime?
   scheduledEnd   DateTime?
-  notes         String?
-  createdAt     DateTime   @default(now())
+  notes          String?
+  createdAt      DateTime  @default(now())
 
-  events        JobEvent[]
-  quotes        Quote[]
-  invoices      Invoice[]
-  certificates  Certificate[]
-  inspections   Inspection[]
-  documents     Document[]
-  photos        ProjectPhoto[]
-  smsLogs       SmsLog[]
+  events       JobEvent[]
+  quotes       Quote[]
+  invoices     Invoice[]
+  certificates Certificate[]
+  inspections  Inspection[]
+  documents    Document[]
+  photos       ProjectPhoto[]
+  smsLogs      SmsLog[]
 }
 
 model JobEvent {
-  id        String   @id @default(cuid())
-  // Optional: calendar has non-job events (calls, admin, materials) too.
-  job       Job?     @relation(fields: [jobId], references: [id])
-  jobId     String?
-  title     String?  // falls back to the linked job's title when empty
-  type      String   // job | call | admin | material
-  startsAt  DateTime
-  endsAt    DateTime
-  assignedTo User?   @relation(fields: [assignedToId], references: [id])
+  id           String   @id @default(cuid())
+  job          Job?     @relation(fields: [jobId], references: [id])
+  jobId        String?
+  title        String?
+  type         String
+  startsAt     DateTime
+  endsAt       DateTime
+  assignedTo   User?    @relation(fields: [assignedToId], references: [id])
   assignedToId String?
 }
 
 model Quote {
-  id        String      @id @default(cuid())
-  job       Job?        @relation(fields: [jobId], references: [id])
-  jobId     String?
-  client    Client      @relation(fields: [clientId], references: [id])
-  clientId  String
-  amount    Decimal
-  status    QuoteStatus @default(DRAFT)
-  xeroId    String?
-  createdAt DateTime    @default(now())
+  id               String      @id @default(cuid())
+  quoteNumber      String?     @unique
+  job              Job?        @relation(fields: [jobId], references: [id])
+  jobId            String?
+  client           Client      @relation(fields: [clientId], references: [id])
+  clientId         String
+  subtotal         Decimal?
+  gstAmount        Decimal?
+  amount           Decimal
+  status           QuoteStatus @default(DRAFT)
+  xeroId           String?
+  createdAt        DateTime    @default(now())
+  lineItems        QuoteLineItem[]
+  convertedInvoice Invoice?    @relation("ConvertedQuote")
+}
+
+model QuoteLineItem {
+  id          String  @id @default(cuid())
+  quote       Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId     String
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  lineTotal   Decimal
+  gstRate     Decimal @default(0.10)
+
+  @@index([quoteId])
 }
 
 model Invoice {
-  id         String        @id @default(cuid())
-  job        Job?          @relation(fields: [jobId], references: [id])
-  jobId      String?
-  client     Client?       @relation(fields: [clientId], references: [id])
-  clientId   String?
-  supplier   String?       // for supplier bills instead of client invoices
-  amount     Decimal
-  dueDate    DateTime
-  status     InvoiceStatus @default(UNPAID)
-  xeroId     String?
-  createdAt  DateTime      @default(now())
+  id            String        @id @default(cuid())
+  invoiceNumber String?       @unique
+  job           Job?          @relation(fields: [jobId], references: [id])
+  jobId         String?
+  client        Client?       @relation(fields: [clientId], references: [id])
+  clientId      String?
+  supplier      String?
+  subtotal      Decimal?
+  gstAmount     Decimal?
+  amount        Decimal
+  dueDate       DateTime
+  status        InvoiceStatus @default(UNPAID)
+  xeroId        String?
+  createdAt     DateTime      @default(now())
+  sourceQuote   Quote?        @relation("ConvertedQuote", fields: [sourceQuoteId], references: [id])
+  sourceQuoteId String?       @unique
+  lineItems     InvoiceLineItem[]
+}
+
+model InvoiceLineItem {
+  id          String  @id @default(cuid())
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId   String
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  lineTotal   Decimal
+  gstRate     Decimal @default(0.10)
+
+  @@index([invoiceId])
 }
 
 model Certificate {
-  id           String     @id @default(cuid())
-  job          Job        @relation(fields: [jobId], references: [id])
-  jobId        String
-  certNumber   String     @unique
-  type         String     // Certificate of Electrical Safety | Certificate of Compliance
-  electrician  User       @relation(fields: [electricianId], references: [id])
+  id            String     @id @default(cuid())
+  job           Job        @relation(fields: [jobId], references: [id])
+  jobId         String
+  certNumber    String     @unique
+  type          String
+  electrician   User       @relation(fields: [electricianId], references: [id])
   electricianId String
-  issuedDate   DateTime?
-  status       CertStatus @default(PENDING)
+  issuedDate    DateTime?
+  status        CertStatus @default(PENDING)
 }
 
 model Inspection {
-  id     String            @id @default(cuid())
-  job    Job               @relation(fields: [jobId], references: [id])
+  id     String           @id @default(cuid())
+  job    Job              @relation(fields: [jobId], references: [id])
   jobId  String
   type   String
   date   DateTime
-  status InspectionStatus  @default(SCHEDULED)
+  status InspectionStatus @default(SCHEDULED)
 }
 
 model StockItem {
@@ -234,12 +266,12 @@ model StockItem {
 }
 
 model Timesheet {
-  id        String          @id @default(cuid())
-  user      User            @relation(fields: [userId], references: [id])
-  userId    String
-  date      DateTime
-  hours     Decimal
-  status    TimesheetStatus @default(PENDING)
+  id     String          @id @default(cuid())
+  user   User            @relation(fields: [userId], references: [id])
+  userId String
+  date   DateTime
+  hours  Decimal
+  status TimesheetStatus @default(PENDING)
 }
 
 model Document {
@@ -271,34 +303,34 @@ model Reminder {
 }
 
 model Review {
-  id       String   @id @default(cuid())
-  client   Client   @relation(fields: [clientId], references: [id])
-  clientId String
-  rating   Int
-  text     String?
-  source   String?
+  id        String   @id @default(cuid())
+  client    Client   @relation(fields: [clientId], references: [id])
+  clientId  String
+  rating    Int
+  text      String?
+  source    String?
   createdAt DateTime @default(now())
 }
 
 model SmsLog {
-  id           String    @id @default(cuid())
-  job          Job       @relation(fields: [jobId], references: [id])
-  jobId        String
-  phoneNumber  String
-  message      String
-  status       SmsStatus @default(SENT)
-  providerId   String?
-  createdAt    DateTime  @default(now())
+  id          String    @id @default(cuid())
+  job         Job       @relation(fields: [jobId], references: [id])
+  jobId       String
+  phoneNumber String
+  message     String
+  status      SmsStatus @default(SENT)
+  providerId  String?
+  createdAt   DateTime  @default(now())
 }
 
 model ReelIdea {
-  id          String   @id @default(cuid())
-  title       String
-  hook        String?
-  platform    String
-  status      String   @default("IDEA")
-  scheduledAt DateTime?
+  id           String    @id @default(cuid())
+  title        String
+  hook         String?
+  platform     String
+  status       String    @default("IDEA")
+  scheduledAt  DateTime?
   publishedUrl String?
-  notes       String?
-  createdAt   DateTime @default(now())
+  notes        String?
+  createdAt    DateTime  @default(now())
 }
