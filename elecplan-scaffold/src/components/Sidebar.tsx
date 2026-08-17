@@ -7,6 +7,7 @@ import { ChevronDown, LogOut, Settings } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { SCREEN_PATH } from "@/lib/access";
 import { navGroupsFor, ROLE_TITLE, initialsOf } from "@/lib/nav";
+import { LOGO_WORDMARK } from "@/lib/logo";
 
 const UI = {
   sidebar: "linear-gradient(180deg,#02101f 0%,#031321 100%)",
@@ -14,7 +15,6 @@ const UI = {
   text: "#f4f8ff",
   mute: "#9aacc2",
   faint: "#58718c",
-  blue: "#168dff",
   cyan: "#25c7ff",
 };
 
@@ -27,10 +27,16 @@ export default function Sidebar({ role, name }: { role: Role; name: string }) {
       className="hidden md:flex md:w-[74px] xl:w-[220px] shrink-0 flex-col px-2.5 py-5 xl:px-3"
       style={{ background: UI.sidebar, borderRight: `1px solid ${UI.border}` }}
     >
-      <Link href="/dashboard" className="mb-6 flex h-9 items-center px-2 xl:px-3">
-        <span className="text-[21px] font-semibold tracking-[-0.05em] xl:hidden" style={{ color: UI.cyan }}>e</span>
-        <span className="hidden text-[23px] font-medium tracking-[-0.055em] xl:inline" style={{ color: UI.text }}>
-          <span style={{ color: UI.cyan }}>elec</span>plan
+      <Link href="/dashboard" className="mb-6 flex h-9 items-center justify-center px-1 xl:justify-start xl:px-2" aria-label="Elecplan dashboard">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={LOGO_WORDMARK}
+          alt="elecplan"
+          className="hidden h-auto max-h-8 w-auto max-w-[170px] xl:block"
+        />
+        <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md xl:hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={LOGO_WORDMARK} alt="elecplan" className="h-7 w-auto max-w-none" style={{ transform: "translateX(26%)" }} />
         </span>
       </Link>
 
