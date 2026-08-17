@@ -43,7 +43,10 @@ export default async function CalendarPage({
   const events = rows.map((ev) => ({
     id: ev.id,
     title: ev.title || ev.job?.title || "(untitled)",
+    customTitle: ev.title,
     type: ev.type,
+    jobId: ev.jobId,
+    assignedToId: ev.assignedToId,
     startsAt: ev.startsAt.toISOString(),
     endsAt: ev.endsAt.toISOString(),
   }));
