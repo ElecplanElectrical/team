@@ -2,6 +2,7 @@ import { createHash, createHmac, randomUUID } from "node:crypto";
 
 const UPLOAD_TTL_SECONDS = 5 * 60;
 const DOWNLOAD_TTL_SECONDS = 2 * 60;
+const DELETE_TTL_SECONDS = 60;
 
 export const DOCUMENT_MAX_BYTES = 15 * 1024 * 1024;
 export const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
@@ -88,7 +89,7 @@ function signingKey(secret: string, shortDate: string, region: string): Buffer {
 }
 
 function presign(
-  method: "GET" | "PUT",
+  method: "GET" | "PUT" | "DELETE",
   key: string,
   expiresSeconds: number,
   contentType?: string,
@@ -199,4 +200,19 @@ export function verifyCommitToken(token: string, expectedKind: UploadKind): Comm
 
 export function createDownloadUrl(key: string): string {
   return presign("GET", key, DOWNLOAD_TTL_SECONDS);
+}
+
+export async function deleteStoredObject(key: string): Promise<void> {
+  if (!storageConfigured()) throw new Error("Private storage is not configured");
+  if (!key.startsWith("documents/") && !key.startsWith("project-photos/")) {
+    throw new Error("Invalid managed storage key");
+  }
+
+  const response = await fetch(presign("DELETE", key, DELETE_TTL_SECONDS), {
+    method: "DELETE",
+    cache: "no-store",
+  });
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`Private storage delete failed (${response.status})`);
+  }
 }
