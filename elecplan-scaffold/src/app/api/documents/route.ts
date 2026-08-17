@@ -1,16 +1,18 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
+import { verifyCommitToken } from "@/lib/storage";
 
-function validHttpsUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+const schema = z.object({
+  name: z.string().trim().min(1).max(200),
+  type: z.string().trim().min(1).max(80),
+  jobId: z.string().trim().min(1).nullable().optional(),
+  commitToken: z.string().min(1),
+});
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
@@ -19,23 +21,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => null) as {
-    name?: string;
-    type?: string;
-    fileUrl?: string;
-    jobId?: string | null;
-  } | null;
-
-  const name = body?.name?.trim();
-  const type = body?.type?.trim();
-  const fileUrl = body?.fileUrl?.trim();
-  const jobId = body?.jobId?.trim() || null;
-
-  if (!name || !type || !fileUrl) {
-    return NextResponse.json({ error: "Name, type and HTTPS file link are required" }, { status: 400 });
+  const parsed = schema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Document name, type and completed private upload are required" }, { status: 400 });
   }
-  if (!validHttpsUrl(fileUrl)) {
-    return NextResponse.json({ error: "Document link must use HTTPS" }, { status: 400 });
+
+  const { name, type, jobId = null, commitToken } = parsed.data;
+  const upload = verifyCommitToken(commitToken, "documents");
+  if (!upload) {
+    return NextResponse.json({ error: "Upload ticket is invalid or expired" }, { status: 400 });
   }
 
   if (jobId) {
@@ -43,8 +37,27 @@ export async function POST(req: Request) {
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 400 });
   }
 
+  const id = randomUUID();
   const document = await prisma.document.create({
-    data: { name, type, fileUrl, jobId },
+    data: {
+      id,
+      name,
+      type,
+      jobId,
+      fileUrl: `/api/documents/${id}/file`,
+      storageKey: upload.key,
+      originalName: upload.fileName,
+      contentType: upload.contentType,
+      sizeBytes: upload.sizeBytes,
+    },
+  });
+
+  await recordAudit({
+    actor: user,
+    action: "DOCUMENT_UPLOADED",
+    entityType: "Document",
+    entityId: document.id,
+    details: { jobId, contentType: upload.contentType, sizeBytes: upload.sizeBytes },
   });
 
   return NextResponse.json(document, { status: 201 });
