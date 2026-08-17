@@ -2,39 +2,38 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ExternalLink, Plus, Search, Sparkles } from "lucide-react";
 import TopBar from "@/components/TopBar";
 
 const STATUSES = ["IDEA", "READY", "SCHEDULED", "PUBLISHED"] as const;
+type Status = (typeof STATUSES)[number];
+type Idea = { id: string; title: string; hook: string | null; platform: string; status: string; scheduledAt: string | null; publishedUrl: string | null; notes: string | null; createdAt: string };
 
-type Idea = {
-  id: string;
-  title: string;
-  hook: string | null;
-  platform: string;
-  status: string;
-  scheduledAt: string | null;
-  publishedUrl: string | null;
-  notes: string | null;
-  createdAt: string;
-};
+const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", green: "#18d3a0", purple: "#8a5cf6", orange: "#ff9f1c" };
+
+function statusStyle(status: string) {
+  if (status === "PUBLISHED") return { bg: "rgba(25,211,162,.10)", fg: UI.green };
+  if (status === "SCHEDULED") return { bg: "rgba(22,141,255,.12)", fg: UI.cyan };
+  if (status === "READY") return { bg: "rgba(138,92,246,.12)", fg: "#b99cff" };
+  return { bg: "rgba(255,159,28,.10)", fg: UI.orange };
+}
 
 export default function ReelsView({ ideas }: { ideas: Idea[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState("");
   const [form, setForm] = useState({ title: "", hook: "", platform: "Instagram", status: "IDEA", scheduledAt: "", publishedUrl: "", notes: "" });
-
   const counts = useMemo(() => Object.fromEntries(STATUSES.map((s) => [s, ideas.filter((i) => i.status === s).length])), [ideas]);
+  const filtered = useMemo(() => { const needle = query.trim().toLowerCase(); return needle ? ideas.filter((idea) => [idea.title, idea.hook ?? "", idea.platform, idea.notes ?? ""].join(" ").toLowerCase().includes(needle)) : ideas; }, [ideas, query]);
+  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
   async function createIdea(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
+    e.preventDefault(); setSaving(true);
     const response = await fetch("/api/reels", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
     setSaving(false);
     if (!response.ok) return;
-    setOpen(false);
-    setForm({ title: "", hook: "", platform: "Instagram", status: "IDEA", scheduledAt: "", publishedUrl: "", notes: "" });
-    router.refresh();
+    setOpen(false); setForm({ title: "", hook: "", platform: "Instagram", status: "IDEA", scheduledAt: "", publishedUrl: "", notes: "" }); router.refresh();
   }
 
   async function setStatus(id: string, status: string) {
@@ -42,69 +41,14 @@ export default function ReelsView({ ideas }: { ideas: Idea[] }) {
     if (response.ok) router.refresh();
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto">
-      <TopBar title="Reels & content" />
-      <div className="p-4 md:p-6 space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold">Content planner</h1>
-            <p className="text-sm text-slate-500">Plan ideas and publishing status without connecting social accounts.</p>
-          </div>
-          <button onClick={() => setOpen(true)} className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white">New content idea</button>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {STATUSES.map((status) => (
-            <div key={status} className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="text-xs font-medium text-slate-500">{status}</div>
-              <div className="mt-1 text-2xl font-semibold">{counts[status] ?? 0}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="space-y-3">
-          {ideas.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">No content ideas yet.</div>
-          ) : ideas.map((idea) => (
-            <div key={idea.id} className="rounded-lg border border-slate-200 bg-white p-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-semibold">{idea.title}</h2>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{idea.platform}</span>
-                  </div>
-                  {idea.hook && <p className="mt-1 text-sm text-slate-600">Hook: {idea.hook}</p>}
-                  {idea.scheduledAt && <p className="mt-1 text-xs text-slate-500">Scheduled: {new Date(idea.scheduledAt).toLocaleString("en-AU")}</p>}
-                  {idea.notes && <p className="mt-2 text-sm text-slate-500">{idea.notes}</p>}
-                  {idea.publishedUrl && <a href={idea.publishedUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm underline">Open published post</a>}
-                </div>
-                <select value={idea.status} onChange={(e) => setStatus(idea.id, e.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm">
-                  {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-                </select>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <form onSubmit={createIdea} className="w-full max-w-lg space-y-4 rounded-xl bg-white p-5 shadow-xl">
-            <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">New content idea</h2><button type="button" onClick={() => setOpen(false)} className="text-sm text-slate-500">Close</button></div>
-            <input required placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2" />
-            <textarea placeholder="Hook / opening line" value={form.hook} onChange={(e) => setForm({ ...form, hook: e.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2" />
-            <div className="grid grid-cols-2 gap-3">
-              <select value={form.platform} onChange={(e) => setForm({ ...form, platform: e.target.value })} className="rounded-md border border-slate-300 px-3 py-2"><option>Instagram</option><option>TikTok</option><option>Facebook</option><option>YouTube</option></select>
-              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="rounded-md border border-slate-300 px-3 py-2">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
-            </div>
-            <input type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2" />
-            <input type="url" placeholder="Published URL (optional)" value={form.publishedUrl} onChange={(e) => setForm({ ...form, publishedUrl: e.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2" />
-            <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2" />
-            <button disabled={saving} className="w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white disabled:opacity-50">{saving ? "Saving…" : "Save idea"}</button>
-          </form>
-        </div>
-      )}
-    </div>
-  );
+  return <>
+    <TopBar title="Reels & content" subtitle="Plan content without connecting social accounts" rightSlot={<button type="button" onClick={() => setOpen(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={16} /> New content idea</button>} />
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}><div className="mx-auto w-full max-w-[1700px] space-y-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{STATUSES.map((status) => <Metric key={status} label={status.charAt(0) + status.slice(1).toLowerCase()} value={String(counts[status] ?? 0)} />)}</div>
+      <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search content ideas…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={field} /></div></div><div className="grid gap-3 p-3 lg:grid-cols-2">{filtered.map((idea) => { const style = statusStyle(idea.status); return <article key={idea.id} className="rounded-xl p-4" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><Sparkles size={16} /></span><div className="min-w-0"><h2 className="truncate text-sm font-semibold" style={{ color: UI.text }}>{idea.title}</h2><p className="mt-1 text-[11px]" style={{ color: UI.faint }}>{idea.platform}</p></div></div><span className="rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: style.bg, color: style.fg }}>{idea.status.charAt(0) + idea.status.slice(1).toLowerCase()}</span></div>{idea.hook && <p className="mt-4 text-sm leading-6" style={{ color: UI.mute }}><strong style={{ color: UI.text }}>Hook:</strong> {idea.hook}</p>}{idea.notes && <p className="mt-2 text-xs leading-5" style={{ color: UI.faint }}>{idea.notes}</p>}<div className="mt-4 flex flex-wrap items-center gap-2"><select aria-label={`Update ${idea.title} status`} value={idea.status} onChange={(e) => void setStatus(idea.id, e.target.value)} className="rounded-lg px-2.5 py-2 text-xs outline-none" style={field}>{STATUSES.map((status) => <option key={status} value={status}>{status.charAt(0) + status.slice(1).toLowerCase()}</option>)}</select>{idea.scheduledAt && <span className="text-[11px]" style={{ color: UI.faint }}>{new Date(idea.scheduledAt).toLocaleString("en-AU")}</span>}{idea.publishedUrl && <a href={idea.publishedUrl} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-xs font-semibold" style={{ color: UI.cyan }}>Open post <ExternalLink size={12} /></a>}</div></article>; })}{filtered.length === 0 && <div className="rounded-xl p-10 text-center text-sm lg:col-span-2" style={{ background: UI.panelAlt, color: UI.faint }}>No content ideas match your search.</div>}</div></section>
+    </div></div>
+    {open && <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onMouseDown={() => setOpen(false)}><form onSubmit={createIdea} onMouseDown={(e) => e.stopPropagation()} className="w-full max-w-lg space-y-4 rounded-t-2xl p-5 md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div><h2 className="text-lg font-semibold" style={{ color: UI.text }}>New content idea</h2><p className="mt-1 text-xs" style={{ color: UI.faint }}>Plan the content only — no social accounts are connected.</p></div><input required placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full rounded-lg px-3 py-2.5" style={field} /><textarea placeholder="Hook / opening line" value={form.hook} onChange={(e) => setForm({ ...form, hook: e.target.value })} className="w-full rounded-lg px-3 py-2.5" style={field} /><div className="grid grid-cols-2 gap-3"><select value={form.platform} onChange={(e) => setForm({ ...form, platform: e.target.value })} className="rounded-lg px-3 py-2.5" style={field}><option>Instagram</option><option>TikTok</option><option>Facebook</option><option>YouTube</option></select><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="rounded-lg px-3 py-2.5" style={field}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></div><input type="datetime-local" value={form.scheduledAt} onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })} className="w-full rounded-lg px-3 py-2.5" style={field} /><input type="url" placeholder="Published URL (optional)" value={form.publishedUrl} onChange={(e) => setForm({ ...form, publishedUrl: e.target.value })} className="w-full rounded-lg px-3 py-2.5" style={field} /><textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="w-full rounded-lg px-3 py-2.5" style={field} /><div className="flex justify-end gap-2"><button type="button" onClick={() => setOpen(false)} className="rounded-lg px-4 py-2.5 text-sm" style={{ background: UI.panelAlt, color: UI.mute }}>Cancel</button><button disabled={saving} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Save idea"}</button></div></form></div>}
+  </>;
 }
+
+function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl p-4" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="text-[11px]" style={{ color: UI.faint }}>{label}</div><div className="mt-1 text-xl font-semibold" style={{ color: UI.text }}>{value}</div></div>; }
