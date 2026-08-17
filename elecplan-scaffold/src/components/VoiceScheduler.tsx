@@ -86,7 +86,6 @@ function parseClock(rawHour: string, rawMinute?: string, ampm?: string) {
   if (ampm === "pm" && hour < 12) hour += 12;
   if (ampm === "am" && hour === 12) hour = 0;
   if (!ampm && hour < 4) hour += 12;
-  if (!ampm && hour >= 4 && hour <= 9) hour = hour;
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
@@ -126,8 +125,9 @@ function buildProposal(text: string, jobs: JobChoice[], employees: EmployeeChoic
   const matchedEmployee = bestEmployee && bestEmployee.score >= 10 ? bestEmployee.employee : null;
 
   const crewOnly = role === "EMPLOYEE";
+  const fallbackTitle = text.trim().replace(/^(schedule|book|create)\s+/i, "").slice(0, 120) || "Calendar event";
   return {
-    title: matchedJob?.title ?? text.trim().replace(/^(schedule|book|create)\s+/i, "").slice(0, 120) || "Calendar event",
+    title: matchedJob?.title ?? fallbackTitle,
     type: crewOnly || !matchedJob ? "call" : "job",
     jobId: crewOnly ? null : matchedJob?.id ?? null,
     jobLabel: crewOnly ? null : matchedJob ? `${matchedJob.title}${matchedJob.client ? ` · ${matchedJob.client}` : ""}` : null,
@@ -300,7 +300,7 @@ export default function VoiceScheduler({
               <dt style={{ color: UI.faint }}>Job</dt><dd style={{ color: proposal.jobLabel ? UI.text : UI.orange }}>{proposal.jobLabel ?? "No job confidently matched"}</dd>
               <dt style={{ color: UI.faint }}>Crew</dt><dd style={{ color: proposal.assignedToLabel ? UI.text : UI.orange }}>{proposal.assignedToLabel ?? "Unassigned"}</dd>
             </dl>
-            {conflicts.length > 0 && <div className="mt-3 rounded-lg p-3 text-xs" style={{ background: "rgba(255,159,28,.09)", border: "1px solid rgba(255,159,28,.24)", color: UI.orange }}><div className="flex items-center gap-2 font-semibold"><AlertTriangle size={14} /> {conflicts.length} scheduling conflict{conflicts.length === 1 ? "" : "s"}</div><div className="mt-1 space-y-1">{conflicts.slice(0,3).map((item) => <p key={item.id}>{item.title}{item.assignedTo ? ` · ${item.assignedTo}` : ""}</p>)}</div></div>}
+            {conflicts.length > 0 && <div className="mt-3 rounded-lg p-3 text-xs" style={{ background: "rgba(255,159,28,.09)", border: "1px solid rgba(255,159,28,.24)", color: UI.orange }}><div className="flex items-center gap-2 font-semibold"><AlertTriangle size={14} /> {conflicts.length} scheduling conflict{conflicts.length === 1 ? "" : "s"}</div><div className="mt-1 space-y-1">{conflicts.slice(0, 3).map((item) => <p key={item.id}>{item.title}{item.assignedTo ? ` · ${item.assignedTo}` : ""}</p>)}</div></div>}
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
               {proposal.type === "job" && proposal.jobId && role !== "EMPLOYEE" && <button type="button" disabled={saving} onClick={() => void create(true)} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ color: UI.cyan, border: "1px solid rgba(37,199,255,.35)" }}>Create & text client</button>}
               <button type="button" disabled={saving} onClick={() => void create(false)} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}>{saving ? "Scheduling…" : conflicts.length ? "Schedule anyway" : "Confirm schedule"}</button>
