@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { EVENT_TYPES } from "@/lib/theme";
+import { recordAudit } from "@/lib/audit";
 
 const eventSchema = z
   .object({
@@ -31,8 +32,14 @@ export async function POST(req: Request) {
   }
   const data = parsed.data;
 
-  const assignedToId =
-    user.role === "EMPLOYEE" ? user.id : data.assignedToId ?? null;
+  if (user.role === "EMPLOYEE" && (data.type === "job" || data.jobId)) {
+    return NextResponse.json(
+      { error: "Job scheduling must be done by an admin or supervisor" },
+      { status: 403 },
+    );
+  }
+
+  const assignedToId = user.role === "EMPLOYEE" ? user.id : data.assignedToId ?? null;
   const startsAt = new Date(data.startsAt);
   const endsAt = new Date(data.endsAt);
 
@@ -69,6 +76,16 @@ export async function POST(req: Request) {
 
       return created;
     });
+
+    if (data.type === "job" && data.jobId) {
+      await recordAudit({
+        actor: user,
+        action: "CALENDAR_JOB_EVENT_CREATED",
+        entityType: "JobEvent",
+        entityId: event.id,
+        details: { jobId: data.jobId, assignedToId },
+      });
+    }
 
     return NextResponse.json(event, { status: 201 });
   } catch {
