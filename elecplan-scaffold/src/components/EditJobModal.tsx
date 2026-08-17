@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Pencil, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, Pencil, X } from "lucide-react";
 import type { TimelineJob } from "@/components/JobTimeline";
 import type { JobCrewOption } from "@/components/NewJobModal";
 
@@ -29,25 +29,35 @@ export default function EditJobModal({ job, crew, onClose, onDone }: { job: Time
     setError(null);
     if (!title.trim() || !address.trim()) return setError("Job title and address are required.");
     if (Boolean(scheduledStart) !== Boolean(scheduledEnd)) return setError("Add both scheduled start and end, or clear both.");
+    if (scheduledStart && scheduledEnd && new Date(scheduledEnd) <= new Date(scheduledStart)) return setError("Scheduled end must be after the start time.");
 
     setSaving(true);
-    const res = await fetch(`/api/jobs/${job.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title.trim(), address: address.trim(), assignedToId: assignedToId || null, scheduledStart: scheduledStart ? new Date(scheduledStart).toISOString() : null, scheduledEnd: scheduledEnd ? new Date(scheduledEnd).toISOString() : null, notes: notes.trim() || null }) });
-    setSaving(false);
-    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not update the job."); return; }
-    onDone();
+    try {
+      const res = await fetch(`/api/jobs/${job.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title.trim(), address: address.trim(), assignedToId: assignedToId || null, scheduledStart: scheduledStart ? new Date(scheduledStart).toISOString() : null, scheduledEnd: scheduledEnd ? new Date(scheduledEnd).toISOString() : null, notes: notes.trim() || null }) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Could not update the job.");
+        return;
+      }
+      onDone();
+    } catch {
+      setError("Could not reach Elecplan. Check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
-    <section className="w-full max-w-2xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose} role="presentation">
+    <section className="w-full max-w-2xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="edit-job-title">
       <header className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}>
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><Pencil size={18} /></span>
-        <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>Edit job</h2><p className="mt-1 truncate text-xs" style={{ color: UI.faint }}>{job.ref} · {job.client}</p></div>
+        <div className="min-w-0 flex-1"><h2 id="edit-job-title" className="text-base font-semibold" style={{ color: UI.text }}>Edit job</h2><p className="mt-1 truncate text-xs" style={{ color: UI.faint }}>{job.ref} · {job.client}</p></div>
         <button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button>
       </header>
 
-      <form onSubmit={submit} className="max-h-[82vh] overflow-auto p-5">
+      <form onSubmit={submit} className="max-h-[82vh] overflow-auto p-5" aria-busy={saving}>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Job title" className="md:col-span-2"><input value={title} onChange={(e) => setTitle(e.target.value)} className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} autoFocus /></Field>
           <Field label="Job address" className="md:col-span-2"><input value={address} onChange={(e) => setAddress(e.target.value)} className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
@@ -59,7 +69,7 @@ export default function EditJobModal({ job, crew, onClose, onDone }: { job: Time
           <Field label="Notes" className="md:col-span-2"><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} className="w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none" style={field} /></Field>
         </div>
 
-        {error && <p className="mt-4 text-xs" style={{ color: UI.red }}>{error}</p>}
+        {error && <div role="alert" className="mt-4 flex gap-2 rounded-lg p-3 text-xs leading-5" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} className="mt-0.5 shrink-0" /><span>{error}</span></div>}
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving} className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Save changes"}</button></div>
       </form>
     </section>
