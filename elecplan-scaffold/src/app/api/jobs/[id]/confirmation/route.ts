@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { sendSms, smsConfigured } from "@/lib/sms";
 import { recordAudit } from "@/lib/audit";
+import { consumeRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
 function normalizeAustralianMobile(value: string): string {
   const compact = value.replace(/[\s()-]/g, "");
@@ -35,27 +36,31 @@ export async function POST(
   }
 
   const { id } = await params;
+  const limit = await consumeRateLimit(`sms-confirmation:job:${id}`, 3, 15 * 60 * 1000);
+  if (!limit.allowed) {
+    await recordAudit({
+      actor: user,
+      action: "CLIENT_CONFIRMATION_SMS_RATE_LIMITED",
+      entityType: "Job",
+      entityId: id,
+      details: { retryAfterSeconds: limit.retryAfterSeconds },
+    });
+    return NextResponse.json(
+      { error: "Too many confirmation texts have been requested for this job. Try again later." },
+      { status: 429, headers: rateLimitHeaders(limit) },
+    );
+  }
+
   const job = await prisma.job.findUnique({
     where: { id },
-    include: {
-      client: {
-        select: { name: true, contactName: true, phone: true },
-      },
-    },
+    include: { client: { select: { name: true, contactName: true, phone: true } } },
   });
 
   if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  if (!job.scheduledStart) {
-    return NextResponse.json({ error: "Schedule the job before sending a confirmation" }, { status: 400 });
-  }
-  if (!job.client.phone?.trim()) {
-    return NextResponse.json({ error: "This client does not have a phone number" }, { status: 400 });
-  }
+  if (!job.scheduledStart) return NextResponse.json({ error: "Schedule the job before sending a confirmation" }, { status: 400 });
+  if (!job.client.phone?.trim()) return NextResponse.json({ error: "This client does not have a phone number" }, { status: 400 });
   if (!smsConfigured()) {
-    return NextResponse.json(
-      { error: "SMS is not configured yet. Add ClickSend credentials before sending live texts." },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "SMS is not configured yet. Add ClickSend credentials before sending live texts." }, { status: 503 });
   }
 
   const to = normalizeAustralianMobile(job.client.phone);
@@ -65,38 +70,13 @@ export async function POST(
   try {
     const result = await sendSms(to, message);
     const smsLog = await prisma.smsLog.create({
-      data: {
-        jobId: job.id,
-        phoneNumber: to,
-        message,
-        status: "SENT",
-        providerId: result.providerId,
-      },
+      data: { jobId: job.id, phoneNumber: to, message, status: "SENT", providerId: result.providerId },
     });
-    await recordAudit({
-      actor: user,
-      action: "CLIENT_CONFIRMATION_SMS_SENT",
-      entityType: "Job",
-      entityId: job.id,
-      details: { smsLogId: smsLog.id, providerAccepted: true },
-    });
+    await recordAudit({ actor: user, action: "CLIENT_CONFIRMATION_SMS_SENT", entityType: "Job", entityId: job.id, details: { smsLogId: smsLog.id, providerAccepted: true } });
     return NextResponse.json({ ok: true, phoneNumber: to });
   } catch (error) {
-    const smsLog = await prisma.smsLog.create({
-      data: {
-        jobId: job.id,
-        phoneNumber: to,
-        message,
-        status: "FAILED",
-      },
-    });
-    await recordAudit({
-      actor: user,
-      action: "CLIENT_CONFIRMATION_SMS_FAILED",
-      entityType: "Job",
-      entityId: job.id,
-      details: { smsLogId: smsLog.id },
-    });
+    const smsLog = await prisma.smsLog.create({ data: { jobId: job.id, phoneNumber: to, message, status: "FAILED" } });
+    await recordAudit({ actor: user, action: "CLIENT_CONFIRMATION_SMS_FAILED", entityType: "Job", entityId: job.id, details: { smsLogId: smsLog.id } });
     const reason = error instanceof Error ? error.message : "SMS_SEND_FAILED";
     return NextResponse.json({ error: `Could not send confirmation (${reason})` }, { status: 502 });
   }
