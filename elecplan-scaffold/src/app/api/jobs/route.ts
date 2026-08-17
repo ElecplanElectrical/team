@@ -30,6 +30,15 @@ export async function POST(req: Request) {
   }
 
   const d = parsed.data;
+  const hasStart = Boolean(d.scheduledStart);
+  const hasEnd = Boolean(d.scheduledEnd);
+  if (hasStart !== hasEnd) {
+    return NextResponse.json(
+      { error: "Scheduled start and end must be provided together" },
+      { status: 400 },
+    );
+  }
+
   const start = d.scheduledStart ? new Date(d.scheduledStart) : null;
   const end = d.scheduledEnd ? new Date(d.scheduledEnd) : null;
   if (start && end && end <= start) {
@@ -49,21 +58,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Assigned employee not found or inactive" }, { status: 400 });
     }
 
-    const job = await prisma.job.create({
-      data: {
-        title: d.title,
-        clientId: d.clientId,
-        address: d.address,
-        assignedToId: d.assignedToId || null,
-        status: d.status,
-        scheduledStart: start,
-        scheduledEnd: end,
-        notes: d.notes || null,
-      },
-      include: {
-        client: { select: { name: true } },
-        assignedTo: { select: { name: true } },
-      },
+    const job = await prisma.$transaction(async (tx) => {
+      const created = await tx.job.create({
+        data: {
+          title: d.title,
+          clientId: d.clientId,
+          address: d.address,
+          assignedToId: d.assignedToId || null,
+          status: d.status,
+          scheduledStart: start,
+          scheduledEnd: end,
+          notes: d.notes || null,
+        },
+        include: {
+          client: { select: { name: true } },
+          assignedTo: { select: { name: true } },
+        },
+      });
+
+      if (start && end) {
+        await tx.jobEvent.create({
+          data: {
+            jobId: created.id,
+            type: "job",
+            startsAt: start,
+            endsAt: end,
+            assignedToId: d.assignedToId || null,
+          },
+        });
+      }
+
+      return created;
     });
 
     return NextResponse.json(job, { status: 201 });
