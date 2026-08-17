@@ -19,6 +19,6 @@ export function weekKey(d: Date): string {
   return format(d, "yyyy-MM-dd");
 }
 
-export const CAL_HOUR_START = 6; // 6am
-export const CAL_HOUR_END = 18; // 6pm (exclusive) -> rows 6am..5pm
-export const CAL_ROW_PX = 58;
+export const CAL_HOUR_START = 4; // 4am
+export const CAL_HOUR_END = 21; // calendar closes at 9pm
+export const CAL_ROW_PX = 64;
