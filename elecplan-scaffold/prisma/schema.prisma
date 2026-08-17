@@ -290,3 +290,15 @@ model SmsLog {
   providerId   String?
   createdAt    DateTime  @default(now())
 }
+
+model ReelIdea {
+  id          String   @id @default(cuid())
+  title       String
+  hook        String?
+  platform    String
+  status      String   @default("IDEA")
+  scheduledAt DateTime?
+  publishedUrl String?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
