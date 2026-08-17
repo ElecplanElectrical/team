@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import JobTimeline, { type TimelineJob } from "@/components/JobTimeline";
 import NewJobModal, { type JobClientOption, type JobCrewOption } from "@/components/NewJobModal";
+import EditJobModal from "@/components/EditJobModal";
 import { COLORS, ON_ACCENT, JOB_STAGES } from "@/lib/theme";
 
 export default function JobsView({
@@ -21,6 +22,7 @@ export default function JobsView({
 }) {
   const router = useRouter();
   const [showNew, setShowNew] = useState(false);
+  const [editingJob, setEditingJob] = useState<TimelineJob | null>(null);
   const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
 
@@ -77,6 +79,7 @@ export default function JobsView({
             canManage={canCreate}
             updating={updatingJobId === job.id}
             onStatusChange={updateStatus}
+            onEdit={setEditingJob}
           />
         ))}
         {jobs.length === 0 && (
@@ -96,6 +99,18 @@ export default function JobsView({
           onClose={() => setShowNew(false)}
           onDone={() => {
             setShowNew(false);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {editingJob && (
+        <EditJobModal
+          job={editingJob}
+          crew={crew}
+          onClose={() => setEditingJob(null)}
+          onDone={() => {
+            setEditingJob(null);
             router.refresh();
           }}
         />

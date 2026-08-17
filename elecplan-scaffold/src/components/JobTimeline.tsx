@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, MapPin, User as UserIcon } from "lucide-react";
+import { CheckCircle2, MapPin, Pencil, User as UserIcon } from "lucide-react";
 import { COLORS, ON_ACCENT, JOB_STAGES, STAGE_LABELS } from "@/lib/theme";
 
 export type TimelineJob = {
@@ -10,7 +10,11 @@ export type TimelineJob = {
   client: string;
   address: string;
   crew: string | null;
+  assignedToId: string | null;
   status: string;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  notes: string | null;
 };
 
 export default function JobTimeline({
@@ -18,11 +22,13 @@ export default function JobTimeline({
   canManage = false,
   updating = false,
   onStatusChange,
+  onEdit,
 }: {
   job: TimelineJob;
   canManage?: boolean;
   updating?: boolean;
   onStatusChange?: (jobId: string, status: (typeof JOB_STAGES)[number]) => void;
+  onEdit?: (job: TimelineJob) => void;
 }) {
   const current = JOB_STAGES.indexOf(job.status as (typeof JOB_STAGES)[number]);
 
@@ -36,9 +42,23 @@ export default function JobTimeline({
           <h3 className="text-base font-semibold truncate" style={{ color: COLORS.text }}>{job.title}</h3>
           <p className="text-xs" style={{ color: COLORS.textMute }}>{job.client}</p>
         </div>
-        <div className="hidden sm:flex flex-col items-end gap-1 shrink-0 text-xs" style={{ color: COLORS.textFaint }}>
-          <span className="flex items-center gap-1"><MapPin size={13} /> {job.address}</span>
-          {job.crew && <span className="flex items-center gap-1"><UserIcon size={13} /> {job.crew}</span>}
+        <div className="flex items-start gap-3 shrink-0">
+          <div className="hidden sm:flex flex-col items-end gap-1 text-xs" style={{ color: COLORS.textFaint }}>
+            <span className="flex items-center gap-1"><MapPin size={13} /> {job.address}</span>
+            {job.crew && <span className="flex items-center gap-1"><UserIcon size={13} /> {job.crew}</span>}
+          </div>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => onEdit?.(job)}
+              className="rounded-md p-2 hover:opacity-80"
+              style={{ background: COLORS.cardAlt, color: COLORS.textMute, border: `1px solid ${COLORS.border}` }}
+              title="Edit job details"
+              aria-label={`Edit ${job.title}`}
+            >
+              <Pencil size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -85,7 +105,7 @@ export default function JobTimeline({
           );
         })}
       </div>
-      {canManage && <p className="text-[11px] mt-2" style={{ color: COLORS.textFaint }}>{updating ? "Updating status…" : "Select a stage to update this job."}</p>}
+      {canManage && <p className="text-[11px] mt-2" style={{ color: COLORS.textFaint }}>{updating ? "Updating status…" : "Select a stage to update status, or use the edit button for schedule and assignment."}</p>}
     </div>
   );
 }
