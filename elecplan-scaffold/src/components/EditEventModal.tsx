@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { CalendarClock, MessageSquareText, Trash2, X } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, MessageSquareText, Trash2, X } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { EVENT_TYPES } from "@/lib/theme";
 
@@ -65,23 +65,34 @@ export default function EditEventModal({
     if (!(endsAt > startsAt)) return setError("End time must be after start time.");
 
     setSaving(true);
+    try {
+      if (fallbackJob && event.jobId) {
+        const res = await fetch(`/api/jobs/${event.jobId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scheduledStart: startsAt.toISOString(), scheduledEnd: endsAt.toISOString(), assignedToId: assignedToId || null }) });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          setError(body?.error ?? "Could not update the job schedule.");
+          return;
+        }
+        onDone();
+        return;
+      }
 
-    if (fallbackJob && event.jobId) {
-      const res = await fetch(`/api/jobs/${event.jobId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scheduledStart: startsAt.toISOString(), scheduledEnd: endsAt.toISOString(), assignedToId: assignedToId || null }) });
-      setSaving(false);
-      if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not update the job schedule."); return; }
+      const payload = crewOnly
+        ? { title: title.trim() || null, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() }
+        : { title: title.trim() || null, type, jobId: jobId || null, assignedToId: assignedToId || null, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() };
+
+      const res = await fetch(`/api/events/${event.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Could not update the event.");
+        return;
+      }
       onDone();
-      return;
+    } catch {
+      setError("Could not reach Elecplan. Check your connection and try again.");
+    } finally {
+      setSaving(false);
     }
-
-    const payload = crewOnly
-      ? { title: title.trim() || null, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() }
-      : { title: title.trim() || null, type, jobId: jobId || null, assignedToId: assignedToId || null, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() };
-
-    const res = await fetch(`/api/events/${event.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    setSaving(false);
-    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not update the event."); return; }
-    onDone();
   }
 
   async function sendConfirmation() {
@@ -89,11 +100,19 @@ export default function EditEventModal({
     setError(null);
     setNotice(null);
     setSendingText(true);
-    const res = await fetch(`/api/jobs/${event.jobId}/confirmation`, { method: "POST" });
-    setSendingText(false);
-    const body = await res.json().catch(() => null);
-    if (!res.ok) { setError(body?.error ?? "Could not send the client confirmation."); return; }
-    setNotice("Client confirmation text sent.");
+    try {
+      const res = await fetch(`/api/jobs/${event.jobId}/confirmation`, { method: "POST" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(body?.error ?? "Could not send the client confirmation.");
+        return;
+      }
+      setNotice("Client confirmation text sent.");
+    } catch {
+      setError("Could not reach Elecplan to send the SMS. Check your connection and try again.");
+    } finally {
+      setSendingText(false);
+    }
   }
 
   async function remove() {
@@ -105,29 +124,41 @@ export default function EditEventModal({
     setError(null);
     setNotice(null);
 
-    if (fallbackJob && event.jobId) {
-      const res = await fetch(`/api/jobs/${event.jobId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scheduledStart: null, scheduledEnd: null }) });
-      setDeleting(false);
-      if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not clear the job schedule."); return; }
-      onDone();
-      return;
-    }
+    try {
+      if (fallbackJob && event.jobId) {
+        const res = await fetch(`/api/jobs/${event.jobId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scheduledStart: null, scheduledEnd: null }) });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          setError(body?.error ?? "Could not clear the job schedule.");
+          return;
+        }
+        onDone();
+        return;
+      }
 
-    const res = await fetch(`/api/events/${event.id}`, { method: "DELETE" });
-    setDeleting(false);
-    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not delete the event."); return; }
-    onDone();
+      const res = await fetch(`/api/events/${event.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Could not delete the event.");
+        return;
+      }
+      onDone();
+    } catch {
+      setError("Could not reach Elecplan. Check your connection and try again.");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
   const canTextClient = !crewOnly && event.type === "job" && Boolean(event.jobId);
 
   if (crewJobReadOnly) {
-    return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
-      <section className="w-full max-w-md overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
+    return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose} role="presentation">
+      <section className="w-full max-w-md overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="job-schedule-title">
         <header className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}>
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><CalendarClock size={18} /></span>
-          <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>Job schedule</h2><p className="mt-1 truncate text-xs" style={{ color: UI.faint }}>{event.title}</p></div>
+          <div className="min-w-0 flex-1"><h2 id="job-schedule-title" className="text-base font-semibold" style={{ color: UI.text }}>Job schedule</h2><p className="mt-1 truncate text-xs" style={{ color: UI.faint }}>{event.title}</p></div>
           <button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button>
         </header>
         <div className="p-5"><div className="rounded-xl p-3 text-sm" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}`, color: UI.text }}>{format(startDate, "EEEE d MMM yyyy, h:mma")} – {format(endDate, "h:mma")}</div><p className="mt-4 text-sm leading-6" style={{ color: UI.mute }}>Job-linked calendar events are read-only for crew. An admin or supervisor can change the job time or assignment.</p><div className="mt-5 flex justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}>Close</button></div></div>
@@ -135,11 +166,11 @@ export default function EditEventModal({
     </div>;
   }
 
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
-    <section className="w-full max-w-xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose} role="presentation">
+    <section className="w-full max-w-xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="edit-event-title">
       <header className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}>
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><CalendarClock size={18} /></span>
-        <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>Edit calendar event</h2><p className="mt-1 truncate text-xs" style={{ color: UI.faint }}>{event.title}</p></div>
+        <div className="min-w-0 flex-1"><h2 id="edit-event-title" className="text-base font-semibold" style={{ color: UI.text }}>Edit calendar event</h2><p className="mt-1 truncate text-xs" style={{ color: UI.faint }}>{event.title}</p></div>
         <button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button>
       </header>
 
@@ -156,8 +187,8 @@ export default function EditEventModal({
         {fallbackJob && <div className="mt-4 rounded-xl p-3 text-xs leading-5" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}`, color: UI.faint }}>This booking was recovered directly from the job schedule. Saving it will rebuild the missing calendar link automatically.</div>}
         {crewOnly && <p className="mt-4 text-xs" style={{ color: UI.faint }}>Crew can change the title and time of personal non-job events only.</p>}
         {event.type === "job" && event.jobId && <div className="mt-4 rounded-xl p-3 text-xs leading-5" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}`, color: UI.faint }}>Changes to this linked job event also update the job schedule and crew assignment. Save schedule changes before sending a confirmation text.</div>}
-        {notice && <p className="mt-4 text-xs" style={{ color: UI.green }}>{notice}</p>}
-        {error && <p className="mt-4 text-xs" style={{ color: UI.red }}>{error}</p>}
+        {notice && <div className="mt-4 flex gap-2 rounded-lg p-3 text-xs leading-5" style={{ background: "rgba(25,211,160,.08)", border: "1px solid rgba(25,211,160,.22)", color: UI.green }}><CheckCircle2 size={14} className="mt-0.5 shrink-0" /><span>{notice}</span></div>}
+        {error && <div className="mt-4 flex gap-2 rounded-lg p-3 text-xs leading-5" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} className="mt-0.5 shrink-0" /><span>{error}</span></div>}
 
         {canTextClient && <button type="button" onClick={sendConfirmation} disabled={sendingText || saving || deleting} className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: "rgba(22,141,255,.09)", border: "1px solid rgba(37,199,255,.28)", color: UI.cyan }}><MessageSquareText size={15} /> {sendingText ? "Sending…" : "Send client confirmation text"}</button>}
 
