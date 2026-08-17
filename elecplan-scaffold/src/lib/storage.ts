@@ -17,12 +17,15 @@ export const DOCUMENT_TYPES = new Set([
 
 export const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
+type UrlStyle = "virtual" | "path";
+
 type StorageConfig = {
   accessKeyId: string;
   secretAccessKey: string;
   bucket: string;
   endpoint: URL;
   region: string;
+  urlStyle: UrlStyle;
 };
 
 type UploadKind = "documents" | "project-photos";
@@ -36,19 +39,69 @@ export type CommitPayload = {
   exp: number;
 };
 
+function firstEnv(...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return undefined;
+}
+
 function config(): StorageConfig | null {
-  const accessKeyId = process.env.S3_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY?.trim();
-  const bucket = process.env.S3_BUCKET?.trim();
-  const endpointRaw = process.env.S3_ENDPOINT?.trim();
-  const region = process.env.S3_REGION?.trim() || "auto";
+  // Support Elecplan's original S3_* names, Railway bucket variable references,
+  // Railway CLI/AWS-compatible names, and the BUCKET_* names used in Railway guides.
+  const accessKeyId = firstEnv(
+    "S3_ACCESS_KEY_ID",
+    "ACCESS_KEY_ID",
+    "AWS_ACCESS_KEY_ID",
+    "BUCKET_ACCESS_KEY_ID",
+  );
+  const secretAccessKey = firstEnv(
+    "S3_SECRET_ACCESS_KEY",
+    "SECRET_ACCESS_KEY",
+    "AWS_SECRET_ACCESS_KEY",
+    "BUCKET_SECRET_ACCESS_KEY",
+  );
+  const bucket = firstEnv(
+    "S3_BUCKET",
+    "BUCKET",
+    "AWS_S3_BUCKET_NAME",
+    "BUCKET_NAME",
+  );
+  const endpointRaw = firstEnv(
+    "S3_ENDPOINT",
+    "ENDPOINT",
+    "AWS_ENDPOINT_URL",
+    "BUCKET_ENDPOINT",
+  );
+  const region = firstEnv(
+    "S3_REGION",
+    "REGION",
+    "AWS_DEFAULT_REGION",
+    "AWS_REGION",
+  ) || "auto";
+  const styleRaw = firstEnv("S3_URL_STYLE", "AWS_S3_URL_STYLE", "BUCKET_URL_STYLE")?.toLowerCase();
+
   if (!accessKeyId || !secretAccessKey || !bucket || !endpointRaw) return null;
 
   try {
     const endpoint = new URL(endpointRaw);
     if (endpoint.protocol !== "https:") return null;
     endpoint.pathname = endpoint.pathname.replace(/\/$/, "");
-    return { accessKeyId, secretAccessKey, bucket, endpoint, region };
+
+    // Railway's current buckets use virtual-hosted URLs by default. Older
+    // Railway buckets and other S3-compatible providers may still be path-style.
+    const railwayBaseEndpoint = endpoint.hostname === "storage.railway.app";
+    const endpointAlreadyContainsBucket = endpoint.hostname === `${bucket}.storage.railway.app`;
+    const urlStyle: UrlStyle = styleRaw === "path"
+      ? "path"
+      : styleRaw === "virtual"
+        ? "virtual"
+        : railwayBaseEndpoint || endpointAlreadyContainsBucket
+          ? "virtual"
+          : "path";
+
+    return { accessKeyId, secretAccessKey, bucket, endpoint, region, urlStyle };
   } catch {
     return null;
   }
@@ -88,6 +141,31 @@ function signingKey(secret: string, shortDate: string, region: string): Buffer {
   return hmac(kService, "aws4_request");
 }
 
+function requestTarget(cfg: StorageConfig, key: string): { origin: string; host: string; pathname: string } {
+  const encodedKey = encodedPath(key);
+
+  if (cfg.urlStyle === "virtual") {
+    const endpointAlreadyContainsBucket = cfg.endpoint.hostname.startsWith(`${cfg.bucket}.`);
+    const host = endpointAlreadyContainsBucket
+      ? cfg.endpoint.host
+      : `${cfg.bucket}.${cfg.endpoint.host}`;
+    const pathname = `${cfg.endpoint.pathname}/${encodedKey}`.replace(/\/+/g, "/");
+    return {
+      origin: `${cfg.endpoint.protocol}//${host}`,
+      host,
+      pathname,
+    };
+  }
+
+  const host = cfg.endpoint.host;
+  const pathname = `${cfg.endpoint.pathname}/${awsEncode(cfg.bucket)}/${encodedKey}`.replace(/\/+/g, "/");
+  return {
+    origin: cfg.endpoint.origin,
+    host,
+    pathname,
+  };
+}
+
 function presign(
   method: "GET" | "PUT" | "DELETE",
   key: string,
@@ -100,8 +178,7 @@ function presign(
   const now = new Date();
   const { full, short } = amzDate(now);
   const scope = `${short}/${cfg.region}/s3/aws4_request`;
-  const host = cfg.endpoint.host;
-  const pathname = `${cfg.endpoint.pathname}/${awsEncode(cfg.bucket)}/${encodedPath(key)}`.replace(/\/+/g, "/");
+  const target = requestTarget(cfg, key);
   const signedHeaders = contentType ? "content-type;host" : "host";
 
   const queryEntries: [string, string][] = [
@@ -118,11 +195,11 @@ function presign(
     .join("&");
 
   const canonicalHeaders = contentType
-    ? `content-type:${contentType.trim().toLowerCase()}\nhost:${host}\n`
-    : `host:${host}\n`;
+    ? `content-type:${contentType.trim().toLowerCase()}\nhost:${target.host}\n`
+    : `host:${target.host}\n`;
   const canonicalRequest = [
     method,
-    pathname,
+    target.pathname,
     canonicalQuery,
     canonicalHeaders,
     signedHeaders,
@@ -138,7 +215,7 @@ function presign(
     .update(stringToSign)
     .digest("hex");
 
-  return `${cfg.endpoint.origin}${pathname}?${canonicalQuery}&X-Amz-Signature=${signature}`;
+  return `${target.origin}${target.pathname}?${canonicalQuery}&X-Amz-Signature=${signature}`;
 }
 
 function cleanExtension(fileName: string): string {
