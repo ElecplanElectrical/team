@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 const schema = z.object({
   jobId: z.string().cuid(),
@@ -31,6 +32,20 @@ export async function POST(req: Request) {
         status: parsed.data.status,
       },
     });
+
+    await recordAudit({
+      actor: user,
+      action: "INSPECTION_CREATED",
+      entityType: "Inspection",
+      entityId: inspection.id,
+      details: {
+        jobId: inspection.jobId,
+        type: inspection.type,
+        date: inspection.date.toISOString().slice(0, 10),
+        status: inspection.status,
+      },
+    });
+
     return NextResponse.json(inspection, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Could not create inspection. Check the linked job." }, { status: 400 });
