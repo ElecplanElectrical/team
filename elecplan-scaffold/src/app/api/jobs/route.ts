@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 const jobSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(160),
@@ -89,6 +90,21 @@ export async function POST(req: Request) {
       }
 
       return created;
+    });
+
+    await recordAudit({
+      actor: user,
+      action: "JOB_CREATED",
+      entityType: "Job",
+      entityId: job.id,
+      details: {
+        clientId: d.clientId,
+        assignedToId: job.assignedToId,
+        status: job.status,
+        scheduled: Boolean(job.scheduledStart && job.scheduledEnd),
+        scheduledStart: job.scheduledStart?.toISOString() ?? null,
+        scheduledEnd: job.scheduledEnd?.toISOString() ?? null,
+      },
     });
 
     return NextResponse.json(job, { status: 201 });
