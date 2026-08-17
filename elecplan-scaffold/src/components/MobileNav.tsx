@@ -29,7 +29,7 @@ export default function MobileNav({ role }: { role: Role }) {
         </button>
         <Link href="/dashboard" aria-label="Elecplan dashboard" className="flex h-9 items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: 108, height: "auto", objectFit: "contain" }} />
+          <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: 112, height: "auto", objectFit: "contain", display: "block" }} />
         </Link>
         <button type="button" aria-label="Notifications" className="relative flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}>
           <Bell size={16} />
@@ -43,7 +43,7 @@ export default function MobileNav({ role }: { role: Role }) {
           <aside className="absolute inset-y-0 left-0 w-[82%] max-w-[320px] overflow-y-auto p-4 shadow-2xl" style={{ background: "linear-gradient(180deg,#02101f,#031321)", borderRight: `1px solid ${UI.border}` }}>
             <div className="mb-6 flex items-center justify-between">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: 126, height: "auto", objectFit: "contain" }} />
+              <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: 126, height: "auto", objectFit: "contain", display: "block" }} />
               <button type="button" onClick={() => setOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}><X size={17} /></button>
             </div>
             <nav className="space-y-5">
