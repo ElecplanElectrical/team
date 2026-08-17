@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { sendSms, smsConfigured } from "@/lib/sms";
+import { recordAudit } from "@/lib/audit";
 
 function normalizeAustralianMobile(value: string): string {
   const compact = value.replace(/[\s()-]/g, "");
@@ -63,7 +64,7 @@ export async function POST(
 
   try {
     const result = await sendSms(to, message);
-    await prisma.smsLog.create({
+    const smsLog = await prisma.smsLog.create({
       data: {
         jobId: job.id,
         phoneNumber: to,
@@ -72,15 +73,29 @@ export async function POST(
         providerId: result.providerId,
       },
     });
+    await recordAudit({
+      actor: user,
+      action: "CLIENT_CONFIRMATION_SMS_SENT",
+      entityType: "Job",
+      entityId: job.id,
+      details: { smsLogId: smsLog.id, providerAccepted: true },
+    });
     return NextResponse.json({ ok: true, phoneNumber: to });
   } catch (error) {
-    await prisma.smsLog.create({
+    const smsLog = await prisma.smsLog.create({
       data: {
         jobId: job.id,
         phoneNumber: to,
         message,
         status: "FAILED",
       },
+    });
+    await recordAudit({
+      actor: user,
+      action: "CLIENT_CONFIRMATION_SMS_FAILED",
+      entityType: "Job",
+      entityId: job.id,
+      details: { smsLogId: smsLog.id },
     });
     const reason = error instanceof Error ? error.message : "SMS_SEND_FAILED";
     return NextResponse.json({ error: `Could not send confirmation (${reason})` }, { status: 502 });

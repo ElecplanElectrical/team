@@ -61,6 +61,16 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-lg p-5" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold" style={{ color: COLORS.text, fontFamily: FONTS.display }}>Security audit trail</h2>
+            <p className="text-sm mt-2" style={{ color: COLORS.textMute }}>Review recent sensitive finance, team-access, SMS and approval actions. Audit metadata excludes secret values and SMS message bodies.</p>
+          </div>
+          <Link href="/settings/audit" className="rounded-md px-3 py-2 text-sm font-semibold shrink-0" style={{ background: COLORS.cardAlt, border: `1px solid ${COLORS.border}`, color: COLORS.accent }}>Open audit log</Link>
+        </div>
+      </section>
+
+      <section className="rounded-lg p-5" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}>
         <h2 className="font-semibold" style={{ color: COLORS.text, fontFamily: FONTS.display }}>Xero live-link gate</h2>
         <p className="text-sm mt-2" style={{ color: COLORS.textMute }}>Xero remains intentionally disconnected even if credentials are staged. Do not enable OAuth, tenant binding, token persistence, sync jobs, or financial write-back until the portal build is complete and the final security review is explicitly approved.</p>
       </section>

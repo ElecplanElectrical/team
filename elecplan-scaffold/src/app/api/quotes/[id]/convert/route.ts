@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 
 function invoiceNumber() {
   const year = new Date().getFullYear();
@@ -65,6 +66,20 @@ export async function POST(
       }
       return created;
     });
+
+    await recordAudit({
+      actor: user,
+      action: "QUOTE_CONVERTED_TO_INVOICE",
+      entityType: "Quote",
+      entityId: quote.id,
+      details: {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        jobId: quote.jobId,
+        amount: Number(quote.amount),
+      },
+    });
+
     return NextResponse.json(invoice, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Could not convert quote. It may already have an invoice." }, { status: 409 });

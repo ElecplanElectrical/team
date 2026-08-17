@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess, canManageUser } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 import {
   generateToken,
   expiryFromNow,
@@ -9,8 +10,6 @@ import {
   RESET_TTL_HOURS,
 } from "@/lib/tokens";
 
-// Issue a one-time password-reset link for a user. Supersedes any outstanding
-// (unused) links for that user so only the newest one works.
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -24,7 +23,7 @@ export async function POST(
   const { id } = await params;
   const target = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, role: true },
+    select: { id: true, role: true, email: true },
   });
   if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
@@ -44,6 +43,14 @@ export async function POST(
       },
     }),
   ]);
+
+  await recordAudit({
+    actor,
+    action: "PASSWORD_RESET_LINK_ISSUED",
+    entityType: "User",
+    entityId: target.id,
+    details: { targetEmail: target.email, targetRole: target.role, expiresInHours: RESET_TTL_HOURS },
+  });
 
   const resetUrl = setPasswordUrl(new URL(req.url).origin, raw);
   return NextResponse.json({ resetUrl });

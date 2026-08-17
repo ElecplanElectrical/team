@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 
 const patchSchema = z.object({
   status: z.enum(["DRAFT", "SENT", "ACCEPTED", "DECLINED"]),
@@ -25,10 +26,23 @@ export async function PATCH(
 
   const { id } = await params;
   try {
+    const before = await prisma.quote.findUnique({
+      where: { id },
+      select: { status: true, quoteNumber: true, amount: true },
+    });
+    if (!before) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+
     const quote = await prisma.quote.update({
       where: { id },
       data: { status: parsed.data.status },
       select: { id: true, status: true },
+    });
+    await recordAudit({
+      actor: user,
+      action: "QUOTE_STATUS_CHANGED",
+      entityType: "Quote",
+      entityId: id,
+      details: { quoteNumber: before.quoteNumber, from: before.status, to: parsed.data.status, amount: Number(before.amount) },
     });
     return NextResponse.json(quote);
   } catch {
