@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 const schema = z.union([
   z.object({ delta: z.number().int().min(-1000).max(1000).refine((value) => value !== 0) }),
@@ -38,14 +39,50 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const item = await prisma.stockItem.findUnique({ where: { id } });
+    if (!item) return NextResponse.json({ error: "Stock item not found" }, { status: 404 });
+
+    await recordAudit({
+      actor: user,
+      action: "STOCK_QUANTITY_CHANGED",
+      entityType: "StockItem",
+      entityId: item.id,
+      details: {
+        name: item.name,
+        before: item.onHand - delta,
+        after: item.onHand,
+        delta,
+        mode: "delta",
+      },
+    });
+
     return NextResponse.json(item);
   }
+
+  const before = await prisma.stockItem.findUnique({ where: { id }, select: { id: true, name: true, onHand: true } });
+  if (!before) return NextResponse.json({ error: "Stock item not found" }, { status: 404 });
 
   try {
     const item = await prisma.stockItem.update({
       where: { id },
       data: { onHand: parsed.data.onHand },
     });
+
+    if (before.onHand !== item.onHand) {
+      await recordAudit({
+        actor: user,
+        action: "STOCK_QUANTITY_CHANGED",
+        entityType: "StockItem",
+        entityId: item.id,
+        details: {
+          name: item.name,
+          before: before.onHand,
+          after: item.onHand,
+          delta: item.onHand - before.onHand,
+          mode: "absolute",
+        },
+      });
+    }
+
     return NextResponse.json(item);
   } catch {
     return NextResponse.json({ error: "Stock item not found" }, { status: 404 });
