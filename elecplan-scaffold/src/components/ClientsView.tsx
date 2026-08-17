@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { Search, Plus, Pencil } from "lucide-react";
-import { COLORS, ON_ACCENT } from "@/lib/theme";
+import { Building2, Mail, MapPin, Pencil, Phone, Plus, Search } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import NewClientModal from "@/components/NewClientModal";
 import EditClientModal from "@/components/EditClientModal";
@@ -19,179 +18,103 @@ export type ClientRow = {
   billingNotes: string | null;
   jobs: number;
   billed: number;
-  lastJob: string | null; // ISO date or null
+  lastJob: string | null;
 };
 
-function money(n: number): string {
+const UI = {
+  panel: "#07192b",
+  panelAlt: "#09213a",
+  border: "rgba(77,150,221,.24)",
+  borderSoft: "rgba(77,150,221,.12)",
+  text: "#f5f9ff",
+  mute: "#93a9c2",
+  faint: "#617993",
+  blue: "#168dff",
+  cyan: "#25c7ff",
+};
+
+function money(n: number) {
   return "$" + Math.round(n).toLocaleString("en-AU");
 }
 
-function lastJobLabel(iso: string | null): string {
-  if (!iso) return "—";
+function lastJobLabel(iso: string | null) {
+  if (!iso) return "No jobs yet";
   return formatDistanceToNow(parseISO(iso), { addSuffix: true });
 }
 
-export default function ClientsView({
-  clients,
-  totalBilled,
-}: {
-  clients: ClientRow[];
-  totalBilled: number;
-}) {
+export default function ClientsView({ clients, totalBilled }: { clients: ClientRow[]; totalBilled: number }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<ClientRow | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const query = q.trim().toLowerCase();
-  const filtered = query
-    ? clients.filter(
-        (c) =>
-          c.name.toLowerCase().includes(query) ||
-          (c.contactName ?? "").toLowerCase().includes(query) ||
-          (c.email ?? "").toLowerCase().includes(query) ||
-          (c.phone ?? "").toLowerCase().includes(query),
-      )
-    : clients;
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    if (!query) return clients;
+    return clients.filter((c) => [c.name, c.contactName ?? "", c.email ?? "", c.phone ?? "", c.address ?? ""].join(" ").toLowerCase().includes(query));
+  }, [clients, q]);
+
+  const selected = filtered.find((client) => client.id === selectedId) ?? filtered[0] ?? null;
 
   return (
     <>
-      <TopBar
-        title="Clients"
-        subtitle={`${clients.length} client${clients.length === 1 ? "" : "s"} · ${money(
-          totalBilled,
-        )} billed all-time`}
-        rightSlot={
-          <button
-            type="button"
-            onClick={() => setShowNew(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-semibold"
-            style={{ background: COLORS.accent, color: ON_ACCENT }}
-          >
-            <Plus size={15} /> New client
-          </button>
-        }
-      />
+      <TopBar title="Clients" subtitle="Manage your clients and contacts" rightSlot={<button type="button" onClick={() => setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgba(22,141,255,.25)" }}><Plus size={16} /> New client</button>} />
 
-      <div className="flex-1 overflow-auto p-4 md:p-8">
-        <div
-          className="flex items-center gap-2 mb-4 px-3 py-2 rounded-md"
-          style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}
-        >
-          <Search size={15} style={{ color: COLORS.textFaint }} />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search clients, contacts, email or phone"
-            className="bg-transparent outline-none text-sm flex-1"
-            style={{ color: COLORS.text }}
-          />
-        </div>
-
-        <div
-          className="rounded-lg overflow-hidden"
-          style={{ border: `1px solid ${COLORS.border}`, background: COLORS.card }}
-        >
-          <div
-            className="hidden sm:flex items-center px-5 py-2.5"
-            style={{ borderBottom: `1px solid ${COLORS.borderSoft}` }}
-          >
-            <span className="text-xs font-semibold flex-1" style={{ color: COLORS.textFaint }}>
-              CLIENT
-            </span>
-            <span className="text-xs font-semibold w-32 shrink-0" style={{ color: COLORS.textFaint }}>
-              CONTACT
-            </span>
-            <span className="text-xs font-semibold w-16 shrink-0 text-right" style={{ color: COLORS.textFaint }}>
-              JOBS
-            </span>
-            <span className="text-xs font-semibold w-24 shrink-0 text-right" style={{ color: COLORS.textFaint }}>
-              BILLED
-            </span>
-            <span className="text-xs font-semibold w-24 shrink-0 text-right" style={{ color: COLORS.textFaint }}>
-              LAST JOB
-            </span>
-            <span className="w-10 shrink-0" aria-hidden="true" />
+      <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+        <div className="mx-auto w-full max-w-[1700px] space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Metric label="Clients" value={String(clients.length)} />
+            <Metric label="Total billed" value={money(totalBilled)} />
+            <Metric label="Average billed" value={clients.length ? money(totalBilled / clients.length) : "$0"} />
           </div>
 
-          {filtered.map((c, i) => (
-            <div
-              key={c.id}
-              className="flex items-center flex-wrap gap-y-1 px-4 sm:px-5 py-3 sm:py-3.5"
-              style={{ borderTop: i === 0 ? "none" : `1px solid ${COLORS.borderSoft}` }}
-            >
-              <span
-                className="text-sm font-semibold flex-1 basis-full sm:basis-auto truncate"
-                style={{ color: COLORS.text }}
-              >
-                {c.name}
-              </span>
-              <span
-                className="hidden sm:inline-block text-xs w-32 shrink-0 truncate"
-                style={{ color: COLORS.textMute }}
-              >
-                {c.contactName ?? "—"}
-              </span>
-              <span
-                className="text-xs sm:text-sm sm:w-16 shrink-0 sm:text-right"
-                style={{ color: COLORS.textMute }}
-              >
-                {c.jobs} job{c.jobs === 1 ? "" : "s"}
-              </span>
-              <span
-                className="text-sm sm:w-24 shrink-0 text-right font-semibold ml-2"
-                style={{ fontFamily: "'IBM Plex Mono', monospace", color: COLORS.text }}
-              >
-                {money(c.billed)}
-              </span>
-              <span
-                className="hidden sm:inline-block text-xs w-24 shrink-0 text-right"
-                style={{ color: COLORS.textFaint }}
-              >
-                {lastJobLabel(c.lastJob)}
-              </span>
-              <button
-                type="button"
-                onClick={() => setEditing(c)}
-                aria-label={`Edit ${c.name}`}
-                className="ml-auto sm:ml-2 w-8 h-8 rounded-md flex items-center justify-center shrink-0"
-                style={{ color: COLORS.textMute, background: COLORS.cardAlt }}
-              >
-                <Pencil size={14} />
-              </button>
+          <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
+            <div className="border-b p-3" style={{ borderColor: UI.borderSoft }}>
+              <div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search clients…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={{ background: "#041323", color: UI.text, border: `1px solid ${UI.border}` }} /></div>
             </div>
-          ))}
 
-          {filtered.length === 0 && (
-            <div className="px-5 py-8 text-center text-sm" style={{ color: COLORS.textFaint }}>
-              {clients.length === 0
-                ? "No clients yet — add your first one."
-                : `No clients match "${q}"`}
+            <div className="grid min-h-[540px] xl:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="min-w-0 xl:border-r" style={{ borderColor: UI.borderSoft }}>
+                <div className="hidden grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.2fr)_80px_110px_120px_42px] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Client</span><span>Contact</span><span>Jobs</span><span>Billed</span><span>Last job</span><span /></div>
+                <div className="hidden md:block">
+                  {filtered.map((client) => {
+                    const active = selected?.id === client.id;
+                    return <button key={client.id} type="button" onClick={() => setSelectedId(client.id)} className="grid w-full grid-cols-[minmax(180px,1.2fr)_minmax(220px,1.2fr)_80px_110px_120px_42px] items-center gap-4 border-b px-4 py-3 text-left" style={{ borderColor: UI.borderSoft, background: active ? "rgba(22,141,255,.055)" : "transparent" }}><span className="min-w-0"><span className="block truncate text-sm font-semibold" style={{ color: UI.text }}>{client.name}</span><span className="mt-0.5 block truncate text-[11px]" style={{ color: UI.faint }}>{client.address ?? "No address"}</span></span><span className="min-w-0"><span className="block truncate text-xs" style={{ color: UI.text }}>{client.contactName ?? "—"}</span><span className="mt-0.5 block truncate text-[11px]" style={{ color: UI.faint }}>{client.email ?? client.phone ?? "No contact details"}</span></span><span className="text-xs" style={{ color: UI.mute }}>{client.jobs}</span><span className="text-sm font-semibold" style={{ color: UI.text }}>{money(client.billed)}</span><span className="text-xs" style={{ color: UI.faint }}>{lastJobLabel(client.lastJob)}</span><Pencil size={14} style={{ color: active ? UI.cyan : UI.faint }} /></button>;
+                  })}
+                </div>
+
+                <div className="space-y-2 p-3 md:hidden">
+                  {filtered.map((client) => <button key={client.id} type="button" onClick={() => setSelectedId(client.id)} className="w-full rounded-xl p-3 text-left" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><Building2 size={18} /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold" style={{ color: UI.text }}>{client.name}</p><p className="mt-1 truncate text-[11px]" style={{ color: UI.faint }}>{client.contactName ?? "No contact name"}</p></div><span className="text-xs font-semibold" style={{ color: UI.text }}>{money(client.billed)}</span></div><div className="mt-3 flex items-center justify-between text-[11px]" style={{ color: UI.mute }}><span>{client.jobs} job{client.jobs === 1 ? "" : "s"}</span><span>{lastJobLabel(client.lastJob)}</span></div></button>)}
+                </div>
+
+                {filtered.length === 0 && <div className="flex min-h-[360px] flex-col items-center justify-center text-center"><Building2 size={28} style={{ color: UI.faint }} /><p className="mt-3 text-sm font-semibold" style={{ color: UI.text }}>No clients found</p><p className="mt-1 text-xs" style={{ color: UI.mute }}>Try another search.</p></div>}
+              </div>
+
+              <aside className="hidden p-4 xl:block">
+                {selected ? <><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: UI.faint }}>Client details</p><h2 className="mt-2 text-base font-semibold" style={{ color: UI.text }}>{selected.name}</h2><p className="mt-1 text-xs" style={{ color: UI.mute }}>{selected.contactName ?? "No contact name"}</p></div><button type="button" onClick={() => setEditing(selected)} className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}`, color: UI.cyan }}><Pencil size={15} /></button></div><div className="mt-5 space-y-3 text-xs">{selected.phone && <Detail icon={<Phone size={14} />} label="Phone" value={selected.phone} />}{selected.email && <Detail icon={<Mail size={14} />} label="Email" value={selected.email} />}{selected.address && <Detail icon={<MapPin size={14} />} label="Address" value={selected.address} />}</div><div className="mt-5 grid grid-cols-2 gap-2"><SmallMetric label="Jobs" value={String(selected.jobs)} /><SmallMetric label="Billed" value={money(selected.billed)} /></div>{selected.billingNotes && <div className="mt-4 rounded-xl p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><p className="text-[10px] font-semibold uppercase tracking-[.10em]" style={{ color: UI.faint }}>Billing notes</p><p className="mt-2 text-xs leading-5" style={{ color: UI.mute }}>{selected.billingNotes}</p></div>}</> : <div className="flex min-h-[360px] flex-col items-center justify-center text-center"><Building2 size={28} style={{ color: UI.faint }} /><p className="mt-3 text-sm font-semibold" style={{ color: UI.text }}>Select a client</p></div>}
+              </aside>
             </div>
-          )}
+
+            <div className="flex items-center justify-between border-t px-4 py-3 text-[11px]" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Showing {filtered.length} of {clients.length} clients</span><span>{money(totalBilled)} billed</span></div>
+          </section>
         </div>
       </div>
 
-      {showNew && (
-        <NewClientModal
-          onClose={() => setShowNew(false)}
-          onDone={() => {
-            setShowNew(false);
-            router.refresh();
-          }}
-        />
-      )}
-
-      {editing && (
-        <EditClientModal
-          client={editing}
-          onClose={() => setEditing(null)}
-          onDone={() => {
-            setEditing(null);
-            router.refresh();
-          }}
-        />
-      )}
+      {showNew && <NewClientModal onClose={() => setShowNew(false)} onDone={() => { setShowNew(false); router.refresh(); }} />}
+      {editing && <EditClientModal client={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); router.refresh(); }} />}
     </>
   );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-xl p-4" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><p className="text-[11px]" style={{ color: UI.faint }}>{label}</p><p className="mt-1 text-xl font-semibold" style={{ color: UI.text }}>{value}</p></div>;
+}
+
+function SmallMetric({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-lg p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><p className="text-[10px]" style={{ color: UI.faint }}>{label}</p><p className="mt-1 text-sm font-semibold" style={{ color: UI.text }}>{value}</p></div>;
+}
+
+function Detail({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return <div className="flex gap-3"><span className="mt-0.5" style={{ color: UI.cyan }}>{icon}</span><div className="min-w-0"><p style={{ color: UI.faint }}>{label}</p><p className="mt-0.5 break-words leading-5" style={{ color: UI.text }}>{value}</p></div></div>;
 }
