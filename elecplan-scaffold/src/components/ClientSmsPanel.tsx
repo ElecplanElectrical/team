@@ -39,19 +39,19 @@ export default function ClientSmsPanel({
   open: boolean;
   onClose: () => void;
 }) {
+  if (!open || !jobId) return null;
+  return <ClientSmsPanelBody key={jobId} jobId={jobId} onClose={onClose} />;
+}
+
+function ClientSmsPanelBody({ jobId, onClose }: { jobId: string; onClose: () => void }) {
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    if (!open || !jobId) return;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setSent(false);
-    setPreview(null);
 
     void fetch(`/api/jobs/${jobId}/confirmation`, { method: "GET" })
       .then(async (response) => {
@@ -73,9 +73,7 @@ export default function ClientSmsPanel({
     return () => {
       cancelled = true;
     };
-  }, [jobId, open]);
-
-  if (!open || !jobId) return null;
+  }, [jobId]);
 
   async function send() {
     if (!preview || sending || sent) return;
