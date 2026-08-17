@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, FileText, Plus, Search } from "lucide-react";
+import { ExternalLink, FileText, Plus, Search, Trash2 } from "lucide-react";
 import TopBar from "@/components/TopBar";
 
 export type DocumentRow = {
@@ -18,7 +18,7 @@ type UploadTicket = { uploadUrl: string; uploadHeaders: Record<string, string>; 
 
 const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72" };
 
-export default function DocumentsView({ documents, jobs }: { documents: DocumentRow[]; jobs: { id: string; title: string }[] }) {
+export default function DocumentsView({ documents, jobs, canDelete }: { documents: DocumentRow[]; jobs: { id: string; title: string }[]; canDelete: boolean }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -26,6 +26,7 @@ export default function DocumentsView({ documents, jobs }: { documents: Document
   const [file, setFile] = useState<File | null>(null);
   const [jobId, setJobId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
@@ -51,6 +52,20 @@ export default function DocumentsView({ documents, jobs }: { documents: Document
     setName(""); setType("General"); setFile(null); setJobId(""); setShowForm(false); router.refresh();
   }
 
+  async function deleteDocument(doc: DocumentRow) {
+    if (!window.confirm(`Delete ${doc.name}? This permanently removes the managed file.`)) return;
+    setDeletingId(doc.id);
+    setError(null);
+    const res = await fetch(`/api/documents/${doc.id}`, { method: "DELETE" });
+    setDeletingId(null);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setError(body?.error ?? "Could not delete document.");
+      return;
+    }
+    router.refresh();
+  }
+
   const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
   return <>
@@ -60,7 +75,8 @@ export default function DocumentsView({ documents, jobs }: { documents: Document
         <div className="grid gap-3 sm:grid-cols-3"><Metric label="Documents" value={String(documents.length)} /><Metric label="Job linked" value={String(documents.filter((d) => d.job).length)} /><Metric label="Global files" value={String(documents.filter((d) => !d.job).length)} /></div>
         <div className="rounded-xl px-4 py-3 text-xs leading-5" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}>Private storage uses short-lived upload and download links. PDF, JPG, PNG, WebP and text files are allowed up to 15 MB.</div>
         {showForm && <form onSubmit={submit} className="grid grid-cols-1 gap-3 rounded-xl p-4 md:grid-cols-2" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Document name" className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} /><select value={type} onChange={(e) => setType(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field}>{["General","Certificate","Invoice","Quote","Plan","Photo","Safety","Employee"].map((item) => <option key={item}>{item}</option>)}</select><input required type="file" accept="application/pdf,image/jpeg,image/png,image/webp,text/plain" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} /><select value={jobId} onChange={(e) => setJobId(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field}><option value="">No linked job</option>{jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}</select>{error && <p className="md:col-span-2 text-xs" style={{ color: UI.red }}>{error}</p>}<div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setShowForm(false)} className="rounded-lg px-4 py-2.5 text-sm" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button disabled={saving || !file} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Uploading…" : "Upload document"}</button></div></form>}
-        <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search documents…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={field} /></div></div><div className="hidden grid-cols-[minmax(220px,1.4fr)_150px_minmax(180px,1fr)_120px_80px] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Document</span><span>Type</span><span>Linked job</span><span>Uploaded</span><span>File</span></div>{filtered.map((doc) => <div key={doc.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[minmax(220px,1.4fr)_150px_minmax(180px,1fr)_120px_80px] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><FileText size={16} /></span><span className="truncate text-sm font-semibold" style={{ color: UI.text }}>{doc.name}</span></div><span className="text-xs" style={{ color: UI.mute }}>{doc.type}</span><span className="truncate text-xs" style={{ color: UI.mute }}>{doc.job ?? "Global document"}</span><span className="text-xs" style={{ color: UI.faint }}>{new Date(doc.uploadedAt).toLocaleDateString("en-AU")}</span><a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: UI.cyan }}>Open <ExternalLink size={12} /></a></div>)}{filtered.length === 0 && <div className="px-5 py-14 text-center text-sm" style={{ color: UI.faint }}>No documents match your search.</div>}<div className="px-4 py-3 text-[11px]" style={{ color: UI.faint }}>Showing {filtered.length} of {documents.length} documents</div></section>
+        {error && !showForm && <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{error}</div>}
+        <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search documents…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={field} /></div></div><div className="hidden grid-cols-[minmax(220px,1.4fr)_150px_minmax(180px,1fr)_120px_120px] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Document</span><span>Type</span><span>Linked job</span><span>Uploaded</span><span>Actions</span></div>{filtered.map((doc) => <div key={doc.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[minmax(220px,1.4fr)_150px_minmax(180px,1fr)_120px_120px] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><FileText size={16} /></span><span className="truncate text-sm font-semibold" style={{ color: UI.text }}>{doc.name}</span></div><span className="text-xs" style={{ color: UI.mute }}>{doc.type}</span><span className="truncate text-xs" style={{ color: UI.mute }}>{doc.job ?? "Global document"}</span><span className="text-xs" style={{ color: UI.faint }}>{new Date(doc.uploadedAt).toLocaleDateString("en-AU")}</span><div className="flex items-center gap-3"><a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: UI.cyan }}>Open <ExternalLink size={12} /></a>{canDelete && <button type="button" disabled={deletingId === doc.id} onClick={() => void deleteDocument(doc)} className="inline-flex items-center gap-1 text-xs font-semibold disabled:opacity-50" style={{ color: UI.red }}><Trash2 size={12} /> Delete</button>}</div></div>)}{filtered.length === 0 && <div className="px-5 py-14 text-center text-sm" style={{ color: UI.faint }}>No documents match your search.</div>}<div className="px-4 py-3 text-[11px]" style={{ color: UI.faint }}>Showing {filtered.length} of {documents.length} documents</div></section>
       </div>
     </div>
   </>;
