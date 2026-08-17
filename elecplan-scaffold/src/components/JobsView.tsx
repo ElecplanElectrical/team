@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import JobTimeline, { type TimelineJob } from "@/components/JobTimeline";
 import NewJobModal, { type JobClientOption, type JobCrewOption } from "@/components/NewJobModal";
-import { COLORS, ON_ACCENT } from "@/lib/theme";
+import { COLORS, ON_ACCENT, JOB_STAGES } from "@/lib/theme";
 
 export default function JobsView({
   jobs,
@@ -21,9 +21,29 @@ export default function JobsView({
 }) {
   const router = useRouter();
   const [showNew, setShowNew] = useState(false);
+  const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   const active = jobs.filter((j) => j.status !== "COMPLETE" && j.status !== "INVOICED").length;
   const subtitle = jobs.length === 0 ? "No jobs yet" : `${active} active job${active === 1 ? "" : "s"} across the pipeline`;
+
+  async function updateStatus(jobId: string, status: (typeof JOB_STAGES)[number]) {
+    setStatusError(null);
+    setUpdatingJobId(jobId);
+    const res = await fetch(`/api/jobs/${jobId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    setUpdatingJobId(null);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setStatusError(body?.error ?? "Could not update job status.");
+      return;
+    }
+    router.refresh();
+  }
 
   return (
     <>
@@ -45,7 +65,20 @@ export default function JobsView({
       />
 
       <div className="flex-1 overflow-auto p-4 md:p-8 flex flex-col gap-5">
-        {jobs.map((job) => <JobTimeline key={job.id} job={job} />)}
+        {statusError && (
+          <div className="rounded-md px-4 py-3 text-sm" style={{ background: COLORS.card, border: `1px solid ${COLORS.coral}`, color: COLORS.coral }}>
+            {statusError}
+          </div>
+        )}
+        {jobs.map((job) => (
+          <JobTimeline
+            key={job.id}
+            job={job}
+            canManage={canCreate}
+            updating={updatingJobId === job.id}
+            onStatusChange={updateStatus}
+          />
+        ))}
         {jobs.length === 0 && (
           <div
             className="rounded-lg p-8 text-center text-sm"
