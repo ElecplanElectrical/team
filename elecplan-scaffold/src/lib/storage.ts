@@ -26,9 +26,10 @@ type StorageConfig = {
 
 type UploadKind = "documents" | "project-photos";
 
-type CommitPayload = {
+export type CommitPayload = {
   key: string;
   kind: UploadKind;
+  fileName: string;
   contentType: string;
   sizeBytes: number;
   exp: number;
@@ -156,6 +157,7 @@ export function createUploadTicket(input: {
   const payload: CommitPayload = {
     key,
     kind: input.kind,
+    fileName: input.fileName,
     contentType: input.contentType,
     sizeBytes: input.sizeBytes,
     exp,
