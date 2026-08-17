@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Archived UI mockups are visual references, not production source.
+    "docs/design-reference/**",
   ]),
 ]);
 
