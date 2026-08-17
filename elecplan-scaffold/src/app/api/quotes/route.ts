@@ -4,12 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess } from "@/lib/access";
 
+const lineItemSchema = z.object({
+  description: z.string().trim().min(1).max(240),
+  quantity: z.coerce.number().positive().max(100000),
+  unitPrice: z.coerce.number().nonnegative().max(10_000_000),
+  gstRate: z.coerce.number().min(0).max(1).default(0.1),
+});
+
 const quoteSchema = z.object({
   clientId: z.string().trim().min(1),
   jobId: z.string().trim().optional().nullable(),
-  amount: z.coerce.number().positive().max(10_000_000),
+  lineItems: z.array(lineItemSchema).min(1).max(100),
   status: z.enum(["DRAFT", "SENT", "ACCEPTED", "DECLINED"]).default("DRAFT"),
 });
+
+function quoteNumber() {
+  const year = new Date().getFullYear();
+  return `QT-${year}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+}
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
@@ -37,17 +49,38 @@ export async function POST(req: Request) {
     }
   }
 
+  const calculated = d.lineItems.map((item) => ({
+    ...item,
+    lineTotal: item.quantity * item.unitPrice,
+  }));
+  const subtotal = calculated.reduce((sum, item) => sum + item.lineTotal, 0);
+  const gstAmount = calculated.reduce((sum, item) => sum + item.lineTotal * item.gstRate, 0);
+  const amount = subtotal + gstAmount;
+
   try {
     const quote = await prisma.quote.create({
       data: {
+        quoteNumber: quoteNumber(),
         clientId: d.clientId,
         jobId: d.jobId || null,
-        amount: d.amount,
+        subtotal,
+        gstAmount,
+        amount,
         status: d.status,
+        lineItems: {
+          create: calculated.map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            lineTotal: item.lineTotal,
+            gstRate: item.gstRate,
+          })),
+        },
       },
       include: {
         client: { select: { name: true } },
         job: { select: { title: true } },
+        lineItems: true,
       },
     });
     return NextResponse.json(quote, { status: 201 });
