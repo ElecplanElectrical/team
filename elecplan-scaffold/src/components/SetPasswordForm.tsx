@@ -30,28 +30,28 @@ export default function SetPasswordForm({ token }: { token: string }) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (password.length < 8) {
-      setError("Use at least 8 characters.");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Passwords don't match.");
-      return;
-    }
+    if (password.length < 8) return setError("Use at least 8 characters.");
+    if (password !== confirm) return setError("Passwords don't match.");
+
     setLoading(true);
-    const res = await fetch("/api/set-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      setError(body?.error ?? "Could not set your password. The link may have expired.");
-      return;
+    try {
+      const res = await fetch("/api/set-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Could not set your password. The link may have expired.");
+        return;
+      }
+      setDone(true);
+      window.setTimeout(() => router.push("/login"), 1400);
+    } catch {
+      setError("Could not reach Elecplan. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    setDone(true);
-    setTimeout(() => router.push("/login"), 1400);
   }
 
   const inputStyle: React.CSSProperties = {
@@ -77,22 +77,22 @@ export default function SetPasswordForm({ token }: { token: string }) {
       </div>
 
       {done ? (
-        <div className="mt-7 flex items-center gap-3 rounded-xl px-4 py-4 text-sm" style={{ background: "rgba(25,211,162,.08)", border: "1px solid rgba(25,211,162,.22)", color: UI.green }}><CheckCircle2 size={18} /><div><p className="font-semibold">Password saved</p><p className="mt-0.5 text-xs opacity-80">Taking you to sign in…</p></div></div>
+        <div role="status" className="mt-7 flex items-center gap-3 rounded-xl px-4 py-4 text-sm" style={{ background: "rgba(25,211,162,.08)", border: "1px solid rgba(25,211,162,.22)", color: UI.green }}><CheckCircle2 size={18} /><div><p className="font-semibold">Password saved</p><p className="mt-0.5 text-xs opacity-80">Taking you to sign in…</p></div></div>
       ) : (
-        <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4">
+        <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4" aria-busy={loading}>
           <label className="flex flex-col gap-1.5">
             <span className="text-xs font-medium" style={{ color: UI.mute }}>New password</span>
-            <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none transition focus:ring-2 focus:ring-blue-500/30" style={inputStyle} placeholder="At least 8 characters" />
+            <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none" style={inputStyle} placeholder="At least 8 characters" />
           </label>
 
           <label className="flex flex-col gap-1.5">
             <span className="text-xs font-medium" style={{ color: UI.mute }}>Confirm password</span>
-            <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none transition focus:ring-2 focus:ring-blue-500/30" style={inputStyle} placeholder="••••••••" />
+            <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none" style={inputStyle} placeholder="••••••••" />
           </label>
 
           <div className="flex gap-3 rounded-xl p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><ShieldCheck size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><p className="text-xs leading-5" style={{ color: UI.faint }}>This secure link is single-use. After the password is saved, sign in with your Elecplan email address.</p></div>
 
-          {error && <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} />{error}</div>}
+          {error && <div role="alert" className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} />{error}</div>}
 
           <button type="submit" disabled={loading} className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white", boxShadow: "0 10px 28px rgba(22,141,255,.24)" }}><KeyRound size={16} />{loading ? "Saving…" : "Set password"}</button>
         </form>
