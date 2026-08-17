@@ -5,12 +5,15 @@ import { sendSms, smsConfigured } from "@/lib/sms";
 import { recordAudit } from "@/lib/audit";
 import { consumeRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 
-function normalizeAustralianMobile(value: string): string {
-  const compact = value.replace(/[\s()-]/g, "");
-  if (compact.startsWith("+")) return compact;
-  if (compact.startsWith("61")) return `+${compact}`;
-  if (compact.startsWith("0")) return `+61${compact.slice(1)}`;
-  return compact;
+function normalizeAustralianMobile(value: string): string | null {
+  const compact = value.trim().replace(/[^\d+]/g, "");
+  let normalized = compact;
+
+  if (normalized.startsWith("0061")) normalized = `+61${normalized.slice(4)}`;
+  else if (normalized.startsWith("61")) normalized = `+${normalized}`;
+  else if (normalized.startsWith("04")) normalized = `+61${normalized.slice(1)}`;
+
+  return /^\+614\d{8}$/.test(normalized) ? normalized : null;
 }
 
 function bookingTime(date: Date): string {
@@ -36,6 +39,13 @@ async function confirmationForJob(id: string) {
   if (!job.client.phone?.trim()) return { error: "This client does not have a phone number", status: 400 } as const;
 
   const to = normalizeAustralianMobile(job.client.phone);
+  if (!to) {
+    return {
+      error: "Client phone must be a valid Australian mobile number (04xx xxx xxx or +61 4xx xxx xxx)",
+      status: 400,
+    } as const;
+  }
+
   const firstName = (job.client.contactName || job.client.name).trim().split(/\s+/)[0] || "there";
   const message = `Hi ${firstName}, your Elecplan booking for ${job.title} is confirmed for ${bookingTime(job.scheduledStart)} at ${job.address}. If you need to change the booking, please contact Elecplan. - Elecplan`;
 
@@ -97,6 +107,17 @@ export async function POST(
   const user = auth.user;
 
   const { id } = await params;
+  const confirmation = await confirmationForJob(id);
+  if ("error" in confirmation) {
+    return NextResponse.json({ error: confirmation.error }, { status: confirmation.status });
+  }
+  if (!smsConfigured()) {
+    return NextResponse.json(
+      { error: "SMS is not configured yet. Add ClickSend credentials before sending live texts." },
+      { status: 503 },
+    );
+  }
+
   const limit = await consumeRateLimit(`sms-confirmation:job:${id}`, 3, 15 * 60 * 1000);
   if (!limit.allowed) {
     await recordAudit({
@@ -109,17 +130,6 @@ export async function POST(
     return NextResponse.json(
       { error: "Too many confirmation texts have been requested for this job. Try again later." },
       { status: 429, headers: rateLimitHeaders(limit) },
-    );
-  }
-
-  const confirmation = await confirmationForJob(id);
-  if ("error" in confirmation) {
-    return NextResponse.json({ error: confirmation.error }, { status: confirmation.status });
-  }
-  if (!smsConfigured()) {
-    return NextResponse.json(
-      { error: "SMS is not configured yet. Add ClickSend credentials before sending live texts." },
-      { status: 503 },
     );
   }
 
