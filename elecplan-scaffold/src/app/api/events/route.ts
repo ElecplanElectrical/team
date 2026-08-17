@@ -31,7 +31,6 @@ export async function POST(req: Request) {
   }
   const data = parsed.data;
 
-  // Employees may only schedule events for themselves.
   const assignedToId =
     user.role === "EMPLOYEE" ? user.id : data.assignedToId ?? null;
   const startsAt = new Date(data.startsAt);
@@ -51,13 +50,19 @@ export async function POST(req: Request) {
       });
 
       if (data.type === "job" && data.jobId) {
+        const existing = await tx.job.findUnique({
+          where: { id: data.jobId },
+          select: { status: true },
+        });
+        if (!existing) throw new Error("JOB_NOT_FOUND");
+
         await tx.job.update({
           where: { id: data.jobId },
           data: {
             scheduledStart: startsAt,
             scheduledEnd: endsAt,
             assignedToId,
-            status: "SCHEDULED",
+            ...(existing.status === "QUOTED" ? { status: "SCHEDULED" as const } : {}),
           },
         });
       }
