@@ -4,11 +4,32 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
+import { recordAudit } from "@/lib/audit";
+import {
+  clearRateLimits,
+  consumeRateLimit,
+  rateLimitIdentity,
+} from "@/lib/rate-limit";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_EMAIL_LIMIT = 8;
+const LOGIN_IP_LIMIT = 40;
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync("elecplan-invalid-login-sentinel", 10);
+
+function requestIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return (
+    request.headers.get("cf-connecting-ip")?.trim() ||
+    forwarded ||
+    request.headers.get("x-real-ip")?.trim() ||
+    "unknown"
+  );
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -18,19 +39,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize: async (raw) => {
+      authorize: async (raw, request) => {
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
 
-        const { email, password } = parsed.data;
-        const user = await prisma.user.findUnique({
-          where: { email: email.toLowerCase() },
-        });
-        // No password set yet (invited, not accepted) or deactivated → no login.
-        if (!user?.passwordHash || !user.active) return null;
+        const email = parsed.data.email.toLowerCase();
+        const ip = requestIp(request);
+        const emailKey = `login:email:${rateLimitIdentity(email)}`;
+        const ipKey = `login:ip:${rateLimitIdentity(ip)}`;
 
-        const valid = await bcrypt.compare(password, user.passwordHash);
-        if (!valid) return null;
+        const [emailLimit, ipLimit] = await Promise.all([
+          consumeRateLimit(emailKey, LOGIN_EMAIL_LIMIT, LOGIN_WINDOW_MS),
+          consumeRateLimit(ipKey, LOGIN_IP_LIMIT, LOGIN_WINDOW_MS),
+        ]);
+
+        if (!emailLimit.allowed || !ipLimit.allowed) {
+          if (emailLimit.justBlocked || ipLimit.justBlocked) {
+            await recordAudit({
+              actor: {},
+              action: "LOGIN_RATE_LIMITED",
+              entityType: "Auth",
+              details: {
+                emailScope: emailLimit.justBlocked,
+                ipScope: ipLimit.justBlocked,
+              },
+            });
+          }
+          return null;
+        }
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        const passwordHash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
+        const valid = await bcrypt.compare(parsed.data.password, passwordHash);
+
+        // Keep all invalid-account states on the same outward failure path.
+        if (!user?.passwordHash || !user.active || !valid) return null;
+
+        await clearRateLimits([emailKey, ipKey]);
 
         return {
           id: user.id,
