@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess, canManageUser } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 
 const patchSchema = z.object({
   active: z.boolean(),
@@ -27,7 +28,7 @@ export async function PATCH(
 
   const target = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, role: true },
+    select: { id: true, role: true, active: true, email: true },
   });
   if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
@@ -45,6 +46,13 @@ export async function PATCH(
     where: { id },
     data: { active: parsed.data.active },
     select: { id: true, active: true },
+  });
+  await recordAudit({
+    actor,
+    action: parsed.data.active ? "USER_REACTIVATED" : "USER_DEACTIVATED",
+    entityType: "User",
+    entityId: target.id,
+    details: { targetRole: target.role, targetEmail: target.email, fromActive: target.active, toActive: parsed.data.active },
   });
   return NextResponse.json(user);
 }
