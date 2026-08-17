@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, Plus } from "lucide-react";
+import { ExternalLink, FileText, Plus, Search } from "lucide-react";
 import TopBar from "@/components/TopBar";
-import { COLORS, ON_ACCENT } from "@/lib/theme";
 
 export type DocumentRow = {
   id: string;
@@ -15,19 +14,11 @@ export type DocumentRow = {
   uploadedAt: string;
 };
 
-type UploadTicket = {
-  uploadUrl: string;
-  uploadHeaders: Record<string, string>;
-  commitToken: string;
-};
+type UploadTicket = { uploadUrl: string; uploadHeaders: Record<string, string>; commitToken: string };
 
-export default function DocumentsView({
-  documents,
-  jobs,
-}: {
-  documents: DocumentRow[];
-  jobs: { id: string; title: string }[];
-}) {
+const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72" };
+
+export default function DocumentsView({ documents, jobs }: { documents: DocumentRow[]; jobs: { id: string; title: string }[] }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -36,123 +27,43 @@ export default function DocumentsView({
   const [jobId, setJobId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return documents;
+    return documents.filter((doc) => [doc.name, doc.type, doc.job ?? ""].join(" ").toLowerCase().includes(needle));
+  }, [documents, query]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
     setSaving(true);
     setError(null);
-
-    const ticketRes = await fetch("/api/storage/upload-ticket", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        kind: "documents",
-        fileName: file.name,
-        contentType: file.type || "application/octet-stream",
-        sizeBytes: file.size,
-      }),
-    });
-    if (!ticketRes.ok) {
-      const body = await ticketRes.json().catch(() => null);
-      setSaving(false);
-      setError(body?.error ?? "Could not prepare private upload.");
-      return;
-    }
+    const ticketRes = await fetch("/api/storage/upload-ticket", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "documents", fileName: file.name, contentType: file.type || "application/octet-stream", sizeBytes: file.size }) });
+    if (!ticketRes.ok) { const body = await ticketRes.json().catch(() => null); setSaving(false); setError(body?.error ?? "Could not prepare private upload."); return; }
     const ticket = await ticketRes.json() as UploadTicket;
-
-    const uploadRes = await fetch(ticket.uploadUrl, {
-      method: "PUT",
-      headers: ticket.uploadHeaders,
-      body: file,
-    });
-    if (!uploadRes.ok) {
-      setSaving(false);
-      setError("Private file upload failed. Please try again.");
-      return;
-    }
-
-    const res = await fetch("/api/documents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, type, commitToken: ticket.commitToken, jobId: jobId || null }),
-    });
+    const uploadRes = await fetch(ticket.uploadUrl, { method: "PUT", headers: ticket.uploadHeaders, body: file });
+    if (!uploadRes.ok) { setSaving(false); setError("Private file upload failed. Please try again."); return; }
+    const res = await fetch("/api/documents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, type, commitToken: ticket.commitToken, jobId: jobId || null }) });
     setSaving(false);
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      setError(body?.error ?? "Could not register document.");
-      return;
-    }
-    setName("");
-    setType("General");
-    setFile(null);
-    setJobId("");
-    setShowForm(false);
-    router.refresh();
+    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not register document."); return; }
+    setName(""); setType("General"); setFile(null); setJobId(""); setShowForm(false); router.refresh();
   }
 
-  const field = {
-    background: COLORS.cardAlt,
-    border: `1px solid ${COLORS.border}`,
-    color: COLORS.text,
-  } as const;
+  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
-  return (
-    <>
-      <TopBar
-        title="Documents"
-        subtitle={`${documents.length} registered file${documents.length === 1 ? "" : "s"}`}
-        rightSlot={
-          <button
-            type="button"
-            onClick={() => setShowForm((value) => !value)}
-            className="flex items-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-semibold"
-            style={{ background: COLORS.accent, color: ON_ACCENT }}
-          >
-            <Plus size={15} /> Upload document
-          </button>
-        }
-      />
-
-      <div className="flex-1 overflow-auto p-4 md:p-8 flex flex-col gap-4">
-        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.textMute }}>
-          New documents use Elecplan private storage with short-lived upload and download links. PDF, JPG, PNG, WebP and text files are allowed up to 15 MB.
-        </div>
-
-        {showForm && (
-          <form onSubmit={submit} className="rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-3" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}>
-            <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Document name" className="rounded-md px-3 py-2 text-sm outline-none" style={field} />
-            <select value={type} onChange={(e) => setType(e.target.value)} className="rounded-md px-3 py-2 text-sm outline-none" style={field}>
-              {['General','Certificate','Invoice','Quote','Plan','Photo','Safety','Employee'].map((item) => <option key={item}>{item}</option>)}
-            </select>
-            <input required type="file" accept="application/pdf,image/jpeg,image/png,image/webp,text/plain" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="rounded-md px-3 py-2 text-sm outline-none" style={field} />
-            <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="rounded-md px-3 py-2 text-sm outline-none" style={field}>
-              <option value="">No linked job</option>
-              {jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
-            </select>
-            {error && <p className="md:col-span-2 text-xs" style={{ color: COLORS.coral }}>{error}</p>}
-            <div className="md:col-span-2 flex justify-end gap-2">
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-md px-4 py-2 text-sm" style={{ background: COLORS.cardAlt, color: COLORS.textMute }}>Cancel</button>
-              <button disabled={saving || !file} className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60" style={{ background: COLORS.accent, color: ON_ACCENT }}>{saving ? "Uploading…" : "Upload document"}</button>
-            </div>
-          </form>
-        )}
-
-        <div className="rounded-lg overflow-hidden" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}>
-          {documents.map((doc, index) => (
-            <div key={doc.id} className="grid grid-cols-1 md:grid-cols-[1.5fr_160px_1fr_120px] gap-2 md:gap-4 items-center px-4 py-4" style={{ borderTop: index ? `1px solid ${COLORS.borderSoft}` : "none" }}>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: COLORS.text }}>{doc.name}</p>
-                <p className="text-xs mt-1" style={{ color: COLORS.textFaint }}>{new Date(doc.uploadedAt).toLocaleDateString("en-AU")}</p>
-              </div>
-              <span className="text-xs" style={{ color: COLORS.textMute }}>{doc.type}</span>
-              <span className="text-xs truncate" style={{ color: COLORS.textMute }}>{doc.job ?? "Global document"}</span>
-              <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: COLORS.accent }}>Open <ExternalLink size={13} /></a>
-            </div>
-          ))}
-          {documents.length === 0 && <div className="px-5 py-10 text-center text-sm" style={{ color: COLORS.textFaint }}>No documents uploaded yet.</div>}
-        </div>
+  return <>
+    <TopBar title="Documents" subtitle="Securely manage company and job files" rightSlot={<button type="button" onClick={() => setShowForm((v) => !v)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={16} /> Upload document</button>} />
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+      <div className="mx-auto w-full max-w-[1700px] space-y-3">
+        <div className="grid gap-3 sm:grid-cols-3"><Metric label="Documents" value={String(documents.length)} /><Metric label="Job linked" value={String(documents.filter((d) => d.job).length)} /><Metric label="Global files" value={String(documents.filter((d) => !d.job).length)} /></div>
+        <div className="rounded-xl px-4 py-3 text-xs leading-5" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}>Private storage uses short-lived upload and download links. PDF, JPG, PNG, WebP and text files are allowed up to 15 MB.</div>
+        {showForm && <form onSubmit={submit} className="grid grid-cols-1 gap-3 rounded-xl p-4 md:grid-cols-2" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Document name" className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} /><select value={type} onChange={(e) => setType(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field}>{["General","Certificate","Invoice","Quote","Plan","Photo","Safety","Employee"].map((item) => <option key={item}>{item}</option>)}</select><input required type="file" accept="application/pdf,image/jpeg,image/png,image/webp,text/plain" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} /><select value={jobId} onChange={(e) => setJobId(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field}><option value="">No linked job</option>{jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}</select>{error && <p className="md:col-span-2 text-xs" style={{ color: UI.red }}>{error}</p>}<div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setShowForm(false)} className="rounded-lg px-4 py-2.5 text-sm" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button disabled={saving || !file} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Uploading…" : "Upload document"}</button></div></form>}
+        <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search documents…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={field} /></div></div><div className="hidden grid-cols-[minmax(220px,1.4fr)_150px_minmax(180px,1fr)_120px_80px] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Document</span><span>Type</span><span>Linked job</span><span>Uploaded</span><span>File</span></div>{filtered.map((doc) => <div key={doc.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[minmax(220px,1.4fr)_150px_minmax(180px,1fr)_120px_80px] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><FileText size={16} /></span><span className="truncate text-sm font-semibold" style={{ color: UI.text }}>{doc.name}</span></div><span className="text-xs" style={{ color: UI.mute }}>{doc.type}</span><span className="truncate text-xs" style={{ color: UI.mute }}>{doc.job ?? "Global document"}</span><span className="text-xs" style={{ color: UI.faint }}>{new Date(doc.uploadedAt).toLocaleDateString("en-AU")}</span><a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: UI.cyan }}>Open <ExternalLink size={12} /></a></div>)}{filtered.length === 0 && <div className="px-5 py-14 text-center text-sm" style={{ color: UI.faint }}>No documents match your search.</div>}<div className="px-4 py-3 text-[11px]" style={{ color: UI.faint }}>Showing {filtered.length} of {documents.length} documents</div></section>
       </div>
-    </>
-  );
+    </div>
+  </>;
 }
+
+function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl p-4" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><p className="text-[11px]" style={{ color: UI.faint }}>{label}</p><p className="mt-1 text-xl font-semibold" style={{ color: UI.text }}>{value}</p></div>; }
