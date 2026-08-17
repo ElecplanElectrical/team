@@ -15,6 +15,7 @@ export type CalendarEvent = {
   assignedToId: string | null;
   startsAt: string;
   endsAt: string;
+  fallback?: boolean;
 };
 
 export default function EditEventModal({
@@ -38,6 +39,7 @@ export default function EditEventModal({
   const endDate = parseISO(event.endsAt);
   const crewOnly = role === "EMPLOYEE";
   const crewJobReadOnly = crewOnly && (event.type === "job" || Boolean(event.jobId));
+  const fallbackJob = Boolean(event.fallback && event.jobId);
   const [title, setTitle] = useState(event.customTitle ?? "");
   const [type, setType] = useState(event.type);
   const [jobId, setJobId] = useState(event.jobId ?? "");
@@ -63,6 +65,28 @@ export default function EditEventModal({
       return;
     }
 
+    setSaving(true);
+
+    if (fallbackJob && event.jobId) {
+      const res = await fetch(`/api/jobs/${event.jobId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scheduledStart: startsAt.toISOString(),
+          scheduledEnd: endsAt.toISOString(),
+          assignedToId: assignedToId || null,
+        }),
+      });
+      setSaving(false);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Could not update the job schedule.");
+        return;
+      }
+      onDone();
+      return;
+    }
+
     const payload = crewOnly
       ? {
           title: title.trim() || null,
@@ -78,7 +102,6 @@ export default function EditEventModal({
           endsAt: endsAt.toISOString(),
         };
 
-    setSaving(true);
     const res = await fetch(`/api/events/${event.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -112,13 +135,30 @@ export default function EditEventModal({
   async function remove() {
     if (crewJobReadOnly) return;
     const warning = event.type === "job" && event.jobId
-      ? "Delete this job event? The linked job schedule will be updated too."
+      ? "Remove this job from the calendar? The linked job schedule will be cleared."
       : "Delete this event?";
     if (!window.confirm(warning)) return;
 
     setDeleting(true);
     setError(null);
     setNotice(null);
+
+    if (fallbackJob && event.jobId) {
+      const res = await fetch(`/api/jobs/${event.jobId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduledStart: null, scheduledEnd: null }),
+      });
+      setDeleting(false);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Could not clear the job schedule.");
+        return;
+      }
+      onDone();
+      return;
+    }
+
     const res = await fetch(`/api/events/${event.id}`, { method: "DELETE" });
     setDeleting(false);
     if (!res.ok) {
@@ -172,18 +212,18 @@ export default function EditEventModal({
 
         <form onSubmit={submit} className="p-5 flex flex-col gap-3">
           <Field label="Title (optional)">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={crewOnly ? "e.g. Supplier call" : "Falls back to job title"} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle} />
+            <input disabled={fallbackJob} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={crewOnly ? "e.g. Supplier call" : "Falls back to job title"} className="w-full rounded-md px-3 py-2 text-sm outline-none disabled:opacity-60" style={fieldStyle} />
           </Field>
 
           {!crewOnly && (
             <div className="grid grid-cols-2 gap-3">
               <Field label="Type">
-                <select value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none capitalize" style={fieldStyle}>
+                <select disabled={fallbackJob} value={type} onChange={(e) => setType(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none capitalize disabled:opacity-60" style={fieldStyle}>
                   {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </Field>
               <Field label="Job (optional)">
-                <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none" style={fieldStyle}>
+                <select disabled={fallbackJob} value={jobId} onChange={(e) => setJobId(e.target.value)} className="w-full rounded-md px-3 py-2 text-sm outline-none disabled:opacity-60" style={fieldStyle}>
                   <option value="">— none —</option>
                   {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
                 </select>
@@ -191,6 +231,7 @@ export default function EditEventModal({
             </div>
           )}
 
+          {fallbackJob && <p className="text-[11px]" style={{ color: COLORS.textFaint }}>This booking was recovered directly from the job schedule. Saving it will rebuild its calendar link automatically.</p>}
           {crewOnly && <p className="text-[11px]" style={{ color: COLORS.textFaint }}>Crew can change the title and time of personal non-job events only.</p>}
 
           <Field label="Date">
@@ -227,7 +268,7 @@ export default function EditEventModal({
 
           <div className="flex items-center justify-between gap-2 mt-1">
             <button type="button" onClick={remove} disabled={deleting || saving || sendingText} className="rounded-md px-3 py-2 text-sm font-medium flex items-center gap-1.5 disabled:opacity-60" style={{ color: COLORS.coral, border: `1px solid ${COLORS.coral}` }}>
-              <Trash2 size={14} /> {deleting ? "Deleting…" : "Delete"}
+              <Trash2 size={14} /> {deleting ? "Removing…" : "Remove"}
             </button>
             <div className="flex gap-2">
               <button type="button" onClick={onClose} className="rounded-md px-4 py-2 text-sm font-medium" style={{ background: COLORS.cardAlt, color: COLORS.textMute }}>Cancel</button>
