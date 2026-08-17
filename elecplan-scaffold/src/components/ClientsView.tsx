@@ -3,15 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Pencil } from "lucide-react";
 import { COLORS, ON_ACCENT } from "@/lib/theme";
 import TopBar from "@/components/TopBar";
 import NewClientModal from "@/components/NewClientModal";
+import EditClientModal from "@/components/EditClientModal";
 
 export type ClientRow = {
   id: string;
   name: string;
   contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  billingNotes: string | null;
   jobs: number;
   billed: number;
   lastJob: string | null; // ISO date or null
@@ -36,13 +41,16 @@ export default function ClientsView({
   const router = useRouter();
   const [q, setQ] = useState("");
   const [showNew, setShowNew] = useState(false);
+  const [editing, setEditing] = useState<ClientRow | null>(null);
 
   const query = q.trim().toLowerCase();
   const filtered = query
     ? clients.filter(
         (c) =>
           c.name.toLowerCase().includes(query) ||
-          (c.contactName ?? "").toLowerCase().includes(query),
+          (c.contactName ?? "").toLowerCase().includes(query) ||
+          (c.email ?? "").toLowerCase().includes(query) ||
+          (c.phone ?? "").toLowerCase().includes(query),
       )
     : clients;
 
@@ -74,7 +82,7 @@ export default function ClientsView({
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search clients or contacts"
+            placeholder="Search clients, contacts, email or phone"
             className="bg-transparent outline-none text-sm flex-1"
             style={{ color: COLORS.text }}
           />
@@ -103,6 +111,7 @@ export default function ClientsView({
             <span className="text-xs font-semibold w-24 shrink-0 text-right" style={{ color: COLORS.textFaint }}>
               LAST JOB
             </span>
+            <span className="w-10 shrink-0" aria-hidden="true" />
           </div>
 
           {filtered.map((c, i) => (
@@ -141,6 +150,15 @@ export default function ClientsView({
               >
                 {lastJobLabel(c.lastJob)}
               </span>
+              <button
+                type="button"
+                onClick={() => setEditing(c)}
+                aria-label={`Edit ${c.name}`}
+                className="ml-auto sm:ml-2 w-8 h-8 rounded-md flex items-center justify-center shrink-0"
+                style={{ color: COLORS.textMute, background: COLORS.cardAlt }}
+              >
+                <Pencil size={14} />
+              </button>
             </div>
           ))}
 
@@ -159,6 +177,17 @@ export default function ClientsView({
           onClose={() => setShowNew(false)}
           onDone={() => {
             setShowNew(false);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {editing && (
+        <EditClientModal
+          client={editing}
+          onClose={() => setEditing(null)}
+          onDone={() => {
+            setEditing(null);
             router.refresh();
           }}
         />
