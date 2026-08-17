@@ -6,6 +6,12 @@ import { ExternalLink, Plus } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import { COLORS, ON_ACCENT } from "@/lib/theme";
 
+type UploadTicket = {
+  uploadUrl: string;
+  uploadHeaders: Record<string, string>;
+  commitToken: string;
+};
+
 export default function ProjectsView({
   photos,
   jobs,
@@ -16,18 +22,49 @@ export default function ProjectsView({
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [jobId, setJobId] = useState("");
-  const [fileUrl, setFileUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!file) return;
     setSaving(true);
     setError(null);
+
+    const ticketRes = await fetch("/api/storage/upload-ticket", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "project-photos",
+        fileName: file.name,
+        contentType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+      }),
+    });
+    if (!ticketRes.ok) {
+      const body = await ticketRes.json().catch(() => null);
+      setSaving(false);
+      setError(body?.error ?? "Could not prepare private upload.");
+      return;
+    }
+    const ticket = await ticketRes.json() as UploadTicket;
+
+    const uploadRes = await fetch(ticket.uploadUrl, {
+      method: "PUT",
+      headers: ticket.uploadHeaders,
+      body: file,
+    });
+    if (!uploadRes.ok) {
+      setSaving(false);
+      setError("Private photo upload failed. Please try again.");
+      return;
+    }
+
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jobId, fileUrl }),
+      body: JSON.stringify({ jobId, commitToken: ticket.commitToken }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -36,7 +73,7 @@ export default function ProjectsView({
       return;
     }
     setJobId("");
-    setFileUrl("");
+    setFile(null);
     setShowForm(false);
     router.refresh();
   }
@@ -50,14 +87,14 @@ export default function ProjectsView({
         subtitle={`${photos.length} project photo${photos.length === 1 ? "" : "s"}`}
         rightSlot={
           <button type="button" onClick={() => setShowForm((value) => !value)} className="flex items-center gap-1.5 rounded-md px-3.5 py-2 text-sm font-semibold" style={{ background: COLORS.accent, color: ON_ACCENT }}>
-            <Plus size={15} /> Add project photo
+            <Plus size={15} /> Upload project photo
           </button>
         }
       />
 
       <div className="flex-1 overflow-auto p-4 md:p-8 flex flex-col gap-4">
         <div className="rounded-lg px-4 py-3 text-sm" style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, color: COLORS.textMute }}>
-          Photo uploads stay storage-provider managed for now. Elecplan stores only validated HTTPS references until private object storage is configured.
+          New project photos use Elecplan private storage and short-lived signed access. JPG, PNG and WebP files are allowed up to 10 MB.
         </div>
 
         {showForm && (
@@ -66,11 +103,11 @@ export default function ProjectsView({
               <option value="">Select job</option>
               {jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
             </select>
-            <input required type="url" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} placeholder="https://..." className="rounded-md px-3 py-2 text-sm outline-none" style={field} />
+            <input required type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="rounded-md px-3 py-2 text-sm outline-none" style={field} />
             {error && <p className="md:col-span-2 text-xs" style={{ color: COLORS.coral }}>{error}</p>}
             <div className="md:col-span-2 flex justify-end gap-2">
               <button type="button" onClick={() => setShowForm(false)} className="rounded-md px-4 py-2 text-sm" style={{ background: COLORS.cardAlt, color: COLORS.textMute }}>Cancel</button>
-              <button disabled={saving} className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60" style={{ background: COLORS.accent, color: ON_ACCENT }}>{saving ? "Adding…" : "Add photo"}</button>
+              <button disabled={saving || !file} className="rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-60" style={{ background: COLORS.accent, color: ON_ACCENT }}>{saving ? "Uploading…" : "Upload photo"}</button>
             </div>
           </form>
         )}
