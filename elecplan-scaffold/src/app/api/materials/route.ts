@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 const schema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -27,6 +28,21 @@ export async function POST(req: Request) {
         supplier: parsed.data.supplier || null,
       },
     });
+
+    await recordAudit({
+      actor: user,
+      action: "STOCK_ITEM_CREATED",
+      entityType: "StockItem",
+      entityId: item.id,
+      details: {
+        name: item.name,
+        unit: item.unit,
+        onHand: item.onHand,
+        parLevel: item.parLevel,
+        hasSupplier: Boolean(item.supplier),
+      },
+    });
+
     return NextResponse.json(item, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Could not create stock item" }, { status: 400 });
