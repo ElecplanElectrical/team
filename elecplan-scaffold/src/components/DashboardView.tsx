@@ -102,9 +102,9 @@ export default function DashboardView({
   cashSeries: CashPoint[];
 }) {
   const grossCash = metrics.paidRevenue - metrics.paidSupplierBills;
-  const totalJobs = metrics.activeJobs + metrics.completedJobs;
+  const totalJobs = metrics.activeJobs + metrics.completedJobs + metrics.quotedJobs + metrics.scheduledJobs;
   const jobSegments = [
-    { label: "Active", value: metrics.activeJobs, color: UI.blue },
+    { label: "In progress", value: metrics.activeJobs, color: UI.blue },
     { label: "Completed", value: metrics.completedJobs, color: UI.green },
     { label: "Quoted", value: metrics.quotedJobs, color: UI.purple },
     { label: "Scheduled", value: metrics.scheduledJobs, color: UI.orange },
