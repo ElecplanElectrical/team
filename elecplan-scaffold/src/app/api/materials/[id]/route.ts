@@ -3,7 +3,10 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 
-const schema = z.object({ onHand: z.number().int().min(0) });
+const schema = z.union([
+  z.object({ delta: z.number().int().min(-1000).max(1000).refine((value) => value !== 0) }),
+  z.object({ onHand: z.number().int().min(0) }),
+]);
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
@@ -12,8 +15,37 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!parsed.success) return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
 
   const { id } = await params;
+
+  if ("delta" in parsed.data) {
+    const delta = parsed.data.delta;
+    const result = await prisma.stockItem.updateMany({
+      where: {
+        id,
+        ...(delta < 0 ? { onHand: { gte: Math.abs(delta) } } : {}),
+      },
+      data: {
+        onHand: delta > 0 ? { increment: delta } : { decrement: Math.abs(delta) },
+      },
+    });
+
+    if (result.count === 0) {
+      const current = await prisma.stockItem.findUnique({ where: { id } });
+      if (!current) return NextResponse.json({ error: "Stock item not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Stock quantity changed before this update. Refresh and try again.", item: current },
+        { status: 409 },
+      );
+    }
+
+    const item = await prisma.stockItem.findUnique({ where: { id } });
+    return NextResponse.json(item);
+  }
+
   try {
-    const item = await prisma.stockItem.update({ where: { id }, data: { onHand: parsed.data.onHand } });
+    const item = await prisma.stockItem.update({
+      where: { id },
+      data: { onHand: parsed.data.onHand },
+    });
     return NextResponse.json(item);
   } catch {
     return NextResponse.json({ error: "Stock item not found" }, { status: 404 });

@@ -28,9 +28,23 @@ export async function PATCH(
   try {
     const before = await prisma.quote.findUnique({
       where: { id },
-      select: { status: true, quoteNumber: true, amount: true },
+      select: {
+        status: true,
+        quoteNumber: true,
+        amount: true,
+        convertedInvoice: { select: { id: true, invoiceNumber: true } },
+      },
     });
     if (!before) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+    if (before.convertedInvoice) {
+      return NextResponse.json(
+        {
+          error: "Converted quotes are locked. Update the linked invoice instead.",
+          invoice: before.convertedInvoice,
+        },
+        { status: 409 },
+      );
+    }
 
     const quote = await prisma.quote.update({
       where: { id },

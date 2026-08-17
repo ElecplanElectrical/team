@@ -19,11 +19,10 @@ export default function MaterialsView({ items }: { items: StockRow[] }) {
   const filtered = useMemo(() => { const needle = query.trim().toLowerCase(); return needle ? items.filter((item) => [item.name, item.unit, item.supplier ?? ""].join(" ").toLowerCase().includes(needle)) : items; }, [items, query]);
 
   async function update(item: StockRow, delta: number) {
-    const next = Math.max(0, item.onHand + delta);
     setBusy(item.id); setError(null);
-    const res = await fetch(`/api/materials/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ onHand: next }) });
+    const res = await fetch(`/api/materials/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delta }) });
     setBusy(null);
-    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not update stock."); return; }
+    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not update stock."); router.refresh(); return; }
     router.refresh();
   }
 

@@ -27,6 +27,9 @@ export async function PATCH(
   if (!parsed.success || Object.keys(parsed.data).length === 0) {
     return NextResponse.json({ error: "Invalid job update" }, { status: 400 });
   }
+  if (parsed.data.status === "INVOICED" && user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Only admins can mark jobs as invoiced" }, { status: 403 });
+  }
 
   const d = parsed.data;
   const hasStart = Object.prototype.hasOwnProperty.call(d, "scheduledStart");

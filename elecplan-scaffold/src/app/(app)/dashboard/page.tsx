@@ -11,28 +11,14 @@ export default async function DashboardPage() {
   weekAgo.setHours(0, 0, 0, 0);
 
   const [quotes, invoices, jobs, clients, upcomingJobs, activity] = await Promise.all([
-    prisma.quote.findMany({
-      select: { amount: true, status: true },
-    }),
+    prisma.quote.findMany({ select: { amount: true, status: true } }),
     prisma.invoice.findMany({
-      select: {
-        amount: true,
-        status: true,
-        clientId: true,
-        supplier: true,
-        dueDate: true,
-        createdAt: true,
-      },
+      select: { amount: true, status: true, clientId: true, supplier: true, dueDate: true, createdAt: true },
     }),
-    prisma.job.findMany({
-      select: { status: true },
-    }),
+    prisma.job.findMany({ select: { status: true } }),
     prisma.client.count(),
     prisma.job.findMany({
-      where: {
-        scheduledStart: { gte: now },
-        status: { notIn: ["COMPLETE", "INVOICED"] },
-      },
+      where: { scheduledStart: { gte: now }, status: { notIn: ["COMPLETE", "INVOICED"] } },
       orderBy: { scheduledStart: "asc" },
       take: 4,
       select: {
@@ -48,45 +34,23 @@ export default async function DashboardPage() {
     prisma.auditLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
-      select: {
-        id: true,
-        action: true,
-        entityType: true,
-        createdAt: true,
-      },
+      select: { id: true, action: true, entityType: true, createdAt: true },
     }),
   ]);
 
-  const quotePipeline = quotes
-    .filter((q) => q.status === "DRAFT" || q.status === "SENT")
-    .reduce((sum, q) => sum + Number(q.amount), 0);
-  const acceptedQuotes = quotes
-    .filter((q) => q.status === "ACCEPTED")
-    .reduce((sum, q) => sum + Number(q.amount), 0);
+  const quotePipeline = quotes.filter((q) => q.status === "DRAFT" || q.status === "SENT").reduce((sum, q) => sum + Number(q.amount), 0);
+  const acceptedQuotes = quotes.filter((q) => q.status === "ACCEPTED").reduce((sum, q) => sum + Number(q.amount), 0);
 
-  const receivables = invoices
-    .filter((i) => i.clientId && i.status !== "PAID")
-    .reduce((sum, i) => sum + Number(i.amount), 0);
-  const payables = invoices
-    .filter((i) => i.supplier && i.status !== "PAID")
-    .reduce((sum, i) => sum + Number(i.amount), 0);
-  const paidRevenue = invoices
-    .filter((i) => i.clientId && i.status === "PAID")
-    .reduce((sum, i) => sum + Number(i.amount), 0);
-  const paidSupplierBills = invoices
-    .filter((i) => i.supplier && i.status === "PAID")
-    .reduce((sum, i) => sum + Number(i.amount), 0);
+  const receivables = invoices.filter((i) => i.clientId && i.status !== "PAID").reduce((sum, i) => sum + Number(i.amount), 0);
+  const payables = invoices.filter((i) => i.supplier && i.status !== "PAID").reduce((sum, i) => sum + Number(i.amount), 0);
+  const paidRevenue = invoices.filter((i) => i.clientId && i.status === "PAID").reduce((sum, i) => sum + Number(i.amount), 0);
+  const paidSupplierBills = invoices.filter((i) => i.supplier && i.status === "PAID").reduce((sum, i) => sum + Number(i.amount), 0);
 
-  const overdueCount = invoices.filter(
-    (i) => i.status !== "PAID" && (i.status === "OVERDUE" || i.dueDate < now),
-  ).length;
+  const overdueCount = invoices.filter((i) => i.status !== "PAID" && (i.status === "OVERDUE" || i.dueDate < now)).length;
 
-  const activeJobs = jobs.filter(
-    (j) => j.status !== "COMPLETE" && j.status !== "INVOICED",
-  ).length;
-  const completedJobs = jobs.filter(
-    (j) => j.status === "COMPLETE" || j.status === "INVOICED",
-  ).length;
+  // Keep the dashboard donut mutually exclusive so the total always equals the number of jobs.
+  const activeJobs = jobs.filter((j) => j.status === "IN_PROGRESS").length;
+  const completedJobs = jobs.filter((j) => j.status === "COMPLETE" || j.status === "INVOICED").length;
   const quotedJobs = jobs.filter((j) => j.status === "QUOTED").length;
   const scheduledJobs = jobs.filter((j) => j.status === "SCHEDULED").length;
 
@@ -132,10 +96,7 @@ export default async function DashboardPage() {
         assignedTo: job.assignedTo?.name ?? null,
         client: job.client.name,
       }))}
-      activity={activity.map((item) => ({
-        ...item,
-        createdAt: item.createdAt.toISOString(),
-      }))}
+      activity={activity.map((item) => ({ ...item, createdAt: item.createdAt.toISOString() }))}
       cashSeries={cashSeries}
     />
   );
