@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import SetPasswordForm from "@/components/SetPasswordForm";
-import { COLORS } from "@/lib/theme";
+
+const UI = {
+  panel: "#07192b",
+  border: "rgba(77,150,221,.24)",
+  text: "#f5f9ff",
+  mute: "#93a9c2",
+  blue: "#168dff",
+  red: "#ff5e72",
+};
 
 export default async function SetPasswordPage({
   searchParams,
@@ -11,32 +19,26 @@ export default async function SetPasswordPage({
   const { token } = await searchParams;
 
   return (
-    <div
-      className="min-h-screen w-full flex items-center justify-center p-4"
-      style={{ background: COLORS.bg }}
+    <main
+      className="relative min-h-screen overflow-hidden px-4 py-8 sm:px-6"
+      style={{
+        background:
+          "radial-gradient(circle at 20% 10%, rgba(22,141,255,.20), transparent 30%), radial-gradient(circle at 85% 85%, rgba(37,199,255,.10), transparent 26%), #03101f",
+      }}
     >
-      {token ? (
-        <SetPasswordForm token={token} />
-      ) : (
-        <div
-          className="w-full max-w-sm rounded-lg p-7 text-center"
-          style={{ background: COLORS.card, border: `1px solid ${COLORS.border}` }}
-        >
-          <div
-            className="flex items-center justify-center gap-2 mb-2 text-sm font-semibold"
-            style={{ color: COLORS.coral }}
-          >
-            <AlertTriangle size={16} /> Missing link token
-          </div>
-          <p className="text-sm mb-4" style={{ color: COLORS.textMute }}>
-            This page needs a valid invite or reset link. Ask your admin to send
-            you a new one.
-          </p>
-          <Link href="/login" className="text-sm font-semibold" style={{ color: COLORS.accent }}>
-            Back to sign in
-          </Link>
-        </div>
-      )}
-    </div>
+      <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: "linear-gradient(rgba(77,150,221,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(77,150,221,.05) 1px, transparent 1px)", backgroundSize: "42px 42px" }} />
+      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center justify-center">
+        {token ? (
+          <SetPasswordForm token={token} />
+        ) : (
+          <section className="w-full max-w-md rounded-2xl p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,.35)] sm:p-8" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={20} /></div>
+            <h1 className="mt-4 text-xl font-semibold" style={{ color: UI.text }}>This reset link is incomplete</h1>
+            <p className="mt-2 text-sm leading-6" style={{ color: UI.mute }}>Ask your Elecplan admin to issue a new secure invite or password-reset link.</p>
+            <Link href="/login" className="mt-6 inline-flex rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}>Back to sign in</Link>
+          </section>
+        )}
+      </div>
+    </main>
   );
 }
