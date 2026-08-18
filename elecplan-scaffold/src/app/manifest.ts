@@ -12,10 +12,10 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait-primary",
     icons: [
       {
-        src: "/elecplan-app-icon.svg",
-        sizes: "any",
-        type: "image/svg+xml",
-        purpose: "any",
+        src: "/elecplan-home-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+        purpose: "any maskable",
       },
     ],
   };
