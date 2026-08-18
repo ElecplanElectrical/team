@@ -126,7 +126,8 @@ export default function CalendarView({
   }
 
   function canDrag(event: CalendarEvent) {
-    return role !== "EMPLOYEE" && Boolean(event.jobId);
+    if (role !== "EMPLOYEE") return true;
+    return !event.jobId && event.assignedToId === currentUserId;
   }
 
   function beginPointerAction(e: React.PointerEvent<HTMLDivElement>, event: CalendarEvent, mode: "move" | "resize") {
@@ -192,20 +193,24 @@ export default function CalendarView({
     }
 
     try {
-      const url = event.jobId ? `/api/jobs/${event.jobId}` : `/api/events/${event.id}`;
+      const isJob = Boolean(event.jobId);
+      const url = isJob ? `/api/jobs/${event.jobId}` : `/api/events/${event.id}`;
+      const payload = isJob
+        ? { scheduledStart: drag.previewStart.toISOString(), scheduledEnd: drag.previewEnd.toISOString() }
+        : { startsAt: drag.previewStart.toISOString(), endsAt: drag.previewEnd.toISOString() };
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduledStart: drag.previewStart.toISOString(), scheduledEnd: drag.previewEnd.toISOString(), startsAt: drag.previewStart.toISOString(), endsAt: drag.previewEnd.toISOString() }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? "Could not move this job");
+        throw new Error(body?.error ?? "Could not move this calendar item");
       }
       router.refresh();
     } catch (error) {
       setCalendarEvents(events);
-      setDragError(error instanceof Error ? error.message : "Could not update the job schedule");
+      setDragError(error instanceof Error ? error.message : "Could not update this calendar item");
     } finally {
       setTimeout(() => { suppressClickRef.current = false; }, 0);
     }
@@ -251,7 +256,7 @@ export default function CalendarView({
             </div>
 
             {dragError && <div className="mx-3 mt-3 rounded-lg px-3 py-2 text-xs" style={{ background: "rgba(255,94,114,.1)", border: "1px solid rgba(255,94,114,.3)", color: "#ff7487" }}>{dragError}</div>}
-            {role !== "EMPLOYEE" && <div className="hidden px-3 pt-3 text-[11px] md:block" style={{ color: UI.faint }}>Drag a job to move it. Drag the handle at the bottom of a job to change its length. Changes snap to 15 minutes.</div>}
+            <div className="hidden px-3 pt-3 text-[11px] md:block" style={{ color: UI.faint }}>Drag any calendar item you have permission to edit. Drag the handle at the bottom to change its length. Changes snap to 15 minutes.</div>
 
             <div className="md:hidden p-3">
               <div className="mb-3 flex items-center justify-between"><strong className="text-sm" style={{ color: UI.text }}>{label}</strong></div>
@@ -297,7 +302,7 @@ export default function CalendarView({
                         <div className="text-[10px] opacity-80">{timeRange(event.startsAt, event.endsAt)}</div>
                         <div className="mt-0.5 truncate text-[11px] font-semibold">{event.title}</div>
                         {draggable && <div
-                          aria-label="Resize job"
+                          aria-label="Resize calendar item"
                           onPointerDown={(pointerEvent) => beginPointerAction(pointerEvent, event, "resize")}
                           className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize"
                           style={{ background: `linear-gradient(to bottom, transparent, ${c.border}55)`, touchAction: "none" }}
