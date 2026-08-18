@@ -34,18 +34,20 @@ export const FONTS = {
   mono: "'IBM Plex Mono', monospace",
 } as const;
 
-/** JobEvent type -> calendar block colours (from the mockup `eventColor`). */
+/** Calendar item type -> calendar block colours. */
 export const EVENT_COLOR: Record<
   string,
   { bg: string; border: string; fg: string }
 > = {
   job: { bg: "rgba(61,197,240,0.22)", border: COLORS.accent, fg: "#BFEBFA" },
+  inspection: { bg: "rgba(138,92,246,0.22)", border: "#9D7BFF", fg: "#E5DCFF" },
   call: { bg: "rgba(51,214,172,0.22)", border: COLORS.teal, fg: "#B9F5E4" },
   admin: { bg: "rgba(255,110,100,0.22)", border: COLORS.coral, fg: "#FFD3CF" },
   material: { bg: "rgba(240,178,61,0.22)", border: COLORS.amber, fg: "#FBE3B8" },
+  personal: { bg: "rgba(236,72,153,0.22)", border: "#EC4899", fg: "#FFD1E8" },
 };
 
-export const EVENT_TYPES = ["job", "call", "admin", "material"] as const;
+export const EVENT_TYPES = ["job", "call", "admin", "material", "personal"] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
 /** JobStatus -> pill styling. Mockup only styled 3; extended to all 5. */
