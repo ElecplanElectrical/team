@@ -8,10 +8,26 @@ export type JobCrewOption = { id: string; name: string; role: string };
 
 const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72" };
 
-export default function NewJobModal({ clients, crew, onClose, onDone }: { clients: JobClientOption[]; crew: JobCrewOption[]; onClose: () => void; onDone: () => void }) {
+export default function NewJobModal({
+  clients,
+  crew,
+  onClose,
+  onDone,
+  initialClientId,
+  initialAddress,
+}: {
+  clients: JobClientOption[];
+  crew: JobCrewOption[];
+  onClose: () => void;
+  onDone: () => void;
+  initialClientId?: string;
+  initialAddress?: string;
+}) {
+  const firstClientId = initialClientId && clients.some((client) => client.id === initialClientId) ? initialClientId : (clients[0]?.id ?? "");
+  const firstClient = clients.find((client) => client.id === firstClientId);
   const [title, setTitle] = useState("");
-  const [clientId, setClientId] = useState(clients[0]?.id ?? "");
-  const [address, setAddress] = useState(clients[0]?.address ?? "");
+  const [clientId, setClientId] = useState(firstClientId);
+  const [address, setAddress] = useState(initialAddress ?? firstClient?.address ?? "");
   const [assignedToId, setAssignedToId] = useState("");
   const [status, setStatus] = useState("SCHEDULED");
   const [scheduledStart, setScheduledStart] = useState("");
@@ -60,14 +76,10 @@ export default function NewJobModal({ clients, crew, onClose, onDone }: { client
   const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
   return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
-    <section
-      className="flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden md:h-auto md:max-h-[92vh] md:rounded-2xl"
-      style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }}
-      onClick={(e) => e.stopPropagation()}
-    >
+    <section className="flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden md:h-auto md:max-h-[92vh] md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
       <header className="flex shrink-0 items-start gap-3 border-b px-4 py-3 md:px-5 md:py-4" style={{ borderColor: UI.borderSoft }}>
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><BriefcaseBusiness size={18} /></span>
-        <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>New job</h2><p className="mt-1 text-xs" style={{ color: UI.faint }}>Create the job, assign crew and optionally place it straight on the calendar.</p></div>
+        <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>New job</h2><p className="mt-1 text-xs" style={{ color: UI.faint }}>{initialAddress ? `Create new work for ${initialAddress}.` : "Create the job, assign crew and optionally place it straight on the calendar."}</p></div>
         <button type="button" aria-label="Close" onClick={onClose} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" style={{ color: UI.mute, background: UI.panelAlt }}><X size={18} /></button>
       </header>
 
@@ -85,16 +97,11 @@ export default function NewJobModal({ clients, crew, onClose, onDone }: { client
             <div className="md:col-span-2 flex gap-2 rounded-xl p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><CalendarDays size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><p className="text-xs leading-5" style={{ color: UI.faint }}>Adding both times automatically places the job on the team calendar.</p></div>
             <Field label="Notes" className="md:col-span-2"><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} placeholder="Access details, scope, materials, customer notes…" className="w-full resize-none rounded-lg px-3 py-2.5 text-base outline-none md:text-sm" style={field} /></Field>
           </div>
-
           {error && <p className="mt-4 rounded-lg px-3 py-2 text-xs" style={{ color: UI.red, background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.24)" }}>{error}</p>}
           <div className="h-3" />
         </div>
-
         <div className="shrink-0 border-t px-4 pt-3 md:px-5" style={{ borderColor: UI.borderSoft, paddingBottom: "max(12px, env(safe-area-inset-bottom))", background: UI.panel }}>
-          <div className="grid grid-cols-2 gap-2 md:flex md:justify-end">
-            <button type="button" onClick={onClose} className="rounded-lg px-4 py-3 text-sm font-semibold md:py-2.5" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button>
-            <button type="submit" disabled={saving || clients.length === 0} className="rounded-lg px-5 py-3 text-sm font-semibold disabled:opacity-60 md:py-2.5" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Create job"}</button>
-          </div>
+          <div className="grid grid-cols-2 gap-2 md:flex md:justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-3 text-sm font-semibold md:py-2.5" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving || clients.length === 0} className="rounded-lg px-5 py-3 text-sm font-semibold disabled:opacity-60 md:py-2.5" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Create job"}</button></div>
         </div>
       </form>
     </section>
