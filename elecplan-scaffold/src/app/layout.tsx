@@ -8,8 +8,11 @@ export const metadata: Metadata = {
   applicationName: "Elecplan Team",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/elecplan-app-icon.svg",
-    apple: "/elecplan-app-icon.svg",
+    icon: [
+      { url: "/elecplan-icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/elecplan-icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/elecplan-icon-192.png", type: "image/png", sizes: "192x192" }],
   },
   appleWebApp: {
     capable: true,
