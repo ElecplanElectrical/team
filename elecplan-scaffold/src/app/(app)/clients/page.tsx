@@ -5,7 +5,7 @@ import ClientsView, { type ClientRow } from "@/components/ClientsView";
 export default async function ClientsPage() {
   const user = await requireAccess("clients");
 
-  const [clients, billedByClient, lastJobByClient, jobs, crew] = await Promise.all([
+  const [clients, billedByClient, lastJobByClient, jobs, crew, inspections] = await Promise.all([
     prisma.client.findMany({
       select: {
         id: true,
@@ -30,10 +30,21 @@ export default async function ClientsPage() {
       select: { id: true, name: true, role: true },
       orderBy: { name: "asc" },
     }),
+    prisma.inspection.findMany({
+      select: { id: true, jobId: true, type: true, status: true, date: true },
+      orderBy: { date: "desc" },
+    }),
   ]);
 
   const billed = new Map(billedByClient.filter((b) => b.clientId != null).map((b) => [b.clientId as string, Number(b._sum.amount ?? 0)]));
   const lastJob = new Map(lastJobByClient.map((j) => [j.clientId, (j._max.scheduledStart ?? j._max.createdAt)?.toISOString() ?? null]));
+
+  const inspectionsByJob = new Map<string, { id: string; type: string; status: string; date: string }[]>();
+  for (const inspection of inspections) {
+    const current = inspectionsByJob.get(inspection.jobId) ?? [];
+    current.push({ id: inspection.id, type: inspection.type, status: inspection.status, date: inspection.date.toISOString() });
+    inspectionsByJob.set(inspection.jobId, current);
+  }
 
   const jobsByClient = new Map<string, typeof jobs>();
   for (const job of jobs) {
@@ -55,6 +66,7 @@ export default async function ClientsPage() {
         status: job.status,
         scheduledStart: job.scheduledStart?.toISOString() ?? null,
         createdAt: job.createdAt.toISOString(),
+        inspections: inspectionsByJob.get(job.id) ?? [],
       });
       siteMap.set(key, site);
     }
