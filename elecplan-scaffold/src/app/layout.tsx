@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   applicationName: "Elecplan Team",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/elecplan-app-icon.svg",
-    apple: "/elecplan-app-icon.svg",
+    icon: "/icon",
+    apple: "/apple-icon",
   },
   appleWebApp: {
     capable: true,
