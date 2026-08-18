@@ -50,14 +50,54 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
   const user = auth.user;
   const { id } = await context.params;
 
-  const client = await prisma.client.findUnique({ where: { id }, select: { id: true, name: true, _count: { select: { jobs: true, invoices: true } } } });
+  const client = await prisma.client.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      _count: { select: { jobs: true, invoices: true, quotes: true, leads: true, reviews: true } },
+    },
+  });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
-  if (client._count.jobs > 0 || client._count.invoices > 0) {
-    return NextResponse.json({ error: `This client cannot be deleted because it has ${client._count.jobs} job${client._count.jobs === 1 ? "" : "s"} and ${client._count.invoices} invoice${client._count.invoices === 1 ? "" : "s"} linked to it. Keep the client for your records.` }, { status: 409 });
-  }
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Remove records that depend on this client's jobs first.
+      await tx.jobEvent.deleteMany({ where: { job: { clientId: id } } });
+      await tx.certificate.deleteMany({ where: { job: { clientId: id } } });
+      await tx.inspection.deleteMany({ where: { job: { clientId: id } } });
+      await tx.projectPhoto.deleteMany({ where: { job: { clientId: id } } });
+      await tx.smsLog.deleteMany({ where: { job: { clientId: id } } });
+      await tx.document.deleteMany({ where: { job: { clientId: id } } });
 
-  await prisma.client.delete({ where: { id } });
-  await recordAudit({ actor: user, action: "CLIENT_DELETED", entityType: "Client", entityId: id, details: { name: client.name } });
-  return NextResponse.json({ ok: true });
+      // Invoices can reference quotes, so remove invoices before quotes.
+      await tx.invoice.deleteMany({ where: { OR: [{ clientId: id }, { job: { clientId: id } }] } });
+      await tx.quote.deleteMany({ where: { clientId: id } });
+
+      await tx.lead.deleteMany({ where: { clientId: id } });
+      await tx.review.deleteMany({ where: { clientId: id } });
+      await tx.job.deleteMany({ where: { clientId: id } });
+      await tx.client.delete({ where: { id } });
+    });
+
+    await recordAudit({
+      actor: user,
+      action: "CLIENT_DELETED",
+      entityType: "Client",
+      entityId: id,
+      details: {
+        name: client.name,
+        deletedJobs: client._count.jobs,
+        deletedInvoices: client._count.invoices,
+        deletedQuotes: client._count.quotes,
+        deletedLeads: client._count.leads,
+        deletedReviews: client._count.reviews,
+      },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("CLIENT_DELETE_FAILED", error);
+    return NextResponse.json({ error: "Could not delete this client and its linked records." }, { status: 500 });
+  }
 }
