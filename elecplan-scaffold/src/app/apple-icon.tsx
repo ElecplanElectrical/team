@@ -29,6 +29,8 @@ export default function AppleIcon() {
         <img
           src={logoDataUrl()}
           alt=""
+          width={236}
+          height={236}
           style={{
             position: "absolute",
             left: "-28px",
