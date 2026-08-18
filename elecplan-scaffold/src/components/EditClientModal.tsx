@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, X } from "lucide-react";
+import { Building2, Trash2, X } from "lucide-react";
 
 export type EditableClient = {
   id: string;
@@ -24,6 +24,8 @@ export default function EditClientModal({ client, onClose, onDone }: { client: E
   const [billingNotes, setBillingNotes] = useState(client.billingNotes ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,6 +35,16 @@ export default function EditClientModal({ client, onClose, onDone }: { client: E
     const res = await fetch(`/api/clients/${client.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), contactName: contactName.trim() || null, phone: phone.trim() || null, email: email.trim() || null, address: address.trim() || null, billingNotes: billingNotes.trim() || null }) });
     setSaving(false);
     if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not update the client."); return; }
+    onDone();
+  }
+
+  async function deleteClient() {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    setError(null);
+    setDeleting(true);
+    const res = await fetch(`/api/clients/${client.id}`, { method: "DELETE" });
+    setDeleting(false);
+    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not delete the client."); setConfirmDelete(false); return; }
     onDone();
   }
 
@@ -57,8 +69,13 @@ export default function EditClientModal({ client, onClose, onDone }: { client: E
           <Field label="Billing notes" className="md:col-span-2"><textarea value={billingNotes} onChange={(e) => setBillingNotes(e.target.value)} rows={3} className="w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none" style={field} /></Field>
         </div>
 
+        {confirmDelete && <div className="mt-4 rounded-xl p-3 text-xs" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.25)", color: UI.text }}>Delete <strong>{client.name}</strong>? This cannot be undone. If this client has linked jobs or invoices, Elecplan will keep the client and show you a warning instead.</div>}
         {error && <p className="mt-4 text-xs" style={{ color: UI.red }}>{error}</p>}
-        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving} className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Save changes"}</button></div>
+
+        <div className="mt-5 flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: UI.borderSoft }}>
+          <button type="button" onClick={deleteClient} disabled={deleting || saving} className="flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: confirmDelete ? UI.red : "rgba(255,94,114,.08)", color: confirmDelete ? "white" : UI.red, border: "1px solid rgba(255,94,114,.28)" }}><Trash2 size={15} />{deleting ? "Deleting…" : confirmDelete ? "Confirm delete" : "Delete client"}</button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving || deleting} className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Save changes"}</button></div>
+        </div>
       </form>
     </section>
   </div>;
