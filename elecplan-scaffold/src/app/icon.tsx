@@ -7,7 +7,7 @@ export const size = {
 
 export const contentType = "image/png";
 
-const SOURCE = "https://team.elecplan.com.au/478BD26B-D7A4-4BD0-A823-186BE3EFDB94.png?v=4";
+const SOURCE = "https://team.elecplan.com.au/478BD26B-D7A4-4BD0-A823-186BE3EFDB94.png?v=5";
 
 export default function Icon() {
   return new ImageResponse(
@@ -26,10 +26,10 @@ export default function Icon() {
           alt=""
           style={{
             position: "absolute",
-            left: "-46px",
-            top: "-174px",
-            width: "604px",
-            height: "920px",
+            left: "-97px",
+            top: "-250px",
+            width: "706px",
+            height: "1075px",
           }}
         />
       </div>
