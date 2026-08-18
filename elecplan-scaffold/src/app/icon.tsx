@@ -1,5 +1,4 @@
 import { ImageResponse } from "next/og";
-import { LOGO_MARK } from "@/lib/logo";
 
 export const size = {
   width: 512,
@@ -8,6 +7,8 @@ export const size = {
 
 export const contentType = "image/png";
 
+const SOURCE = "https://team.elecplan.com.au/478BD26B-D7A4-4BD0-A823-186BE3EFDB94.png?v=3";
+
 export default function Icon() {
   return new ImageResponse(
     (
@@ -15,18 +16,21 @@ export default function Icon() {
         style={{
           width: "100%",
           height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#07131f",
+          position: "relative",
+          overflow: "hidden",
+          background: "#000000",
         }}
       >
         <img
-          src={LOGO_MARK}
+          src={SOURCE}
           alt=""
-          width="452"
-          height="452"
-          style={{ objectFit: "contain" }}
+          style={{
+            position: "absolute",
+            left: "0px",
+            top: "-118px",
+            width: "512px",
+            height: "780px",
+          }}
         />
       </div>
     ),
