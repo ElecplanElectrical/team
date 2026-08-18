@@ -12,8 +12,14 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait-primary",
     icons: [
       {
-        src: "/app-icon.png",
-        sizes: "160x160",
+        src: "/elecplan-icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/elecplan-icon-512.png",
+        sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
