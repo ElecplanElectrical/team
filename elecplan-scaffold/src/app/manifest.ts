@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const HOME_ICON = "/478BD26B-D7A4-4BD0-A823-186BE3EFDB94.png";
+const HOME_ICON = "/5EAC5C26-D2E9-4219-8FB7-FDD38093BAFE.png?v=9";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
