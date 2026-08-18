@@ -47,7 +47,7 @@ async function confirmationForJob(id: string) {
   }
 
   const firstName = (job.client.contactName || job.client.name).trim().split(/\s+/)[0] || "there";
-  const message = `Hi ${firstName}, your Elecplan booking for ${job.title} is confirmed for ${bookingTime(job.scheduledStart)} at ${job.address}. If you need to change the booking, please contact Elecplan. - Elecplan`;
+  const message = `Hi ${firstName}, your booking with Elecplan Pty Ltd is confirmed for ${bookingTime(job.scheduledStart)} at ${job.address}. If your plans change or you need to reschedule, please get in touch with us as soon as possible. Thanks, Elecplan.`;
 
   return {
     job,
