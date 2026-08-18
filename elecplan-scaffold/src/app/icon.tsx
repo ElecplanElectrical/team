@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { ImageResponse } from "next/og";
 
 export const size = {
@@ -7,7 +9,10 @@ export const size = {
 
 export const contentType = "image/png";
 
-const SOURCE = "https://team.elecplan.com.au/5EAC5C26-D2E9-4219-8FB7-FDD38093BAFE.png?v=11";
+function logoDataUrl() {
+  const file = readFileSync(path.join(process.cwd(), "public", "5EAC5C26-D2E9-4219-8FB7-FDD38093BAFE.png"));
+  return `data:image/png;base64,${file.toString("base64")}`;
+}
 
 export default function Icon() {
   return new ImageResponse(
@@ -22,7 +27,7 @@ export default function Icon() {
         }}
       >
         <img
-          src={SOURCE}
+          src={logoDataUrl()}
           alt=""
           style={{
             position: "absolute",
