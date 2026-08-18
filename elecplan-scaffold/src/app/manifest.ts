@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+const HOME_ICON = "/478BD26B-D7A4-4BD0-A823-186BE3EFDB94.png";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Elecplan Team",
@@ -12,16 +14,10 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait-primary",
     icons: [
       {
-        src: "/icon",
-        sizes: "512x512",
+        src: HOME_ICON,
+        sizes: "any",
         type: "image/png",
         purpose: "any",
-      },
-      {
-        src: "/icon",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "maskable",
       },
     ],
   };
