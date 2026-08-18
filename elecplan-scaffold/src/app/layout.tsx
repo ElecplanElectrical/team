@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import PwaRegister from "@/components/PwaRegister";
 import "./globals.css";
 
-const HOME_ICON = "/5EAC5C26-D2E9-4219-8FB7-FDD38093BAFE.png?v=9";
+const HOME_ICON = "/5EAC5C26-D2E9-4219-8FB7-FDD38093BAFE.png?v=10";
 
 export const metadata: Metadata = {
   title: "Elecplan",
   description: "Elecplan job management portal",
   applicationName: "Elecplan Team",
-  manifest: "/manifest.webmanifest?v=9",
+  manifest: "/manifest.webmanifest?v=10",
   icons: {
     icon: [{ url: HOME_ICON, type: "image/png" }],
     shortcut: [HOME_ICON],
@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <head>
-        <link rel="apple-touch-icon" href={HOME_ICON} />
+        <link rel="apple-touch-icon" sizes="180x180" href={HOME_ICON} />
         <link rel="icon" type="image/png" href={HOME_ICON} />
       </head>
       <body className="min-h-full">
