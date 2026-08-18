@@ -1,5 +1,4 @@
 import { ImageResponse } from "next/og";
-import { LOGO_MARK } from "@/lib/logo";
 
 export const size = {
   width: 180,
@@ -8,6 +7,8 @@ export const size = {
 
 export const contentType = "image/png";
 
+const SOURCE = "https://team.elecplan.com.au/478BD26B-D7A4-4BD0-A823-186BE3EFDB94.png?v=3";
+
 export default function AppleIcon() {
   return new ImageResponse(
     (
@@ -15,20 +16,20 @@ export default function AppleIcon() {
         style={{
           width: "100%",
           height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#07131f",
+          position: "relative",
+          overflow: "hidden",
+          background: "#000000",
         }}
       >
-        <div
+        <img
+          src={SOURCE}
+          alt=""
           style={{
-            width: "160px",
-            height: "160px",
-            backgroundImage: `url("${LOGO_MARK}")`,
-            backgroundSize: "contain",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
+            position: "absolute",
+            left: "0px",
+            top: "-41px",
+            width: "180px",
+            height: "274px",
           }}
         />
       </div>
