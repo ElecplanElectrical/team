@@ -48,8 +48,11 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
   const auth = await authorize();
   if ("error" in auth) return auth.error;
   const user = auth.user;
-  const { id } = await context.params;
+  if (user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Only admins can permanently delete clients and linked records." }, { status: 403 });
+  }
 
+  const { id } = await context.params;
   const client = await prisma.client.findUnique({
     where: { id },
     select: {
@@ -62,18 +65,14 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
 
   try {
     await prisma.$transaction(async (tx) => {
-      // Remove records that depend on this client's jobs first.
       await tx.jobEvent.deleteMany({ where: { job: { clientId: id } } });
       await tx.certificate.deleteMany({ where: { job: { clientId: id } } });
       await tx.inspection.deleteMany({ where: { job: { clientId: id } } });
       await tx.projectPhoto.deleteMany({ where: { job: { clientId: id } } });
       await tx.smsLog.deleteMany({ where: { job: { clientId: id } } });
       await tx.document.deleteMany({ where: { job: { clientId: id } } });
-
-      // Invoices can reference quotes, so remove invoices before quotes.
       await tx.invoice.deleteMany({ where: { OR: [{ clientId: id }, { job: { clientId: id } }] } });
       await tx.quote.deleteMany({ where: { clientId: id } });
-
       await tx.lead.deleteMany({ where: { clientId: id } });
       await tx.review.deleteMany({ where: { clientId: id } });
       await tx.job.deleteMany({ where: { clientId: id } });
