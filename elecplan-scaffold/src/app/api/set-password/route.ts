@@ -7,8 +7,8 @@ import { clearRateLimits, consumeRateLimit, rateLimitHeaders } from "@/lib/rate-
 import { hashToken } from "@/lib/tokens";
 
 const schema = z.object({
-  token: z.string().min(1),
-  password: z.string().min(8, "Use at least 8 characters.").max(200),
+  token: z.string().min(20).max(500),
+  password: z.string().min(12, "Use at least 12 characters.").max(200),
 });
 
 const TOKEN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000;
@@ -25,11 +25,7 @@ export async function POST(req: Request) {
   const { token, password } = parsed.data;
   const tokenHash = hashToken(token);
   const limiterKey = `set-password:${tokenHash}`;
-  const limiter = await consumeRateLimit(
-    limiterKey,
-    TOKEN_ATTEMPT_LIMIT,
-    TOKEN_ATTEMPT_WINDOW_MS,
-  );
+  const limiter = await consumeRateLimit(limiterKey, TOKEN_ATTEMPT_LIMIT, TOKEN_ATTEMPT_WINDOW_MS);
   if (!limiter.allowed) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again later or ask your admin for a new link." },
@@ -39,13 +35,7 @@ export async function POST(req: Request) {
 
   const record = await prisma.passwordToken.findUnique({
     where: { tokenHash },
-    select: {
-      id: true,
-      userId: true,
-      type: true,
-      usedAt: true,
-      expiresAt: true,
-    },
+    select: { id: true, userId: true, type: true, usedAt: true, expiresAt: true },
   });
   if (!record || record.usedAt || record.expiresAt < new Date()) {
     return NextResponse.json(
@@ -54,22 +44,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, 12);
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },
-      data: {
-        passwordHash,
-        ...(record.type === "INVITE" ? { active: true } : {}),
-      },
+      data: { passwordHash, ...(record.type === "INVITE" ? { active: true } : {}) },
     }),
-    prisma.passwordToken.update({
-      where: { id: record.id },
-      data: { usedAt: new Date() },
-    }),
-    prisma.passwordToken.deleteMany({
-      where: { userId: record.userId, usedAt: null },
-    }),
+    prisma.passwordToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+    prisma.passwordToken.deleteMany({ where: { userId: record.userId, usedAt: null } }),
   ]);
 
   await clearRateLimits([limiterKey]);
