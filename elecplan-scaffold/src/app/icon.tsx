@@ -29,6 +29,8 @@ export default function Icon() {
         <img
           src={logoDataUrl()}
           alt=""
+          width={672}
+          height={672}
           style={{
             position: "absolute",
             left: "-80px",
