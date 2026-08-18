@@ -21,12 +21,15 @@ export default function AppleIcon() {
           background: "#07131f",
         }}
       >
-        <img
-          src={LOGO_MARK}
-          alt=""
-          width="160"
-          height="160"
-          style={{ objectFit: "contain" }}
+        <div
+          style={{
+            width: "160px",
+            height: "160px",
+            backgroundImage: `url("${LOGO_MARK}")`,
+            backgroundSize: "contain",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
         />
       </div>
     ),
