@@ -2,14 +2,17 @@ import type { Metadata, Viewport } from "next";
 import PwaRegister from "@/components/PwaRegister";
 import "./globals.css";
 
+const HOME_ICON = "/478BD26B-D7A4-4BD0-A823-186BE3EFDB94.png";
+
 export const metadata: Metadata = {
   title: "Elecplan",
   description: "Elecplan job management portal",
   applicationName: "Elecplan Team",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icon",
-    apple: "/apple-icon",
+    icon: HOME_ICON,
+    shortcut: HOME_ICON,
+    apple: HOME_ICON,
   },
   appleWebApp: {
     capable: true,
