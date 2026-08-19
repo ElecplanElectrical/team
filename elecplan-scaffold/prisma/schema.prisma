@@ -413,3 +413,12 @@ model EquipmentMovement {
 
   @@index([equipmentId, createdAt])
 }
+
+model WeeklyGoal {
+  id        String   @id @default(cuid())
+  weekStart DateTime @unique
+  text      String
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
