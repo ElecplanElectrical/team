@@ -48,11 +48,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
   const linkedJobIds = new Set(rows.flatMap((event) => event.jobId ? [event.jobId] : []));
   const events = [
-    ...rows.map((ev) => ({ id: ev.id, title: ev.title || ev.job?.title || "(untitled)", customTitle: ev.title, type: ev.type, jobId: ev.jobId, assignedToId: ev.assignedToId, startsAt: ev.startsAt.toISOString(), endsAt: ev.endsAt.toISOString(), fallback: false })),
-    ...scheduledJobs.filter((job) => !linkedJobIds.has(job.id) && job.scheduledStart && job.scheduledEnd).map((job) => ({ id: `job-fallback:${job.id}`, title: job.title, customTitle: null, type: "job", jobId: job.id, assignedToId: job.assignedToId, startsAt: job.scheduledStart!.toISOString(), endsAt: job.scheduledEnd!.toISOString(), fallback: true })),
+    ...rows.map((ev) => ({ id: ev.id, title: ev.title || ev.job?.title || "(untitled)", customTitle: ev.title, notes: ev.notes, type: ev.type, jobId: ev.jobId, assignedToId: ev.assignedToId, startsAt: ev.startsAt.toISOString(), endsAt: ev.endsAt.toISOString(), fallback: false })),
+    ...scheduledJobs.filter((job) => !linkedJobIds.has(job.id) && job.scheduledStart && job.scheduledEnd).map((job) => ({ id: `job-fallback:${job.id}`, title: job.title, customTitle: null, notes: null, type: "job", jobId: job.id, assignedToId: job.assignedToId, startsAt: job.scheduledStart!.toISOString(), endsAt: job.scheduledEnd!.toISOString(), fallback: true })),
     ...inspections.map((inspection) => {
       const startsAt = addHours(startOfDay(inspection.date), 8);
-      return { id: `inspection:${inspection.id}`, title: `Inspection: ${inspection.type} — ${inspection.job.title}`, customTitle: null, type: "inspection", jobId: null, assignedToId: inspection.job.assignedToId, startsAt: startsAt.toISOString(), endsAt: addHours(startsAt, 1).toISOString(), fallback: false };
+      return { id: `inspection:${inspection.id}`, title: `Inspection: ${inspection.type} — ${inspection.job.title}`, customTitle: null, notes: null, type: "inspection", jobId: null, assignedToId: inspection.job.assignedToId, startsAt: startsAt.toISOString(), endsAt: addHours(startsAt, 1).toISOString(), fallback: false };
     }),
   ];
 
