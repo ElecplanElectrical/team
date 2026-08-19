@@ -3,40 +3,14 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
-import {
-  BriefcaseBusiness,
-  CalendarDays,
-  ChevronRight,
-  Filter,
-  MapPin,
-  Pencil,
-  Plus,
-  Search,
-  UserRound,
-} from "lucide-react";
+import { BriefcaseBusiness, CalendarDays, ChevronRight, Filter, MapPin, Pencil, Plus, Search, UserRound } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import type { TimelineJob } from "@/components/JobTimeline";
 import NewJobModal, { type JobClientOption, type JobCrewOption } from "@/components/NewJobModal";
 import EditJobModal from "@/components/EditJobModal";
-import FieldJobModal from "@/components/FieldJobModal";
 import { JOB_STAGES, STAGE_LABELS } from "@/lib/theme";
 
-const UI = {
-  panel: "#07192b",
-  panelAlt: "#09213a",
-  border: "rgba(77,150,221,.24)",
-  borderSoft: "rgba(77,150,221,.12)",
-  text: "#f5f9ff",
-  mute: "#93a9c2",
-  faint: "#617993",
-  blue: "#168dff",
-  cyan: "#25c7ff",
-  green: "#18d3a0",
-  purple: "#8a5cf6",
-  orange: "#ff9f1c",
-  red: "#ff5e72",
-};
-
+const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", green: "#18d3a0", purple: "#8a5cf6", orange: "#ff9f1c", red: "#ff5e72" };
 const STATUS_STYLE: Record<string, { bg: string; fg: string; border: string }> = {
   QUOTED: { bg: "rgba(138,92,246,.12)", fg: "#b99cff", border: "rgba(138,92,246,.30)" },
   SCHEDULED: { bg: "rgba(22,141,255,.12)", fg: "#62b6ff", border: "rgba(22,141,255,.30)" },
@@ -44,87 +18,41 @@ const STATUS_STYLE: Record<string, { bg: string; fg: string; border: string }> =
   COMPLETE: { bg: "rgba(25,211,162,.11)", fg: "#4de2bb", border: "rgba(25,211,162,.28)" },
   INVOICED: { bg: "rgba(37,199,255,.11)", fg: "#62ddff", border: "rgba(37,199,255,.28)" },
 };
-
-function StatusPill({ status }: { status: string }) {
-  const style = STATUS_STYLE[status] ?? { bg: "rgba(147,169,194,.10)", fg: UI.mute, border: UI.border };
-  return <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: style.bg, color: style.fg, border: `1px solid ${style.border}` }}>{STAGE_LABELS[status as (typeof JOB_STAGES)[number]] ?? status.replaceAll("_", " ")}</span>;
-}
-
-function scheduleLabel(job: TimelineJob) {
-  if (!job.scheduledStart) return "Not scheduled";
-  return format(parseISO(job.scheduledStart), "d MMM yyyy");
-}
+function StatusPill({ status }: { status: string }) { const style = STATUS_STYLE[status] ?? { bg: "rgba(147,169,194,.10)", fg: UI.mute, border: UI.border }; return <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: style.bg, color: style.fg, border: `1px solid ${style.border}` }}>{STAGE_LABELS[status as (typeof JOB_STAGES)[number]] ?? status.replaceAll("_", " ")}</span>; }
+function scheduleLabel(job: TimelineJob) { return job.scheduledStart ? format(parseISO(job.scheduledStart), "d MMM yyyy") : "Not scheduled"; }
 
 export default function JobsView({ jobs, clients, crew, canCreate }: { jobs: TimelineJob[]; clients: JobClientOption[]; crew: JobCrewOption[]; canCreate: boolean }) {
   const router = useRouter();
   const [showNew, setShowNew] = useState(false);
   const [editingJob, setEditingJob] = useState<TimelineJob | null>(null);
-  const [fieldJobId, setFieldJobId] = useState<string | null>(null);
   const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-
   const active = jobs.filter((job) => job.status !== "COMPLETE" && job.status !== "INVOICED").length;
   const subtitle = jobs.length === 0 ? "No jobs yet" : `${active} active job${active === 1 ? "" : "s"}`;
-
-  const filteredJobs = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return jobs.filter((job) => {
-      const statusMatches = statusFilter === "ALL" || job.status === statusFilter;
-      if (!statusMatches) return false;
-      if (!needle) return true;
-      return [job.ref, job.title, job.client, job.address, job.crew ?? "", job.notes ?? ""].join(" ").toLowerCase().includes(needle);
-    });
-  }, [jobs, query, statusFilter]);
-
+  const filteredJobs = useMemo(() => { const needle = query.trim().toLowerCase(); return jobs.filter((job) => { const statusMatches = statusFilter === "ALL" || job.status === statusFilter; if (!statusMatches) return false; if (!needle) return true; return [job.ref, job.title, job.client, job.address, job.crew ?? "", job.notes ?? ""].join(" ").toLowerCase().includes(needle); }); }, [jobs, query, statusFilter]);
   const selectedJob = filteredJobs.find((job) => job.id === selectedJobId) ?? filteredJobs[0] ?? null;
-
-  async function updateStatus(jobId: string, status: (typeof JOB_STAGES)[number]) {
-    setStatusError(null);
-    setUpdatingJobId(jobId);
-    const res = await fetch(`/api/jobs/${jobId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
-    setUpdatingJobId(null);
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      setStatusError(body?.error ?? "Could not update job status.");
-      return;
-    }
-    router.refresh();
-  }
+  async function updateStatus(jobId: string, status: (typeof JOB_STAGES)[number]) { setStatusError(null); setUpdatingJobId(jobId); const res = await fetch(`/api/jobs/${jobId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); setUpdatingJobId(null); if (!res.ok) { const body = await res.json().catch(() => null); setStatusError(body?.error ?? "Could not update job status."); return; } router.refresh(); }
 
   return <>
     <TopBar title="Jobs" subtitle={subtitle} rightSlot={canCreate ? <button type="button" onClick={() => setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgba(22,141,255,.25)" }}><Plus size={16} /> <span className="hidden sm:inline">New job</span></button> : undefined} />
-
-    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
-      <div className="mx-auto w-full max-w-[1700px]">
-        {statusError && <div className="mb-3 rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{statusError}</div>}
-        <section className="rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
-          <div className="flex flex-col gap-3 border-b p-3 md:flex-row md:items-center md:justify-between" style={{ borderColor: UI.borderSoft }}>
-            <div className="relative min-w-0 flex-1 md:max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search jobs, clients, addresses, notes or crew…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={{ background: "#041323", color: UI.text, border: `1px solid ${UI.border}` }} /></div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0"><div className="flex items-center gap-2 pr-1 text-[11px] font-medium" style={{ color: UI.faint }}><Filter size={13} /> Status</div>{["ALL", ...JOB_STAGES].map((status) => { const activeTab = statusFilter === status; return <button key={status} type="button" onClick={() => setStatusFilter(status)} className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: activeTab ? "rgba(22,141,255,.16)" : "#041323", color: activeTab ? UI.cyan : UI.mute, border: `1px solid ${activeTab ? "rgba(37,199,255,.30)" : UI.borderSoft}` }}>{status === "ALL" ? "All jobs" : STAGE_LABELS[status as (typeof JOB_STAGES)[number]]}</button>; })}</div>
-          </div>
-
-          <div className="grid min-h-[560px] xl:grid-cols-[minmax(0,1fr)_300px]">
-            <div className="min-w-0 xl:border-r" style={{ borderColor: UI.borderSoft }}>
-              <div className="hidden grid-cols-[110px_minmax(220px,1.4fr)_minmax(180px,1fr)_150px_130px_42px] gap-3 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Status</span><span>Job</span><span>Site</span><span>Start date</span><span>Crew</span><span /></div>
-              <div className="hidden md:block">{filteredJobs.map((job) => { const selected = selectedJob?.id === job.id; return <button key={job.id} type="button" onClick={() => setSelectedJobId(job.id)} className="grid w-full grid-cols-[110px_minmax(220px,1.4fr)_minmax(180px,1fr)_150px_130px_42px] items-center gap-3 border-b px-4 py-3 text-left transition" style={{ borderColor: UI.borderSoft, background: selected ? "rgba(22,141,255,.055)" : "transparent" }}><span><StatusPill status={job.status} /></span><span className="min-w-0"><span className="block truncate text-sm font-semibold" style={{ color: UI.text }}>{job.title}</span><span className="mt-0.5 block truncate text-[11px]" style={{ color: UI.faint }}>{job.ref} · {job.client}</span></span><span className="flex min-w-0 items-center gap-2 text-xs" style={{ color: UI.mute }}><MapPin size={13} className="shrink-0" style={{ color: UI.faint }} /><span className="truncate">{job.address}</span></span><span className="text-xs" style={{ color: job.scheduledStart ? UI.mute : UI.orange }}>{scheduleLabel(job)}</span><span className="flex min-w-0 items-center gap-2 text-xs" style={{ color: UI.mute }}><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold" style={{ background: "#0d2a48", color: "white" }}>{job.crew ? job.crew.split(/\s+/).map((part) => part[0]).join("").slice(0, 2) : "—"}</span><span className="truncate">{job.crew ?? "Unassigned"}</span></span><ChevronRight size={15} style={{ color: selected ? UI.cyan : UI.faint }} /></button>; })}</div>
-
-              <div className="space-y-2 p-3 md:hidden">{filteredJobs.map((job) => <button key={job.id} type="button" onClick={() => setFieldJobId(job.id)} className="w-full rounded-xl p-3 text-left" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><StatusPill status={job.status} /><h3 className="mt-2 truncate text-sm font-semibold" style={{ color: UI.text }}>{job.title}</h3><p className="mt-1 truncate text-[11px]" style={{ color: UI.faint }}>{job.ref} · {job.client}</p></div><ChevronRight size={16} style={{ color: UI.cyan }} /></div><div className="mt-3 grid grid-cols-2 gap-2 text-[11px]" style={{ color: UI.mute }}><span className="flex items-center gap-1.5"><CalendarDays size={12} /> {scheduleLabel(job)}</span><span className="flex items-center gap-1.5"><UserRound size={12} /> {job.crew ?? "Unassigned"}</span><span className="col-span-2 flex items-center gap-1.5 truncate"><MapPin size={12} className="shrink-0" /> {job.address}</span></div>{job.notes && <div className="mt-3 rounded-lg p-2.5 text-[11px] leading-5" style={{ background: "#041323", color: UI.mute, border: `1px solid ${UI.borderSoft}` }}><span className="font-semibold" style={{ color: UI.text }}>Notes: </span>{job.notes}</div>}<div className="mt-3 rounded-lg py-2.5 text-center text-xs font-semibold" style={{ background: "rgba(22,141,255,.12)", color: UI.cyan, border: "1px solid rgba(37,199,255,.25)" }}>Open job</div></button>)}</div>
-
-              {filteredJobs.length === 0 && <div className="flex min-h-[360px] flex-col items-center justify-center p-8 text-center"><BriefcaseBusiness size={28} style={{ color: UI.faint }} /><p className="mt-3 text-sm font-semibold" style={{ color: UI.text }}>No matching jobs</p><p className="mt-1 text-xs" style={{ color: UI.mute }}>Try another search or status filter.</p></div>}
-            </div>
-
-            <aside className="hidden p-4 xl:block">{selectedJob ? <><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: UI.faint }}>Job details</p><h2 className="mt-2 text-base font-semibold" style={{ color: UI.text }}>{selectedJob.title}</h2><p className="mt-1 text-xs" style={{ color: UI.mute }}>{selectedJob.ref} · {selectedJob.client}</p></div><StatusPill status={selectedJob.status} /></div><div className="mt-5 space-y-3 text-xs"><div className="flex gap-3"><MapPin size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><div><p style={{ color: UI.faint }}>Site</p><p className="mt-0.5 leading-5" style={{ color: UI.text }}>{selectedJob.address}</p></div></div><div className="flex gap-3"><CalendarDays size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><div><p style={{ color: UI.faint }}>Schedule</p><p className="mt-0.5" style={{ color: UI.text }}>{selectedJob.scheduledStart ? format(parseISO(selectedJob.scheduledStart), "EEE d MMM · h:mm a") : "Not scheduled"}</p>{selectedJob.scheduledEnd && <p className="mt-0.5" style={{ color: UI.mute }}>to {format(parseISO(selectedJob.scheduledEnd), "h:mm a")}</p>}</div></div><div className="flex gap-3"><UserRound size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><div><p style={{ color: UI.faint }}>Assigned crew</p><p className="mt-0.5" style={{ color: UI.text }}>{selectedJob.crew ?? "Unassigned"}</p></div></div></div>{selectedJob.notes && <div className="mt-5 rounded-xl p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><p className="text-[10px] font-semibold uppercase tracking-[.10em]" style={{ color: UI.faint }}>Job notes</p><p className="mt-2 whitespace-pre-wrap text-xs leading-5" style={{ color: UI.mute }}>{selectedJob.notes}</p></div>}<button type="button" onClick={() => setFieldJobId(selectedJob.id)} className="mt-4 w-full rounded-lg px-3 py-3 text-xs font-semibold" style={{ background: "rgba(24,211,160,.10)", color: UI.green, border: "1px solid rgba(24,211,160,.28)" }}>Open job workflow</button>{canCreate && <div className="mt-5 border-t pt-4" style={{ borderColor: UI.borderSoft }}><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: UI.faint }}>Admin job status</p><div className="grid grid-cols-2 gap-2">{JOB_STAGES.map((stage) => { const activeStage = selectedJob.status === stage; return <button key={stage} type="button" disabled={updatingJobId === selectedJob.id || activeStage} onClick={() => void updateStatus(selectedJob.id, stage)} className="rounded-lg px-2 py-2 text-[10px] font-semibold disabled:cursor-default" style={{ background: activeStage ? "rgba(22,141,255,.15)" : UI.panelAlt, color: activeStage ? UI.cyan : UI.mute, border: `1px solid ${activeStage ? "rgba(37,199,255,.30)" : UI.borderSoft}` }}>{STAGE_LABELS[stage]}</button>; })}</div><button type="button" onClick={() => setEditingJob(selectedJob)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold" style={{ background: UI.blue, color: "white" }}><Pencil size={14} /> Edit job</button></div>}</> : <div className="flex min-h-[360px] flex-col items-center justify-center text-center"><BriefcaseBusiness size={28} style={{ color: UI.faint }} /><p className="mt-3 text-sm font-semibold" style={{ color: UI.text }}>Select a job</p></div>}</aside>
-          </div>
-          <div className="flex items-center justify-between border-t px-4 py-3 text-[11px]" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Showing {filteredJobs.length} of {jobs.length} jobs</span><span>{active} active</span></div>
-        </section>
-      </div>
-    </div>
-
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}><div className="mx-auto w-full max-w-[1700px]">
+      {statusError && <div className="mb-3 rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{statusError}</div>}
+      <section className="rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
+        <div className="flex flex-col gap-3 border-b p-3 md:flex-row md:items-center md:justify-between" style={{ borderColor: UI.borderSoft }}><div className="relative min-w-0 flex-1 md:max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search jobs, clients, addresses, notes or crew…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={{ background: "#041323", color: UI.text, border: `1px solid ${UI.border}` }} /></div><div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0"><div className="flex items-center gap-2 pr-1 text-[11px] font-medium" style={{ color: UI.faint }}><Filter size={13} /> Status</div>{["ALL", ...JOB_STAGES].map((status) => { const activeTab = statusFilter === status; return <button key={status} type="button" onClick={() => setStatusFilter(status)} className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: activeTab ? "rgba(22,141,255,.16)" : "#041323", color: activeTab ? UI.cyan : UI.mute, border: `1px solid ${activeTab ? "rgba(37,199,255,.30)" : UI.borderSoft}` }}>{status === "ALL" ? "All jobs" : STAGE_LABELS[status as (typeof JOB_STAGES)[number]]}</button>; })}</div></div>
+        <div className="grid min-h-[560px] xl:grid-cols-[minmax(0,1fr)_300px]"><div className="min-w-0 xl:border-r" style={{ borderColor: UI.borderSoft }}>
+          <div className="hidden grid-cols-[110px_minmax(220px,1.4fr)_minmax(180px,1fr)_150px_130px_42px] gap-3 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Status</span><span>Job</span><span>Site</span><span>Start date</span><span>Crew</span><span /></div>
+          <div className="hidden md:block">{filteredJobs.map((job) => { const selected = selectedJob?.id === job.id; return <button key={job.id} type="button" onClick={() => setSelectedJobId(job.id)} onDoubleClick={() => router.push(`/jobs/${job.id}`)} className="grid w-full grid-cols-[110px_minmax(220px,1.4fr)_minmax(180px,1fr)_150px_130px_42px] items-center gap-3 border-b px-4 py-3 text-left transition" style={{ borderColor: UI.borderSoft, background: selected ? "rgba(22,141,255,.055)" : "transparent" }}><span><StatusPill status={job.status} /></span><span className="min-w-0"><span className="block truncate text-sm font-semibold" style={{ color: UI.text }}>{job.title}</span><span className="mt-0.5 block truncate text-[11px]" style={{ color: UI.faint }}>{job.ref} · {job.client}</span></span><span className="flex min-w-0 items-center gap-2 text-xs" style={{ color: UI.mute }}><MapPin size={13} className="shrink-0" style={{ color: UI.faint }} /><span className="truncate">{job.address}</span></span><span className="text-xs" style={{ color: job.scheduledStart ? UI.mute : UI.orange }}>{scheduleLabel(job)}</span><span className="flex min-w-0 items-center gap-2 text-xs" style={{ color: UI.mute }}><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold" style={{ background: "#0d2a48", color: "white" }}>{job.crew ? job.crew.split(/\s+/).map((part) => part[0]).join("").slice(0, 2) : "—"}</span><span className="truncate">{job.crew ?? "Unassigned"}</span></span><ChevronRight size={15} style={{ color: selected ? UI.cyan : UI.faint }} /></button>; })}</div>
+          <div className="space-y-2 p-3 md:hidden">{filteredJobs.map((job) => <button key={job.id} type="button" onClick={() => router.push(`/jobs/${job.id}`)} className="w-full rounded-xl p-3 text-left" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><StatusPill status={job.status} /><h3 className="mt-2 truncate text-sm font-semibold" style={{ color: UI.text }}>{job.title}</h3><p className="mt-1 truncate text-[11px]" style={{ color: UI.faint }}>{job.ref} · {job.client}</p></div><ChevronRight size={16} style={{ color: UI.cyan }} /></div><div className="mt-3 grid grid-cols-2 gap-2 text-[11px]" style={{ color: UI.mute }}><span className="flex items-center gap-1.5"><CalendarDays size={12} /> {scheduleLabel(job)}</span><span className="flex items-center gap-1.5"><UserRound size={12} /> {job.crew ?? "Unassigned"}</span><span className="col-span-2 flex items-center gap-1.5 truncate"><MapPin size={12} className="shrink-0" /> {job.address}</span></div>{job.notes && <div className="mt-3 rounded-lg p-2.5 text-[11px] leading-5" style={{ background: "#041323", color: UI.mute, border: `1px solid ${UI.borderSoft}` }}><span className="font-semibold" style={{ color: UI.text }}>Notes: </span>{job.notes}</div>}<div className="mt-3 rounded-lg py-2.5 text-center text-xs font-semibold" style={{ background: "rgba(22,141,255,.12)", color: UI.cyan, border: "1px solid rgba(37,199,255,.25)" }}>Open job details</div></button>)}</div>
+          {filteredJobs.length === 0 && <div className="flex min-h-[360px] flex-col items-center justify-center p-8 text-center"><BriefcaseBusiness size={28} style={{ color: UI.faint }} /><p className="mt-3 text-sm font-semibold" style={{ color: UI.text }}>No matching jobs</p><p className="mt-1 text-xs" style={{ color: UI.mute }}>Try another search or status filter.</p></div>}
+        </div>
+        <aside className="hidden p-4 xl:block">{selectedJob ? <><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: UI.faint }}>Job details</p><h2 className="mt-2 text-base font-semibold" style={{ color: UI.text }}>{selectedJob.title}</h2><p className="mt-1 text-xs" style={{ color: UI.mute }}>{selectedJob.ref} · {selectedJob.client}</p></div><StatusPill status={selectedJob.status} /></div><div className="mt-5 space-y-3 text-xs"><div className="flex gap-3"><MapPin size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><div><p style={{ color: UI.faint }}>Site</p><p className="mt-0.5 leading-5" style={{ color: UI.text }}>{selectedJob.address}</p></div></div><div className="flex gap-3"><CalendarDays size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><div><p style={{ color: UI.faint }}>Schedule</p><p className="mt-0.5" style={{ color: UI.text }}>{selectedJob.scheduledStart ? format(parseISO(selectedJob.scheduledStart), "EEE d MMM · h:mm a") : "Not scheduled"}</p>{selectedJob.scheduledEnd && <p className="mt-0.5" style={{ color: UI.mute }}>to {format(parseISO(selectedJob.scheduledEnd), "h:mm a")}</p>}</div></div><div className="flex gap-3"><UserRound size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><div><p style={{ color: UI.faint }}>Assigned crew</p><p className="mt-0.5" style={{ color: UI.text }}>{selectedJob.crew ?? "Unassigned"}</p></div></div></div>{selectedJob.notes && <div className="mt-5 rounded-xl p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><p className="text-[10px] font-semibold uppercase tracking-[.10em]" style={{ color: UI.faint }}>Job notes</p><p className="mt-2 whitespace-pre-wrap text-xs leading-5" style={{ color: UI.mute }}>{selectedJob.notes}</p></div>}<button type="button" onClick={() => router.push(`/jobs/${selectedJob.id}`)} className="mt-4 w-full rounded-lg px-3 py-3 text-xs font-semibold" style={{ background: "rgba(24,211,160,.10)", color: UI.green, border: "1px solid rgba(24,211,160,.28)" }}>Open full job</button>{canCreate && <div className="mt-5 border-t pt-4" style={{ borderColor: UI.borderSoft }}><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: UI.faint }}>Admin job status</p><div className="grid grid-cols-2 gap-2">{JOB_STAGES.map((stage) => { const activeStage = selectedJob.status === stage; return <button key={stage} type="button" disabled={updatingJobId === selectedJob.id || activeStage} onClick={() => void updateStatus(selectedJob.id, stage)} className="rounded-lg px-2 py-2 text-[10px] font-semibold disabled:cursor-default" style={{ background: activeStage ? "rgba(22,141,255,.15)" : UI.panelAlt, color: activeStage ? UI.cyan : UI.mute, border: `1px solid ${activeStage ? "rgba(37,199,255,.30)" : UI.borderSoft}` }}>{STAGE_LABELS[stage]}</button>; })}</div><button type="button" onClick={() => setEditingJob(selectedJob)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold" style={{ background: UI.blue, color: "white" }}><Pencil size={14} /> Edit job</button></div>}</> : <div className="flex min-h-[360px] flex-col items-center justify-center text-center"><BriefcaseBusiness size={28} style={{ color: UI.faint }} /><p className="mt-3 text-sm font-semibold" style={{ color: UI.text }}>Select a job</p></div>}</aside></div>
+        <div className="flex items-center justify-between border-t px-4 py-3 text-[11px]" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Showing {filteredJobs.length} of {jobs.length} jobs</span><span>{active} active</span></div>
+      </section>
+    </div></div>
     {showNew && <NewJobModal clients={clients} crew={crew} onClose={() => setShowNew(false)} onDone={() => { setShowNew(false); router.refresh(); }} />}
     {editingJob && <EditJobModal job={editingJob} crew={crew} onClose={() => setEditingJob(null)} onDone={() => { setEditingJob(null); router.refresh(); }} />}
-    {fieldJobId && <FieldJobModal jobId={fieldJobId} onClose={() => setFieldJobId(null)} onDone={() => router.refresh()} />}
   </>;
 }
