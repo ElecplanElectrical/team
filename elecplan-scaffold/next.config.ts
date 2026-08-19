@@ -13,12 +13,18 @@ const securityHeaders = [
   { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
+    value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
   },
   {
     key: "Strict-Transport-Security",
     value: "max-age=63072000; includeSubDomains; preload",
   },
+];
+
+const privateNoStore = [
+  { key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate, max-age=0" },
+  { key: "Pragma", value: "no-cache" },
+  { key: "Expires", value: "0" },
 ];
 
 const nextConfig: NextConfig = {
@@ -30,16 +36,26 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
       {
+        // The authenticated portal changes frequently. Do not let Safari/PWA
+        // reuse stale HTML or RSC responses after a Railway deployment.
+        source: "/((?!_next/static|_next/image|elecplan-app-icon|manifest.webmanifest|sw.js).*)",
+        headers: privateNoStore,
+      },
+      {
         source: "/api/:path*",
+        headers: privateNoStore,
+      },
+      {
+        source: "/sw.js",
         headers: [
-          { key: "Cache-Control", value: "private, no-store, max-age=0" },
-          { key: "Pragma", value: "no-cache" },
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, max-age=0" },
+          { key: "Service-Worker-Allowed", value: "/" },
         ],
       },
       {
         source: "/set-password",
         headers: [
-          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+          ...privateNoStore,
           { key: "Referrer-Policy", value: "no-referrer" },
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
         ],
@@ -47,7 +63,7 @@ const nextConfig: NextConfig = {
       {
         source: "/login",
         headers: [
-          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+          ...privateNoStore,
           { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
         ],
       },
