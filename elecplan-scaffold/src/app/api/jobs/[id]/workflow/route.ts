@@ -25,7 +25,7 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   const lastArrival=[...activity].reverse().find(e=>e.type==="field-arrived")??null;
   const lastStop=lastArrival?[...activity].reverse().find(e=>(e.type==="field-complete"||e.type==="field-revisit")&&e.startsAt>=lastArrival.startsAt)??null:null;
   const activeArrival=lastArrival&&!lastStop?lastArrival:null; const elapsedSeconds=activeArrival?Math.max(0,Math.floor((Date.now()-activeArrival.startsAt.getTime())/1000)):0;
-  return NextResponse.json({job:{...auth.job,scheduledStart:auth.job.scheduledStart?.toISOString()??null,scheduledEnd:auth.job.scheduledEnd?.toISOString()??null},activeArrival:activeArrival?.startsAt.toISOString()??null,elapsedSeconds,activity:activity.map(e=>({...e,startsAt:e.startsAt.toISOString(),endsAt:e.endsAt.toISOString()}))});
+  return NextResponse.json({job:{...auth.job,scheduledStart:auth.job.scheduledStart?.toISOString()??null,scheduledEnd:auth.job.scheduledEnd?.toISOString()??null},activeArrival:activeArrival?.startsAt.toISOString()??null,elapsedSeconds,canManageSchedule:auth.user.role!=="EMPLOYEE",activity:activity.map(e=>({...e,startsAt:e.startsAt.toISOString(),endsAt:e.endsAt.toISOString()}))});
 }
 
 export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
