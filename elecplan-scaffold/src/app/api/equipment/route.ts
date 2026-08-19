@@ -1,0 +1,7 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/session";
+
+const createSchema=z.object({name:z.string().trim().min(1).max(120),category:z.string().trim().min(1).max(80),assetNumber:z.string().trim().max(80).optional().nullable(),serialNumber:z.string().trim().max(120).optional().nullable(),condition:z.string().trim().max(40).default("GOOD"),location:z.string().trim().max(160).default("Workshop"),notes:z.string().trim().max(1500).optional().nullable()});
+export async function POST(req:Request){const user=await getSessionUser();if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});if(user.role!=="ADMIN")return NextResponse.json({error:"Only an admin can add equipment"},{status:403});const p=createSchema.safeParse(await req.json().catch(()=>null));if(!p.success)return NextResponse.json({error:p.error.issues[0]?.message??"Invalid equipment"},{status:400});try{const e=await prisma.equipment.create({data:{...p.data,assetNumber:p.data.assetNumber||null,serialNumber:p.data.serialNumber||null,notes:p.data.notes||null}});await prisma.equipmentMovement.create({data:{equipmentId:e.id,actorId:user.id,action:"ADDED",toLocation:e.location}});return NextResponse.json({ok:true,id:e.id});}catch{return NextResponse.json({error:"Could not add equipment. Check the asset number is unique."},{status:400});}}
