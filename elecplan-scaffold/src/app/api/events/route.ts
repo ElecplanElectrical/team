@@ -8,6 +8,7 @@ import { recordAudit } from "@/lib/audit";
 const eventSchema = z
   .object({
     title: z.string().trim().max(120).optional().nullable(),
+    notes: z.string().trim().max(2000).optional().nullable(),
     type: z.enum(EVENT_TYPES),
     jobId: z.string().cuid().optional().nullable(),
     assignedToId: z.string().cuid().optional().nullable(),
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
       const created = await tx.jobEvent.create({
         data: {
           title: data.title?.trim() || null,
+          notes: data.notes?.trim() || null,
           type: data.type,
           jobId: data.jobId ?? null,
           assignedToId,
