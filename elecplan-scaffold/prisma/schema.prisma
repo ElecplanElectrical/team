@@ -257,12 +257,16 @@ model Inspection {
 }
 
 model StockItem {
-  id       String @id @default(cuid())
-  name     String
-  unit     String
-  onHand   Int
-  parLevel Int
-  supplier String?
+  id                String @id @default(cuid())
+  name              String
+  unit              String
+  onHand            Int
+  parLevel          Int
+  supplier          String?
+  photoStorageKey   String? @unique
+  photoOriginalName String?
+  photoContentType  String?
+  photoSizeBytes    Int?
 }
 
 model Timesheet {
@@ -368,22 +372,26 @@ model RateLimitBucket {
 }
 
 model Equipment {
-  id             String   @id @default(cuid())
-  name           String
-  category       String
-  assetNumber    String?  @unique
-  serialNumber   String?
-  condition      String   @default("GOOD")
-  status         String   @default("AVAILABLE")
-  location       String   @default("Workshop")
-  assignedUserId String?
-  assignedJobId  String?
-  purchaseDate   DateTime?
-  notes          String?
-  lastStocktakeAt DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  movements      EquipmentMovement[]
+  id                String   @id @default(cuid())
+  name              String
+  category          String
+  assetNumber       String?  @unique
+  serialNumber      String?
+  condition         String   @default("GOOD")
+  status            String   @default("AVAILABLE")
+  location          String   @default("Workshop")
+  assignedUserId    String?
+  assignedJobId     String?
+  purchaseDate      DateTime?
+  notes             String?
+  lastStocktakeAt   DateTime?
+  photoStorageKey   String?  @unique
+  photoOriginalName String?
+  photoContentType  String?
+  photoSizeBytes    Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  movements         EquipmentMovement[]
 
   @@index([status])
   @@index([assignedUserId])
@@ -391,17 +399,17 @@ model Equipment {
 }
 
 model EquipmentMovement {
-  id          String    @id @default(cuid())
-  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  equipmentId String
-  actorId     String?
-  action      String
-  fromLocation String?
-  toLocation   String?
+  id             String    @id @default(cuid())
+  equipment      Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  equipmentId    String
+  actorId        String?
+  action         String
+  fromLocation   String?
+  toLocation     String?
   assignedUserId String?
   assignedJobId  String?
-  notes       String?
-  createdAt   DateTime  @default(now())
+  notes          String?
+  createdAt      DateTime  @default(now())
 
   @@index([equipmentId, createdAt])
 }
