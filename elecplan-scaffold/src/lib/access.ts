@@ -21,6 +21,7 @@ export type Screen =
   | "timelines"
   | "projects"
   | "materials"
+  | "equipment"
   | "timesheets"
   | "documents"
   | "quotes"
@@ -46,6 +47,7 @@ export const SCREEN_ACCESS: Record<Screen, Role[]> = {
   timelines: ALL,
   projects: ALL,
   materials: ALL,
+  equipment: ALL,
   timesheets: ALL,
   documents: ALL,
   quotes: ADMIN_ONLY,
@@ -68,6 +70,7 @@ export const SCREEN_PATH: Record<Screen, string> = {
   timelines: "/jobs",
   projects: "/projects",
   materials: "/materials",
+  equipment: "/equipment",
   timesheets: "/timesheets",
   documents: "/documents",
   quotes: "/quotes",
