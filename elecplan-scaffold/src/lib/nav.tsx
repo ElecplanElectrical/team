@@ -6,7 +6,7 @@ const NAV:Record<Role,NavGroup[]>={
  ADMIN:[
   {items:[{screen:"dashboard",label:"Dashboard",icon:LayoutGrid},{screen:"leads",label:"Leads",icon:Users},{screen:"clients",label:"Clients",icon:Briefcase},{screen:"calendar",label:"Calendar",icon:CalendarIcon},{screen:"reminders",label:"Reminders",icon:Bell},{screen:"materials",label:"Materials",icon:ClipboardList},{screen:"equipment",label:"Equipment",icon:Wrench}]},
   {heading:"Jobs",items:[{screen:"timelines",label:"Jobs",icon:Clock},{screen:"inspections",label:"Inspections",icon:FileCheck2},{screen:"certificates",label:"Certificates",icon:BadgeCheck},{screen:"projects",label:"Past projects",icon:Archive},{screen:"documents",label:"Documents",icon:FolderOpen}]},
-  {heading:"Finance",items:[{screen:"quotes",label:"Quotes",icon:FileText},{screen:"bills",label:"Bills",icon:Receipt}]},
+  {heading:"Finance",items:[{screen:"quotes",label:"Quotes",icon:FileText},{screen:"invoices",label:"Invoices",icon:Receipt},{screen:"bills",label:"Bills",icon:Receipt}]},
   {heading:"Employees",items:[{screen:"employees",label:"Employees",icon:Users},{screen:"teamChat",label:"Team Chat",icon:MessageCircle},{screen:"kpis",label:"KPIs",icon:Target},{screen:"timesheets",label:"Timesheets",icon:Receipt}]},
   {heading:"Sales",items:[{screen:"reviews",label:"Reviews",icon:Star},{screen:"reels",label:"Reels",icon:Film}]},{heading:"Analytics",items:[{screen:"analytics",label:"Analytics",icon:TrendingUp}]}
  ],
