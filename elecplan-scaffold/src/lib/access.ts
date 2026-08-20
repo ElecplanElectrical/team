@@ -4,7 +4,7 @@ export type Screen =
   | "dashboard" | "leads" | "clients" | "calendar" | "reminders"
   | "inspections" | "certificates" | "timelines" | "projects"
   | "materials" | "equipment" | "timesheets" | "documents"
-  | "quotes" | "bills" | "employees" | "teamChat" | "kpis" | "reviews" | "reels" | "analytics";
+  | "quotes" | "invoices" | "bills" | "employees" | "teamChat" | "kpis" | "reviews" | "reels" | "analytics";
 
 const ALL: Role[] = ["ADMIN", "SUPERVISOR", "EMPLOYEE"];
 const ADMIN_SUP: Role[] = ["ADMIN", "SUPERVISOR"];
@@ -14,7 +14,7 @@ export const SCREEN_ACCESS: Record<Screen, Role[]> = {
   dashboard: ADMIN_ONLY, leads: ADMIN_ONLY, clients: ADMIN_SUP, calendar: ALL,
   reminders: ADMIN_ONLY, inspections: ADMIN_ONLY, certificates: ADMIN_SUP,
   timelines: ALL, projects: ALL, materials: ALL, equipment: ALL, timesheets: ALL,
-  documents: ALL, quotes: ADMIN_ONLY, bills: ADMIN_ONLY, employees: ADMIN_SUP,
+  documents: ALL, quotes: ADMIN_ONLY, invoices: ADMIN_ONLY, bills: ADMIN_ONLY, employees: ADMIN_SUP,
   teamChat: ALL, kpis: ADMIN_SUP, reviews: ADMIN_ONLY, reels: ADMIN_ONLY, analytics: ADMIN_ONLY,
 };
 
@@ -22,7 +22,7 @@ export const SCREEN_PATH: Record<Screen, string> = {
   dashboard:"/dashboard", leads:"/leads", clients:"/clients", calendar:"/calendar",
   reminders:"/reminders", inspections:"/inspections", certificates:"/certificates",
   timelines:"/jobs", projects:"/projects", materials:"/materials", equipment:"/equipment",
-  timesheets:"/timesheets", documents:"/documents", quotes:"/quotes", bills:"/bills",
+  timesheets:"/timesheets", documents:"/documents", quotes:"/quotes", invoices:"/invoices", bills:"/bills",
   employees:"/employees", teamChat:"/team-chat", kpis:"/kpis", reviews:"/reviews", reels:"/reels", analytics:"/analytics",
 };
 const PATH_TO_SCREEN: Record<string, Screen> = Object.fromEntries((Object.entries(SCREEN_PATH) as [Screen,string][]).map(([s,p])=>[p,s])) as Record<string,Screen>;
