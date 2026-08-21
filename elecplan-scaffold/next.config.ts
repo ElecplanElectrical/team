@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
-    value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+    value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; worker-src 'self' blob: https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
   },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -31,20 +31,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
     return [
+      { source: "/:path*", headers: securityHeaders },
       {
-        source: "/:path*",
-        headers: securityHeaders,
-      },
-      {
-        // The authenticated portal changes frequently. Do not let Safari/PWA
-        // reuse stale HTML or RSC responses after a Railway deployment.
         source: "/((?!_next/static|_next/image|elecplan-app-icon|manifest.webmanifest|sw.js).*)",
         headers: privateNoStore,
       },
-      {
-        source: "/api/:path*",
-        headers: privateNoStore,
-      },
+      { source: "/api/:path*", headers: privateNoStore },
       {
         source: "/sw.js",
         headers: [
@@ -62,10 +54,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/login",
-        headers: [
-          ...privateNoStore,
-          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
-        ],
+        headers: [...privateNoStore,{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
       },
     ];
   },
