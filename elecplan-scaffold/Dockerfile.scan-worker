@@ -1,0 +1,12 @@
+FROM node:20-bookworm-slim
+
+RUN corepack enable
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
+
+COPY . .
+RUN pnpm prisma generate
+
+CMD ["pnpm", "scan:worker"]
