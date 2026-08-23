@@ -25,9 +25,8 @@ function parse(text:string, barcode="") {
 
   let candidates = lines
     .filter(x=>!junk(x) && /[A-Za-z]{3,}/.test(x) && !modelOnly(x))
-    .map(x=>x.replace(new RegExp(`\\b${(model||"").replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\b`,`ig`),"")
+    .map(x=>x.replace(model ? new RegExp(`\\b${model.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\b`,`ig`) : /$^/,"")
       .replace(/\b\d{5,14}\b/g,"")
-      .replace(/\b(\d+\s*(?:mm|cm|m|amp|a|w|v))\b/gi,"$1")
       .replace(/\s+/g," ").trim())
     .filter(x=>x.length>=4 && !modelOnly(x));
 
@@ -54,9 +53,25 @@ async function photoBytes(key:string) {
   return Buffer.from(await image.arrayBuffer());
 }
 
+async function requeueModelNumberNames() {
+  const done = await prisma.scanEnrichmentJob.findMany({
+    where:{status:"DONE"},
+    select:{id:true,stockItem:{select:{name:true,barcode:true}}},
+    take:200
+  });
+  const ids = done.filter(j=>machineLike(j.stockItem.name,j.stockItem.barcode)).map(j=>j.id);
+  if(ids.length) {
+    await prisma.scanEnrichmentJob.updateMany({
+      where:{id:{in:ids}},
+      data:{status:"PENDING",attempts:0,lastError:null}
+    });
+    console.log(`Requeued ${ids.length} model-number material names`);
+  }
+}
+
 async function main() {
   await prisma.scanEnrichmentJob.updateMany({where:{status:"PROCESSING",updatedAt:{lt:new Date(Date.now()-15*60*1000)}},data:{status:"PENDING",lastError:"Recovered stale processing job"}});
-  await prisma.scanEnrichmentJob.updateMany({where:{status:"DONE",stockItem:{name:{matches:"^[A-Z]{1,6}[A-Z0-9-]{2,12}$" as any}}},data:{status:"PENDING",attempts:0,lastError:null}}).catch(()=>{});
+  await requeueModelNumberNames();
 
   const jobs=await prisma.scanEnrichmentJob.findMany({where:{status:"PENDING"},orderBy:{createdAt:"asc"},take:50,include:{stockItem:true}});
   if(!jobs.length){console.log("No pending scan enrichment jobs");return;}
@@ -68,7 +83,7 @@ async function main() {
         const out=await worker.recognize(await photoBytes(job.photoStorageKey));
         const p=parse(out.data.text||"",job.stockItem.barcode||"");
         if(!p.name&&!p.model) throw new Error("No product identity found");
-        let target=job.stockItem;
+        const target=job.stockItem;
 
         if(p.model) {
           const same=await prisma.stockItem.findFirst({where:{modelNumber:{equals:p.model,mode:"insensitive"},id:{not:target.id}}});
