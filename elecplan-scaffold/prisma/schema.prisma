@@ -163,6 +163,8 @@ model Job {
   documents    Document[]
   photos       ProjectPhoto[]
   smsLogs      SmsLog[]
+  tasks        JobTask[]
+  materials    JobMaterial[]
 }
 
 model JobEvent {
@@ -340,6 +342,32 @@ model ProjectPhoto {
   uploadedAt   DateTime @default(now())
 }
 
+model JobTask {
+  id        String   @id @default(cuid())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId     String
+  title     String
+  completed Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([jobId, sortOrder])
+}
+
+model JobMaterial {
+  id        String   @id @default(cuid())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId     String
+  name      String
+  quantity  Decimal
+  unit      String?
+  unitCost  Decimal  @default(0)
+  unitSell  Decimal  @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+}
+
 model Reminder {
   id        String   @id @default(cuid())
   user      User     @relation(fields: [userId], references: [id])
@@ -428,48 +456,40 @@ model Equipment {
   photoSizeBytes    Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  movements         EquipmentMovement[]
-
-  @@index([status])
-  @@index([assignedUserId])
-  @@index([assignedJobId])
-}
-
-model EquipmentMovement {
-  id             String    @id @default(cuid())
-  equipment      Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  equipmentId    String
-  actorId        String?
-  action         String
-  fromLocation   String?
-  toLocation     String?
-  assignedUserId String?
-  assignedJobId  String?
-  notes          String?
-  createdAt      DateTime  @default(now())
-
-  @@index([equipmentId, createdAt])
-}
-
-model WeeklyGoal {
-  id        String   @id @default(cuid())
-  weekStart DateTime @unique
-  text      String
-  createdBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model EmployeeKpi {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  title     String
-  target    String
-  notes     String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  jobsCompleted    Int      @default(0)
+  callbacks        Int      @default(0)
+  revenueGenerated Decimal  @default(0)
+  periodStart      DateTime
+  periodEnd        DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  @@index([userId, active])
+  @@unique([userId, periodStart, periodEnd])
+  @@index([periodStart, periodEnd])
+}
+
+model WeeklyGoal {
+  id        Int      @id @default(autoincrement())
+  text      String
+  updatedAt DateTime @updatedAt
+}
+
+model TeamChatMessage {
+  id        String   @id @default(cuid())
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model TeamChatRead {
+  userId    String   @id
+  lastReadAt DateTime @default(now())
 }
