@@ -1,0 +1,8 @@
+{
+  "name": "scan-enrichment-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "../node_modules/.bin/tsx ../scripts/scan-enrichment-worker.ts"
+  }
+}
