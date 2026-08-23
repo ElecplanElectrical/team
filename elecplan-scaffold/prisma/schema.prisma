@@ -90,7 +90,6 @@ model User {
   licenseNumber String?
   licenseExpiry DateTime?
   createdAt     DateTime  @default(now())
-
   assignedJobs   Job[]        @relation("AssignedEmployee")
   timesheets     Timesheet[]
   reminders      Reminder[]
@@ -109,7 +108,6 @@ model PasswordToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime          @default(now())
-
   @@index([userId])
 }
 
@@ -122,7 +120,6 @@ model Client {
   address      String?
   billingNotes String?
   createdAt    DateTime @default(now())
-
   leads    Lead[]
   jobs     Job[]
   quotes   Quote[]
@@ -154,7 +151,6 @@ model Job {
   scheduledEnd   DateTime?
   notes          String?
   createdAt      DateTime  @default(now())
-
   events       JobEvent[]
   quotes       Quote[]
   invoices     Invoice[]
@@ -206,7 +202,6 @@ model QuoteLineItem {
   unitPrice   Decimal
   lineTotal   Decimal
   gstRate     Decimal @default(0.10)
-
   @@index([quoteId])
 }
 
@@ -239,7 +234,6 @@ model InvoiceLineItem {
   unitPrice   Decimal
   lineTotal   Decimal
   gstRate     Decimal @default(0.10)
-
   @@index([invoiceId])
 }
 
@@ -279,7 +273,6 @@ model StockItem {
   photoSizeBytes    Int?
   enrichmentJobs    ScanEnrichmentJob[]
   barcodes          StockBarcode[]
-
   @@index([modelNumber])
 }
 
@@ -288,7 +281,6 @@ model StockBarcode {
   stockItem   StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
   stockItemId String
   createdAt   DateTime  @default(now())
-
   @@index([stockItemId])
 }
 
@@ -302,7 +294,6 @@ model ScanEnrichmentJob {
   lastError       String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
-
   @@index([status, createdAt])
   @@index([stockItemId])
 }
@@ -350,7 +341,6 @@ model JobTask {
   completed Boolean  @default(false)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
-
   @@index([jobId, sortOrder])
 }
 
@@ -364,7 +354,6 @@ model JobMaterial {
   unitCost  Decimal  @default(0)
   unitSell  Decimal  @default(0)
   createdAt DateTime @default(now())
-
   @@index([jobId])
 }
 
@@ -420,7 +409,6 @@ model AuditLog {
   entityId   String?
   details    Json?
   createdAt  DateTime @default(now())
-
   @@index([createdAt])
   @@index([entityType, entityId])
   @@index([actorId])
@@ -431,7 +419,6 @@ model RateLimitBucket {
   count       Int
   windowStart DateTime
   expiresAt   DateTime
-
   @@index([expiresAt])
 }
 
@@ -469,14 +456,16 @@ model EmployeeKpi {
   periodEnd        DateTime
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-
   @@unique([userId, periodStart, periodEnd])
   @@index([periodStart, periodEnd])
 }
 
 model WeeklyGoal {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(cuid())
+  weekStart DateTime @unique
   text      String
+  createdBy String?
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
@@ -485,7 +474,6 @@ model TeamChatMessage {
   authorId  String
   body      String
   createdAt DateTime @default(now())
-
   @@index([createdAt])
 }
 
