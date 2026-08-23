@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import JobDetailView from "@/components/JobDetailView";
+import JobOperationsPanel from "@/components/JobOperationsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -9,19 +10,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const user = await getSessionUser();
   if (!user) redirect("/login");
   const { id } = await params;
-  const job = await prisma.job.findUnique({
-    where: { id },
-    include: {
-      client: { select: { id: true, name: true, contactName: true, phone: true, email: true, address: true } },
-      assignedTo: { select: { id: true, name: true } },
-      photos: { orderBy: { uploadedAt: "desc" }, select: { id: true, fileUrl: true, originalName: true, uploadedAt: true } },
-    },
-  });
+  const job = await prisma.job.findUnique({ where:{id}, include:{ client:{select:{id:true,name:true,contactName:true,phone:true,email:true,address:true}}, assignedTo:{select:{id:true,name:true}}, photos:{orderBy:{uploadedAt:"desc"},select:{id:true,fileUrl:true,originalName:true,uploadedAt:true}} } });
   if (!job) notFound();
   if (user.role === "EMPLOYEE" && job.assignedToId !== user.id) notFound();
-  const [crew, clients] = user.role === "EMPLOYEE" ? [[], []] : await Promise.all([
-    prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.client.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
-  ]);
-  return <JobDetailView canEdit={user.role !== "EMPLOYEE"} canDelete={user.role === "ADMIN"} canArchive={user.role !== "EMPLOYEE"} crew={crew} clients={clients} job={{ id:job.id,title:job.title,address:job.address,notes:job.notes,status:job.status,scheduledStart:job.scheduledStart?.toISOString()??null,scheduledEnd:job.scheduledEnd?.toISOString()??null,client:job.client,assignedTo:job.assignedTo,photos:job.photos.map(p=>({id:p.id,fileUrl:p.fileUrl,originalName:p.originalName,uploadedAt:p.uploadedAt.toISOString()})) }} />;
+  const [crew,clients]=user.role==="EMPLOYEE"?[[],[]]:await Promise.all([prisma.user.findMany({where:{active:true},orderBy:{name:"asc"},select:{id:true,name:true}}),prisma.client.findMany({orderBy:{name:"asc"},select:{id:true,name:true}})]);
+  return <div className="flex-1 overflow-auto" style={{background:"#03101f"}}><JobDetailView canEdit={user.role!=="EMPLOYEE"} canDelete={user.role==="ADMIN"} canArchive={user.role!=="EMPLOYEE"} crew={crew} clients={clients} job={{id:job.id,title:job.title,address:job.address,notes:job.notes,status:job.status,scheduledStart:job.scheduledStart?.toISOString()??null,scheduledEnd:job.scheduledEnd?.toISOString()??null,client:job.client,assignedTo:job.assignedTo,photos:job.photos.map(p=>({id:p.id,fileUrl:p.fileUrl,originalName:p.originalName,uploadedAt:p.uploadedAt.toISOString()}))}}/><div className="mx-auto -mt-24 max-w-2xl px-3 pb-28 md:px-5"><JobOperationsPanel jobId={job.id} canManage={user.role!=="EMPLOYEE"}/></div></div>;
 }
