@@ -12,31 +12,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const job = await prisma.job.findUnique({
     where: { id },
     include: {
-      client: { select: { id: true, name: true, contactName: true, phone: true } },
+      client: { select: { id: true, name: true, contactName: true, phone: true, email: true, address: true } },
       assignedTo: { select: { id: true, name: true } },
       photos: { orderBy: { uploadedAt: "desc" }, select: { id: true, fileUrl: true, originalName: true, uploadedAt: true } },
     },
   });
   if (!job) notFound();
   if (user.role === "EMPLOYEE" && job.assignedToId !== user.id) notFound();
-
   const [crew, clients] = user.role === "EMPLOYEE" ? [[], []] : await Promise.all([
     prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.client.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
-
-  return <JobDetailView
-    canEdit={user.role !== "EMPLOYEE"}
-    canDelete={user.role === "ADMIN"}
-    canArchive={user.role !== "EMPLOYEE"}
-    crew={crew}
-    clients={clients}
-    job={{
-      id: job.id, title: job.title, address: job.address, notes: job.notes, status: job.status,
-      scheduledStart: job.scheduledStart?.toISOString() ?? null,
-      scheduledEnd: job.scheduledEnd?.toISOString() ?? null,
-      client: job.client, assignedTo: job.assignedTo,
-      photos: job.photos.map((p) => ({ id: p.id, fileUrl: p.fileUrl, originalName: p.originalName, uploadedAt: p.uploadedAt.toISOString() })),
-    }}
-  />;
+  return <JobDetailView canEdit={user.role !== "EMPLOYEE"} canDelete={user.role === "ADMIN"} canArchive={user.role !== "EMPLOYEE"} crew={crew} clients={clients} job={{ id:job.id,title:job.title,address:job.address,notes:job.notes,status:job.status,scheduledStart:job.scheduledStart?.toISOString()??null,scheduledEnd:job.scheduledEnd?.toISOString()??null,client:job.client,assignedTo:job.assignedTo,photos:job.photos.map(p=>({id:p.id,fileUrl:p.fileUrl,originalName:p.originalName,uploadedAt:p.uploadedAt.toISOString()})) }} />;
 }
