@@ -133,3 +133,45 @@ export async function PATCH(
     return NextResponse.json({ error: "Could not update job" }, { status: 400 });
   }
 }
+
+export async function DELETE(
+  _req: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (user.role !== "ADMIN") return NextResponse.json({ error: "Only admins can delete jobs" }, { status: 403 });
+
+  const { id } = await context.params;
+  const job = await prisma.job.findUnique({
+    where: { id },
+    select: { id: true, title: true, address: true, status: true },
+  });
+  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.jobEvent.deleteMany({ where: { jobId: id } });
+      await tx.certificate.deleteMany({ where: { jobId: id } });
+      await tx.inspection.deleteMany({ where: { jobId: id } });
+      await tx.projectPhoto.deleteMany({ where: { jobId: id } });
+      await tx.smsLog.deleteMany({ where: { jobId: id } });
+      await tx.quote.updateMany({ where: { jobId: id }, data: { jobId: null } });
+      await tx.invoice.updateMany({ where: { jobId: id }, data: { jobId: null } });
+      await tx.document.updateMany({ where: { jobId: id }, data: { jobId: null } });
+      await tx.job.delete({ where: { id } });
+    });
+
+    await recordAudit({
+      actor: user,
+      action: "JOB_DELETED",
+      entityType: "Job",
+      entityId: id,
+      details: { title: job.title, address: job.address, status: job.status },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "Could not delete job" }, { status: 400 });
+  }
+}
