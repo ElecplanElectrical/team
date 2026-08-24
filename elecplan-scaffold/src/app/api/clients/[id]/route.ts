@@ -18,64 +18,70 @@ async function authorize() {
   const user = await getSessionUser();
   if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   if (!canAccess(user.role, "clients")) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  return { user };
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true } });
+  if (!dbUser?.businessId) return { error: NextResponse.json({ error: "No customer business selected." }, { status: 409 }) };
+  return { user, businessId: dbUser.businessId };
 }
 
 export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
   const auth = await authorize();
   if ("error" in auth) return auth.error;
-  const user = auth.user;
+  const { user, businessId } = auth;
 
   const parsed = clientSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
 
   const { id } = await context.params;
   const d = parsed.data;
-  const before = await prisma.client.findUnique({ where: { id }, select: { name: true, contactName: true, phone: true, email: true, address: true, billingNotes: true } });
-  if (!before) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+  const before = await prisma.client.findFirst({
+    where: { id, businessId },
+    select: { name: true, contactName: true, phone: true, email: true, address: true, billingNotes: true },
+  });
+  if (!before) return NextResponse.json({ error: "Client not found for this business" }, { status: 404 });
 
   try {
-    const client = await prisma.client.update({ where: { id }, data: { name: d.name, contactName: d.contactName || null, phone: d.phone || null, email: d.email || null, address: d.address || null, billingNotes: d.billingNotes || null } });
+    const client = await prisma.client.update({
+      where: { id },
+      data: { name: d.name, contactName: d.contactName || null, phone: d.phone || null, email: d.email || null, address: d.address || null, billingNotes: d.billingNotes || null },
+    });
     const changedFields = [before.name !== client.name ? "name" : null, before.contactName !== client.contactName ? "contactName" : null, before.phone !== client.phone ? "phone" : null, before.email !== client.email ? "email" : null, before.address !== client.address ? "address" : null, before.billingNotes !== client.billingNotes ? "billingNotes" : null].filter((field): field is string => Boolean(field));
-    if (changedFields.length > 0) await recordAudit({ actor: user, action: "CLIENT_UPDATED", entityType: "Client", entityId: client.id, details: { name: client.name, changedFields } });
+    if (changedFields.length > 0) await recordAudit({ actor: user, action: "CLIENT_UPDATED", entityType: "Client", entityId: client.id, details: { businessId, name: client.name, changedFields } });
     return NextResponse.json(client);
   } catch {
-    return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    return NextResponse.json({ error: "Client not found for this business" }, { status: 404 });
   }
 }
 
 export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {
   const auth = await authorize();
   if ("error" in auth) return auth.error;
-  const user = auth.user;
-  if (user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Only admins can permanently delete clients and linked records." }, { status: 403 });
-  }
+  const { user, businessId } = auth;
+  if (user.role !== "ADMIN") return NextResponse.json({ error: "Only admins can permanently delete clients and linked records." }, { status: 403 });
 
   const { id } = await context.params;
-  const client = await prisma.client.findUnique({
-    where: { id },
+  const client = await prisma.client.findFirst({
+    where: { id, businessId },
     select: {
       id: true,
       name: true,
       _count: { select: { jobs: true, invoices: true, quotes: true, leads: true, reviews: true } },
     },
   });
-  if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+  if (!client) return NextResponse.json({ error: "Client not found for this business" }, { status: 404 });
 
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.jobEvent.deleteMany({ where: { job: { clientId: id } } });
-      await tx.certificate.deleteMany({ where: { job: { clientId: id } } });
-      await tx.inspection.deleteMany({ where: { job: { clientId: id } } });
-      await tx.projectPhoto.deleteMany({ where: { job: { clientId: id } } });
-      await tx.smsLog.deleteMany({ where: { job: { clientId: id } } });
-      await tx.document.deleteMany({ where: { job: { clientId: id } } });
-      await tx.invoice.deleteMany({ where: { OR: [{ clientId: id }, { job: { clientId: id } }] } });
-      await tx.quote.deleteMany({ where: { clientId: id } });
-      await tx.lead.deleteMany({ where: { clientId: id } });
+      await tx.jobEvent.deleteMany({ where: { job: { clientId: id, businessId } } });
+      await tx.certificate.deleteMany({ where: { job: { clientId: id, businessId } } });
+      await tx.inspection.deleteMany({ where: { job: { clientId: id, businessId } } });
+      await tx.projectPhoto.deleteMany({ where: { job: { clientId: id, businessId } } });
+      await tx.smsLog.deleteMany({ where: { job: { clientId: id, businessId } } });
+      await tx.document.deleteMany({ where: { job: { clientId: id, businessId } } });
+      await tx.invoice.deleteMany({ where: { businessId, OR: [{ clientId: id }, { job: { clientId: id, businessId } }] } });
+      await tx.quote.deleteMany({ where: { clientId: id, businessId } });
+      await tx.lead.deleteMany({ where: { clientId: id, businessId } });
       await tx.review.deleteMany({ where: { clientId: id } });
-      await tx.job.deleteMany({ where: { clientId: id } });
+      await tx.job.deleteMany({ where: { clientId: id, businessId } });
       await tx.client.delete({ where: { id } });
     });
 
@@ -85,6 +91,7 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
       entityType: "Client",
       entityId: id,
       details: {
+        businessId,
         name: client.name,
         deletedJobs: client._count.jobs,
         deletedInvoices: client._count.invoices,
