@@ -3,5 +3,27 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { verifyCommitToken } from "@/lib/storage";
-const createSchema=z.object({name:z.string().trim().min(1).max(120),category:z.string().trim().min(1).max(80),quantity:z.number().int().min(1).max(100000).default(1),assetNumber:z.string().trim().max(80).optional().nullable(),serialNumber:z.string().trim().max(120).optional().nullable(),condition:z.string().trim().max(40).default("GOOD"),location:z.string().trim().max(160).default("Workshop"),notes:z.string().trim().max(1500).optional().nullable(),photoCommitToken:z.string().optional().nullable()});
-export async function POST(req:Request){const user=await getSessionUser();if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});if(user.role!=="ADMIN")return NextResponse.json({error:"Only an admin can add equipment"},{status:403});const p=createSchema.safeParse(await req.json().catch(()=>null));if(!p.success)return NextResponse.json({error:p.error.issues[0]?.message??"Invalid equipment"},{status:400});const photo=p.data.photoCommitToken?verifyCommitToken(p.data.photoCommitToken,"equipment-photos"):null;if(p.data.photoCommitToken&&!photo)return NextResponse.json({error:"Photo upload expired. Please choose the photo again."},{status:400});try{const e=await prisma.equipment.create({data:{name:p.data.name,category:p.data.category,quantity:p.data.quantity,assetNumber:p.data.assetNumber||null,serialNumber:p.data.serialNumber||null,condition:p.data.condition,location:p.data.location,notes:p.data.notes||null,...(photo?{photoStorageKey:photo.key,photoOriginalName:photo.fileName,photoContentType:photo.contentType,photoSizeBytes:photo.sizeBytes}:{})}});await prisma.equipmentMovement.create({data:{equipmentId:e.id,actorId:user.id,action:"ADDED",toLocation:e.location,notes:`Quantity: ${e.quantity}`}});return NextResponse.json({ok:true,id:e.id});}catch{return NextResponse.json({error:"Could not add equipment. Check the asset number is unique."},{status:400});}}
+
+const createSchema = z.object({ name:z.string().trim().min(1).max(120), category:z.string().trim().min(1).max(80), quantity:z.number().int().min(1).max(100000).default(1), assetNumber:z.string().trim().max(80).optional().nullable(), serialNumber:z.string().trim().max(120).optional().nullable(), condition:z.string().trim().max(40).default("GOOD"), location:z.string().trim().max(160).default("Workshop"), notes:z.string().trim().max(1500).optional().nullable(), photoCommitToken:z.string().optional().nullable() });
+
+export async function POST(req: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (user.role !== "ADMIN") return NextResponse.json({ error: "Only an admin can add equipment" }, { status: 403 });
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
+  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  const businessId = dbUser.businessId;
+
+  const p = createSchema.safeParse(await req.json().catch(() => null));
+  if (!p.success) return NextResponse.json({ error: p.error.issues[0]?.message ?? "Invalid equipment" }, { status: 400 });
+  const photo = p.data.photoCommitToken ? verifyCommitToken(p.data.photoCommitToken, "equipment-photos") : null;
+  if (p.data.photoCommitToken && !photo) return NextResponse.json({ error: "Photo upload expired. Please choose the photo again." }, { status: 400 });
+
+  try {
+    const e = await prisma.equipment.create({ data: { businessId, name:p.data.name, category:p.data.category, quantity:p.data.quantity, assetNumber:p.data.assetNumber||null, serialNumber:p.data.serialNumber||null, condition:p.data.condition, location:p.data.location, notes:p.data.notes||null, ...(photo ? { photoStorageKey:photo.key, photoOriginalName:photo.fileName, photoContentType:photo.contentType, photoSizeBytes:photo.sizeBytes } : {}) } });
+    await prisma.equipmentMovement.create({ data: { equipmentId:e.id, actorId:user.id, action:"ADDED", toLocation:e.location, notes:`Quantity: ${e.quantity}` } });
+    return NextResponse.json({ ok:true, id:e.id });
+  } catch {
+    return NextResponse.json({ error:"Could not add equipment. Check the asset number is unique." }, { status:400 });
+  }
+}
