@@ -57,7 +57,20 @@ async function main(){
         const p=parse(out.data.text||"",job.stockItem.barcode||"");
         if(!p.name&&!p.model) throw new Error("No product identity found");
         const target=job.stockItem;
-        if(p.model){const same=await prisma.stockItem.findFirst({where:{modelNumber:{equals:p.model,mode:"insensitive"},id:{not:target.id}}});if(same){await prisma.$transaction(async tx=>{await tx.stockBarcode.updateMany({where:{stockItemId:target.id},data:{stockItemId:same.id}});if(target.barcode)await tx.stockBarcode.upsert({where:{barcode:target.barcode},create:{barcode:target.barcode,stockItemId:same.id},update:{stockItemId:same.id}});await tx.stockItem.update({where:{id:same.id},data:{onHand:{increment:target.onHand},name:p.name||same.name,supplier:p.supplier||same.supplier,modelNumber:p.model,photoStorageKey:same.photoStorageKey||target.photoStorageKey}});await tx.stockItem.delete({where:{id:target.id}});await tx.scanEnrichmentJob.update({where:{id:job.id},data:{status:"DONE",lastError:null}});});console.log(`Merged ${target.barcode||target.id} into ${p.model} as ${p.name||same.name}`);continue;}}}
+        if(p.model){
+          const same=await prisma.stockItem.findFirst({where:{modelNumber:{equals:p.model,mode:"insensitive"},id:{not:target.id}}});
+          if(same){
+            await prisma.$transaction(async tx=>{
+              await tx.stockBarcode.updateMany({where:{stockItemId:target.id},data:{stockItemId:same.id}});
+              if(target.barcode)await tx.stockBarcode.upsert({where:{barcode:target.barcode},create:{barcode:target.barcode,stockItemId:same.id},update:{stockItemId:same.id}});
+              await tx.stockItem.update({where:{id:same.id},data:{onHand:{increment:target.onHand},name:p.name||same.name,supplier:p.supplier||same.supplier,modelNumber:p.model,photoStorageKey:same.photoStorageKey||target.photoStorageKey}});
+              await tx.stockItem.delete({where:{id:target.id}});
+              await tx.scanEnrichmentJob.update({where:{id:job.id},data:{status:"DONE",lastError:null}});
+            });
+            console.log(`Merged ${target.barcode||target.id} into ${p.model} as ${p.name||same.name}`);
+            continue;
+          }
+        }
         await prisma.stockItem.update({where:{id:target.id},data:{name:p.name||target.name,supplier:p.supplier||target.supplier,modelNumber:p.model||target.modelNumber}});
         if(target.barcode)await prisma.stockBarcode.upsert({where:{barcode:target.barcode},create:{barcode:target.barcode,stockItemId:target.id},update:{stockItemId:target.id}});
         await prisma.scanEnrichmentJob.update({where:{id:job.id},data:{status:"DONE",lastError:null}});
