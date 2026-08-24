@@ -1,4 +1,4 @@
-// Elecplan Portal — Database Schema
+// Your Plan — Database Schema
 
 generator client {
   provider = "prisma-client-js"
@@ -496,4 +496,24 @@ model TeamChatMessage {
 model TeamChatRead {
   userId    String   @id
   lastReadAt DateTime @default(now())
+}
+
+model BusinessPortal {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  industry      String?
+  contactName   String?
+  contactEmail  String?
+  logoUrl       String?
+  primaryColor  String   @default("#168dff")
+  accentColor   String   @default("#25c7ff")
+  modules       Json
+  plan          String   @default("CUSTOM")
+  monthlyPrice  Decimal?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([active, createdAt])
 }
