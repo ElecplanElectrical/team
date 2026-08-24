@@ -4,95 +4,21 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { recordAudit } from "@/lib/audit";
 
-const updateSchema = z.object({
-  status: z.enum(["QUOTED", "SCHEDULED", "IN_PROGRESS", "COMPLETE", "INVOICED"]).optional(),
-  title: z.string().trim().min(1).max(160).optional(),
-  address: z.string().trim().min(1).max(240).optional(),
-  clientId: z.string().trim().min(1).optional(),
-  assignedToId: z.string().trim().optional().nullable(),
-  scheduledStart: z.string().datetime().optional().nullable(),
-  scheduledEnd: z.string().datetime().optional().nullable(),
-  notes: z.string().trim().max(2000).optional().nullable(),
-});
+const updateSchema=z.object({status:z.enum(["QUOTED","SCHEDULED","IN_PROGRESS","COMPLETE","INVOICED"]).optional(),title:z.string().trim().min(1).max(160).optional(),address:z.string().trim().min(1).max(240).optional(),clientId:z.string().trim().min(1).optional(),assignedToId:z.string().trim().optional().nullable(),scheduledStart:z.string().datetime().optional().nullable(),scheduledEnd:z.string().datetime().optional().nullable(),notes:z.string().trim().max(2000).optional().nullable()});
 
-export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
-  const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (user.role === "EMPLOYEE") return NextResponse.json({ error: "Only admins and supervisors can update jobs" }, { status: 403 });
-  const parsed = updateSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success || Object.keys(parsed.data).length === 0) return NextResponse.json({ error: "Invalid job update" }, { status: 400 });
-  if (parsed.data.status === "INVOICED" && user.role !== "ADMIN") return NextResponse.json({ error: "Only admins can mark jobs as invoiced" }, { status: 403 });
-  const d = parsed.data;
-  const hasStart = Object.prototype.hasOwnProperty.call(d, "scheduledStart");
-  const hasEnd = Object.prototype.hasOwnProperty.call(d, "scheduledEnd");
-  const scheduleChanged = hasStart || hasEnd;
-  if (hasStart !== hasEnd) return NextResponse.json({ error: "Scheduled start and end must be updated together" }, { status: 400 });
-  const start = d.scheduledStart ? new Date(d.scheduledStart) : null;
-  const end = d.scheduledEnd ? new Date(d.scheduledEnd) : null;
-  if (scheduleChanged && Boolean(start) !== Boolean(end)) return NextResponse.json({ error: "Scheduled start and end must both be set or both be cleared" }, { status: 400 });
-  if (start && end && end <= start) return NextResponse.json({ error: "End time must be after start time" }, { status: 400 });
-  const { id } = await context.params;
-  const before = await prisma.job.findUnique({ where: { id }, select: { id:true,title:true,address:true,clientId:true,status:true,assignedToId:true,scheduledStart:true,scheduledEnd:true,notes:true } });
-  if (!before) return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  if (d.assignedToId) {
-    const assignee = await prisma.user.findFirst({ where: { id: d.assignedToId, active: true }, select: { id: true } });
-    if (!assignee) return NextResponse.json({ error: "Assigned employee not found or inactive" }, { status: 400 });
-  }
-  if (d.clientId) {
-    const client = await prisma.client.findUnique({ where: { id: d.clientId }, select: { id: true } });
-    if (!client) return NextResponse.json({ error: "Client not found" }, { status: 400 });
-  }
-  try {
-    const job = await prisma.$transaction(async (tx) => {
-      const updated = await tx.job.update({
-        where: { id },
-        data: {
-          ...(d.status !== undefined ? { status: d.status } : {}),
-          ...(d.title !== undefined ? { title: d.title } : {}),
-          ...(d.address !== undefined ? { address: d.address } : {}),
-          ...(d.clientId !== undefined ? { clientId: d.clientId } : {}),
-          ...(d.assignedToId !== undefined ? { assignedToId: d.assignedToId || null } : {}),
-          ...(scheduleChanged ? { scheduledStart: start, scheduledEnd: end } : {}),
-          ...(d.notes !== undefined ? { notes: d.notes || null } : {}),
-        },
-        select: { id:true,title:true,address:true,clientId:true,status:true,assignedToId:true,scheduledStart:true,scheduledEnd:true,notes:true },
-      });
-      if (scheduleChanged || d.assignedToId !== undefined) {
-        const event = await tx.jobEvent.findFirst({ where: { jobId: id, type: "job" }, orderBy: { startsAt: "asc" }, select: { id: true } });
-        if (updated.scheduledStart && updated.scheduledEnd) {
-          if (event) await tx.jobEvent.update({ where: { id: event.id }, data: { startsAt: updated.scheduledStart, endsAt: updated.scheduledEnd, assignedToId: updated.assignedToId } });
-          else await tx.jobEvent.create({ data: { jobId:id,type:"job",startsAt:updated.scheduledStart,endsAt:updated.scheduledEnd,assignedToId:updated.assignedToId } });
-        } else if (event && scheduleChanged) await tx.jobEvent.delete({ where: { id: event.id } });
-        else if (event && d.assignedToId !== undefined) await tx.jobEvent.update({ where: { id: event.id }, data: { assignedToId: updated.assignedToId } });
-      }
-      return updated;
-    });
-    const changedFields = [before.title!==job.title?"title":null,before.address!==job.address?"address":null,before.clientId!==job.clientId?"clientId":null,before.status!==job.status?"status":null,before.assignedToId!==job.assignedToId?"assignedToId":null,(before.scheduledStart?.getTime()??null)!==(job.scheduledStart?.getTime()??null)?"scheduledStart":null,(before.scheduledEnd?.getTime()??null)!==(job.scheduledEnd?.getTime()??null)?"scheduledEnd":null,before.notes!==job.notes?"notes":null].filter((field): field is string=>Boolean(field));
-    if (changedFields.length) await recordAudit({actor:user,action:"JOB_UPDATED",entityType:"Job",entityId:job.id,details:{title:job.title,changedFields,statusFrom:before.status,statusTo:job.status,assignedToFrom:before.assignedToId,assignedToTo:job.assignedToId,scheduleChanged:changedFields.includes("scheduledStart")||changedFields.includes("scheduledEnd")}});
-    return NextResponse.json(job);
-  } catch { return NextResponse.json({ error: "Could not update job" }, { status: 400 }); }
+async function auth(){const user=await getSessionUser();if(!user)return {error:NextResponse.json({error:"Unauthorized"},{status:401})};const dbUser=await prisma.user.findUnique({where:{id:user.id},select:{businessId:true}});if(!dbUser?.businessId)return {error:NextResponse.json({error:"No customer business selected."},{status:409})};return {user,businessId:dbUser.businessId};}
+
+export async function PATCH(req:Request,context:{params:Promise<{id:string}>}){
+ const a=await auth();if("error" in a)return a.error;const {user,businessId}=a;if(user.role==="EMPLOYEE")return NextResponse.json({error:"Only admins and supervisors can update jobs"},{status:403});
+ const parsed=updateSchema.safeParse(await req.json().catch(()=>null));if(!parsed.success||Object.keys(parsed.data).length===0)return NextResponse.json({error:"Invalid job update"},{status:400});if(parsed.data.status==="INVOICED"&&user.role!=="ADMIN")return NextResponse.json({error:"Only admins can mark jobs as invoiced"},{status:403});
+ const d=parsed.data,hasStart=Object.prototype.hasOwnProperty.call(d,"scheduledStart"),hasEnd=Object.prototype.hasOwnProperty.call(d,"scheduledEnd"),scheduleChanged=hasStart||hasEnd;if(hasStart!==hasEnd)return NextResponse.json({error:"Scheduled start and end must be updated together"},{status:400});const start=d.scheduledStart?new Date(d.scheduledStart):null,end=d.scheduledEnd?new Date(d.scheduledEnd):null;if(scheduleChanged&&Boolean(start)!==Boolean(end))return NextResponse.json({error:"Scheduled start and end must both be set or both be cleared"},{status:400});if(start&&end&&end<=start)return NextResponse.json({error:"End time must be after start time"},{status:400});
+ const {id}=await context.params;const before=await prisma.job.findFirst({where:{id,businessId},select:{id:true,title:true,address:true,clientId:true,status:true,assignedToId:true,scheduledStart:true,scheduledEnd:true,notes:true}});if(!before)return NextResponse.json({error:"Job not found for this business"},{status:404});
+ if(d.assignedToId){const assignee=await prisma.user.findFirst({where:{id:d.assignedToId,businessId,active:true},select:{id:true}});if(!assignee)return NextResponse.json({error:"Assigned employee not found for this business or inactive"},{status:400});}
+ if(d.clientId){const client=await prisma.client.findFirst({where:{id:d.clientId,businessId},select:{id:true}});if(!client)return NextResponse.json({error:"Client not found for this business"},{status:400});}
+ try{const job=await prisma.$transaction(async tx=>{const updated=await tx.job.update({where:{id},data:{...(d.status!==undefined?{status:d.status}:{}),...(d.title!==undefined?{title:d.title}:{}),...(d.address!==undefined?{address:d.address}:{}),...(d.clientId!==undefined?{clientId:d.clientId}:{}),...(d.assignedToId!==undefined?{assignedToId:d.assignedToId||null}:{}),...(scheduleChanged?{scheduledStart:start,scheduledEnd:end}:{}),...(d.notes!==undefined?{notes:d.notes||null}:{})},select:{id:true,title:true,address:true,clientId:true,status:true,assignedToId:true,scheduledStart:true,scheduledEnd:true,notes:true}});if(scheduleChanged||d.assignedToId!==undefined){const event=await tx.jobEvent.findFirst({where:{jobId:id,job:{businessId},type:"job"},orderBy:{startsAt:"asc"},select:{id:true}});if(updated.scheduledStart&&updated.scheduledEnd){if(event)await tx.jobEvent.update({where:{id:event.id},data:{startsAt:updated.scheduledStart,endsAt:updated.scheduledEnd,assignedToId:updated.assignedToId}});else await tx.jobEvent.create({data:{jobId:id,type:"job",startsAt:updated.scheduledStart,endsAt:updated.scheduledEnd,assignedToId:updated.assignedToId}});}else if(event&&scheduleChanged)await tx.jobEvent.delete({where:{id:event.id}});else if(event&&d.assignedToId!==undefined)await tx.jobEvent.update({where:{id:event.id},data:{assignedToId:updated.assignedToId}});}return updated;});await recordAudit({actor:user,action:"JOB_UPDATED",entityType:"Job",entityId:job.id,details:{businessId,title:job.title}});return NextResponse.json(job);}catch{return NextResponse.json({error:"Could not update job"},{status:400});}
 }
 
-export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {
-  const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (user.role !== "ADMIN") return NextResponse.json({ error: "Only admins can delete jobs" }, { status: 403 });
-  const { id } = await context.params;
-  const job = await prisma.job.findUnique({ where: { id }, select: { id:true,title:true,address:true,status:true } });
-  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.jobEvent.deleteMany({ where: { jobId:id } });
-      await tx.certificate.deleteMany({ where: { jobId:id } });
-      await tx.inspection.deleteMany({ where: { jobId:id } });
-      await tx.projectPhoto.deleteMany({ where: { jobId:id } });
-      await tx.smsLog.deleteMany({ where: { jobId:id } });
-      await tx.quote.updateMany({ where: { jobId:id }, data: { jobId:null } });
-      await tx.invoice.updateMany({ where: { jobId:id }, data: { jobId:null } });
-      await tx.document.updateMany({ where: { jobId:id }, data: { jobId:null } });
-      await tx.job.delete({ where: { id } });
-    });
-    await recordAudit({actor:user,action:"JOB_DELETED",entityType:"Job",entityId:id,details:{title:job.title,address:job.address,status:job.status}});
-    return NextResponse.json({ ok:true });
-  } catch { return NextResponse.json({ error:"Could not delete job" }, { status:400 }); }
+export async function DELETE(_req:Request,context:{params:Promise<{id:string}>}){
+ const a=await auth();if("error" in a)return a.error;const {user,businessId}=a;if(user.role!=="ADMIN")return NextResponse.json({error:"Only admins can delete jobs"},{status:403});const {id}=await context.params;const job=await prisma.job.findFirst({where:{id,businessId},select:{id:true,title:true,address:true,status:true}});if(!job)return NextResponse.json({error:"Job not found for this business"},{status:404});
+ try{await prisma.$transaction(async tx=>{await tx.jobEvent.deleteMany({where:{jobId:id,job:{businessId}}});await tx.certificate.deleteMany({where:{jobId:id,job:{businessId}}});await tx.inspection.deleteMany({where:{jobId:id,job:{businessId}}});await tx.projectPhoto.deleteMany({where:{jobId:id,job:{businessId}}});await tx.smsLog.deleteMany({where:{jobId:id,job:{businessId}}});await tx.quote.updateMany({where:{jobId:id,businessId},data:{jobId:null}});await tx.invoice.updateMany({where:{jobId:id,businessId},data:{jobId:null}});await tx.document.updateMany({where:{jobId:id,businessId},data:{jobId:null}});await tx.job.delete({where:{id}});});await recordAudit({actor:user,action:"JOB_DELETED",entityType:"Job",entityId:id,details:{businessId,title:job.title,address:job.address,status:job.status}});return NextResponse.json({ok:true});}catch{return NextResponse.json({error:"Could not delete job"},{status:400});}
 }
