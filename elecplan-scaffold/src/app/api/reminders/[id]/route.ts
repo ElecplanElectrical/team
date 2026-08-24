@@ -7,14 +7,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canAccess(user.role, "reminders")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
+  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  const businessId = dbUser.businessId;
 
   const body = await req.json().catch(() => null) as { completed?: boolean } | null;
   if (typeof body?.completed !== "boolean") return NextResponse.json({ error: "Completed flag is required" }, { status: 400 });
 
   const { id } = await params;
-  const existing = await prisma.reminder.findUnique({ where: { id }, select: { userId: true } });
-  if (!existing || existing.userId !== user.id) return NextResponse.json({ error: "Reminder not found" }, { status: 404 });
+  const existing = await prisma.reminder.findFirst({ where: { id, businessId, userId: user.id }, select: { id: true } });
+  if (!existing) return NextResponse.json({ error: "Reminder not found for this business" }, { status: 404 });
 
-  const reminder = await prisma.reminder.update({ where: { id }, data: { completed: body.completed } });
+  const updated = await prisma.reminder.updateMany({ where: { id, businessId, userId: user.id }, data: { completed: body.completed } });
+  if (updated.count !== 1) return NextResponse.json({ error: "Reminder not found for this business" }, { status: 404 });
+  const reminder = await prisma.reminder.findFirst({ where: { id, businessId, userId: user.id } });
   return NextResponse.json(reminder);
 }
