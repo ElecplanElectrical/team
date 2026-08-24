@@ -20,60 +20,36 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role === "EMPLOYEE") return NextResponse.json({ error: "Only admins and supervisors can create jobs" }, { status: 403 });
 
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true } });
+  if (!dbUser?.businessId) return NextResponse.json({ error: "Select a customer business before creating job data." }, { status: 409 });
+  const businessId = dbUser.businessId;
+
   const parsed = jobSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
-
   const d = parsed.data;
-  const hasStart = Boolean(d.scheduledStart);
-  const hasEnd = Boolean(d.scheduledEnd);
-  if (hasStart !== hasEnd) return NextResponse.json({ error: "Scheduled start and end must be provided together" }, { status: 400 });
-
+  if (Boolean(d.scheduledStart) !== Boolean(d.scheduledEnd)) return NextResponse.json({ error: "Scheduled start and end must be provided together" }, { status: 400 });
   const start = d.scheduledStart ? new Date(d.scheduledStart) : null;
   const end = d.scheduledEnd ? new Date(d.scheduledEnd) : null;
   if (start && end && end <= start) return NextResponse.json({ error: "End time must be after start time" }, { status: 400 });
 
   try {
     const [client, assignee] = await Promise.all([
-      prisma.client.findUnique({ where: { id: d.clientId }, select: { id: true } }),
-      d.assignedToId ? prisma.user.findFirst({ where: { id: d.assignedToId, active: true }, select: { id: true } }) : Promise.resolve(null),
+      prisma.client.findFirst({ where: { id: d.clientId, businessId }, select: { id: true } }),
+      d.assignedToId ? prisma.user.findFirst({ where: { id: d.assignedToId, businessId, active: true }, select: { id: true } }) : Promise.resolve(null),
     ]);
-    if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
-    if (d.assignedToId && !assignee) return NextResponse.json({ error: "Assigned employee not found or inactive" }, { status: 400 });
+    if (!client) return NextResponse.json({ error: "Client not found for this business" }, { status: 404 });
+    if (d.assignedToId && !assignee) return NextResponse.json({ error: "Assigned employee not found for this business or inactive" }, { status: 400 });
 
     const job = await prisma.$transaction(async (tx) => {
       const created = await tx.job.create({
-        data: {
-          title: d.title,
-          clientId: d.clientId,
-          address: d.address,
-          assignedToId: d.assignedToId || null,
-          status: d.status,
-          scheduledStart: start,
-          scheduledEnd: end,
-          notes: d.notes || null,
-        },
+        data: { businessId, title: d.title, clientId: d.clientId, address: d.address, assignedToId: d.assignedToId || null, status: d.status, scheduledStart: start, scheduledEnd: end, notes: d.notes || null },
         include: { client: { select: { name: true } }, assignedTo: { select: { name: true } } },
       });
-      if (start && end) {
-        await tx.jobEvent.create({ data: { jobId: created.id, type: "job", startsAt: start, endsAt: end, assignedToId: d.assignedToId || null } });
-      }
+      if (start && end) await tx.jobEvent.create({ data: { jobId: created.id, type: "job", startsAt: start, endsAt: end, assignedToId: d.assignedToId || null } });
       return created;
     });
 
-    await recordAudit({
-      actor: user,
-      action: "JOB_CREATED",
-      entityType: "Job",
-      entityId: job.id,
-      details: {
-        title: job.title,
-        clientId: job.clientId,
-        assignedToId: job.assignedToId,
-        status: job.status,
-        scheduled: Boolean(job.scheduledStart && job.scheduledEnd),
-      },
-    });
-
+    await recordAudit({ actor: user, action: "JOB_CREATED", entityType: "Job", entityId: job.id, details: { businessId, title: job.title, clientId: job.clientId, assignedToId: job.assignedToId, status: job.status } });
     return NextResponse.json(job, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Could not create job" }, { status: 400 });
