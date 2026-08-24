@@ -26,9 +26,19 @@ function machineLike(name:string,barcode:string|null){const n=name.replace(/\s+/
 async function photoBytes(key:string){if(key.startsWith("data:image/")){const comma=key.indexOf(",");if(comma<0)throw new Error("invalid embedded photo");return Buffer.from(key.slice(comma+1),"base64");}const image=await fetch(createDownloadUrl(key));if(!image.ok)throw new Error(`photo download ${image.status}`);return Buffer.from(await image.arrayBuffer());}
 
 async function requeueModelNumberNames(){
-  const done=await prisma.scanEnrichmentJob.findMany({where:{status:"DONE"},select:{id:true,stockItem:{select:{name:true,barcode:true}}},take:200});
+  const done=await prisma.scanEnrichmentJob.findMany({
+    where:{status:"DONE",attempts:{lt:3}},
+    select:{id:true,attempts:true,stockItem:{select:{name:true,barcode:true}}},
+    take:200
+  });
   const ids=done.filter(j=>machineLike(j.stockItem.name,j.stockItem.barcode)).map(j=>j.id);
-  if(ids.length){await prisma.scanEnrichmentJob.updateMany({where:{id:{in:ids}},data:{status:"PENDING",attempts:0,lastError:null}});console.log(`Requeued ${ids.length} model-number material names`);}
+  if(ids.length){
+    await prisma.scanEnrichmentJob.updateMany({
+      where:{id:{in:ids},attempts:{lt:3}},
+      data:{status:"PENDING",lastError:null}
+    });
+    console.log(`Requeued ${ids.length} model-number material names with attempts remaining`);
+  }
 }
 
 async function main(){
