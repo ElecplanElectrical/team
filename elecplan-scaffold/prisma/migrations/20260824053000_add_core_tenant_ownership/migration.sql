@@ -1,0 +1,35 @@
+ALTER TABLE "User" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Client" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Lead" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Job" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Quote" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Invoice" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "StockItem" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Timesheet" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Document" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Reminder" ADD COLUMN "businessId" TEXT;
+ALTER TABLE "Equipment" ADD COLUMN "businessId" TEXT;
+
+CREATE INDEX "User_businessId_active_idx" ON "User"("businessId", "active");
+CREATE INDEX "Client_businessId_createdAt_idx" ON "Client"("businessId", "createdAt");
+CREATE INDEX "Lead_businessId_createdAt_idx" ON "Lead"("businessId", "createdAt");
+CREATE INDEX "Job_businessId_status_createdAt_idx" ON "Job"("businessId", "status", "createdAt");
+CREATE INDEX "Quote_businessId_status_createdAt_idx" ON "Quote"("businessId", "status", "createdAt");
+CREATE INDEX "Invoice_businessId_status_createdAt_idx" ON "Invoice"("businessId", "status", "createdAt");
+CREATE INDEX "StockItem_businessId_name_idx" ON "StockItem"("businessId", "name");
+CREATE INDEX "Timesheet_businessId_date_idx" ON "Timesheet"("businessId", "date");
+CREATE INDEX "Document_businessId_uploadedAt_idx" ON "Document"("businessId", "uploadedAt");
+CREATE INDEX "Reminder_businessId_dueDate_idx" ON "Reminder"("businessId", "dueDate");
+CREATE INDEX "Equipment_businessId_status_idx" ON "Equipment"("businessId", "status");
+
+ALTER TABLE "User" ADD CONSTRAINT "User_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Client" ADD CONSTRAINT "Client_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Lead" ADD CONSTRAINT "Lead_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Job" ADD CONSTRAINT "Job_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Quote" ADD CONSTRAINT "Quote_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "StockItem" ADD CONSTRAINT "StockItem_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Timesheet" ADD CONSTRAINT "Timesheet_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Document" ADD CONSTRAINT "Document_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Reminder" ADD CONSTRAINT "Reminder_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Equipment" ADD CONSTRAINT "Equipment_businessId_fkey" FOREIGN KEY ("businessId") REFERENCES "BusinessPortal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
