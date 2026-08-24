@@ -19,12 +19,21 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { businessId: true },
+  });
+  if (!dbUser?.businessId) {
+    return NextResponse.json({ error: "Select a customer business before creating invoice data." }, { status: 409 });
+  }
+  const businessId = dbUser.businessId;
+
   const { id } = await params;
-  const quote = await prisma.quote.findUnique({
-    where: { id },
+  const quote = await prisma.quote.findFirst({
+    where: { id, businessId },
     include: { lineItems: true, convertedInvoice: { select: { id: true, invoiceNumber: true } } },
   });
-  if (!quote) return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+  if (!quote) return NextResponse.json({ error: "Quote not found for this business" }, { status: 404 });
   if (quote.status !== "ACCEPTED") {
     return NextResponse.json({ error: "Only accepted quotes can be converted" }, { status: 400 });
   }
@@ -39,6 +48,7 @@ export async function POST(
     const invoice = await prisma.$transaction(async (tx) => {
       const created = await tx.invoice.create({
         data: {
+          businessId,
           invoiceNumber: invoiceNumber(),
           sourceQuoteId: quote.id,
           clientId: quote.clientId,
@@ -62,10 +72,8 @@ export async function POST(
       });
 
       if (quote.jobId) {
-        // Invoicing must not make scheduled or in-progress work disappear from operations.
-        // Only promote an already-complete job to the terminal invoiced state.
         await tx.job.updateMany({
-          where: { id: quote.jobId, status: "COMPLETE" },
+          where: { id: quote.jobId, businessId, status: "COMPLETE" },
           data: { status: "INVOICED" },
         });
       }
@@ -78,6 +86,7 @@ export async function POST(
       entityType: "Quote",
       entityId: quote.id,
       details: {
+        businessId,
         invoiceId: invoice.id,
         invoiceNumber: invoice.invoiceNumber,
         jobId: quote.jobId,
