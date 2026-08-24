@@ -1,44 +1,73 @@
 import { PrismaClient } from "@prisma/client";
-import { createWorker } from "tesseract.js";
+import { createWorker, PSM } from "tesseract.js";
 import { createDownloadUrl } from "../src/lib/storage";
 
 const prisma = new PrismaClient();
 const brands = ["Voltex","Clipsal","Hager","NHP","Legrand","Trader","HPM","Deta","Cabac","Schneider","NB Lights","SAL","Pierlite","Brilliant"];
 
 function parse(text:string, barcode="") {
-  const raw = text.split(/\n/).map(x=>x.replace(/[|_]+/g," ").replace(/\s+/g," ").trim()).filter(x=>x.length>1);
-  const lines = [...raw, ...raw.slice(0,-1).map((x,i)=>`${x} ${raw[i+1]}`)];
-  const supplier = brands.find(b=>text.toLowerCase().includes(b.toLowerCase())) || null;
-  const compact = (x:string)=>x.replace(/[^A-Za-z0-9]/g,"");
-  const tokens = text.match(/\b[A-Z]{1,6}[A-Z0-9-]{2,12}\b/gi) || [];
-  const model = tokens.map(x=>x.toUpperCase()).find(x=>/[A-Z]/.test(x)&&/\d/.test(x)&&compact(x)!==compact(barcode).toUpperCase()&&!brands.some(b=>compact(b).toUpperCase()===compact(x).toUpperCase())) || null;
-  const junk = (x:string)=>/barcode|batch|serial|www\.|\.com|made in|warning|voltage|wattage|pack\b|qty\b/i.test(x);
-  const modelOnly = (x:string)=>{ const c=compact(x).toUpperCase(); if(!c) return true; if(model&&c===compact(model).toUpperCase()) return true; if(c===compact(barcode).toUpperCase()) return true; return /^[A-Z]{1,6}\d[A-Z0-9-]{0,10}$/i.test(c)||/^\d{5,14}$/.test(c); };
+  const compact=(x:string)=>x.replace(/[^A-Za-z0-9]/g,"").toUpperCase();
+  const raw=text.split(/\n/).map(x=>x.replace(/[|_]+/g," ").replace(/\s+/g," ").trim()).filter(x=>x.length>1);
+  const supplier=brands.find(b=>text.toLowerCase().includes(b.toLowerCase()))||null;
+  const barcodeCompact=compact(barcode);
+  const brandCompacts=new Set(brands.map(compact));
+
+  const labelled:string[]=[];
+  for(const line of raw){
+    if(/\b(model|cat(?:alogue)?|catalog|part|item|code|sku)\b/i.test(line)){
+      const hits=line.match(/[A-Z0-9][A-Z0-9._\/-]{2,18}/gi)||[];
+      labelled.push(...hits);
+    }
+  }
+  const allTokens=text.match(/\b[A-Z0-9][A-Z0-9._\/-]{2,18}\b/gi)||[];
+  const candidates=[...labelled,...allTokens]
+    .map(x=>x.replace(/^[^A-Z0-9]+|[^A-Z0-9]+$/gi,"").toUpperCase())
+    .filter(Boolean)
+    .filter(x=>/[A-Z]/.test(x)&&/\d/.test(x))
+    .filter(x=>compact(x)!==barcodeCompact)
+    .filter(x=>!brandCompacts.has(compact(x)))
+    .filter(x=>!/^\d{5,14}$/.test(compact(x)))
+    .filter(x=>compact(x).length>=4&&compact(x).length<=18)
+    .filter(x=>!/(240V|230V|220V|50HZ|60HZ|IP\d\d|WATT|VOLT|AMP|BATCH|SERIAL|QTY|PACK)/i.test(x));
+
+  const score=(x:string)=>{
+    let s=0;
+    const c=compact(x);
+    if(/[A-Z]{1,5}\d/.test(c)) s+=4;
+    if(/\d[A-Z]/.test(c)) s+=2;
+    if(c.length>=5&&c.length<=12) s+=2;
+    if(labelled.some(v=>compact(v)===c)) s+=5;
+    if(/^[A-Z]{1,6}\d[A-Z0-9-]{2,12}$/.test(c)) s+=4;
+    return s;
+  };
+  const model=candidates.sort((a,b)=>score(b)-score(a))[0]||null;
+
   const productWords=/(mounting\s*block|socket|outlet|switch|plug|downlight|batten|power\s*point|junction\s*box|enclosure|dimmer|sensor|breaker|rcbo|rccb|isolator|transformer|driver|cable|conduit|coupler|adapter|connector|wall\s*plate|mechanism|smoke\s*alarm|pendant|floodlight|fan|light fitting)/i;
-  let candidates=lines.filter(x=>!junk(x)&&/[A-Za-z]{3,}/.test(x)&&!modelOnly(x)).map(x=>x.replace(model?new RegExp(`\\b${model.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\b`,`ig`):/$^/,"").replace(/\b\d{5,14}\b/g,"").replace(/\s+/g," ").trim()).filter(x=>x.length>=4&&!modelOnly(x));
-  let desc=candidates.find(x=>productWords.test(x))||candidates.find(x=>x.split(/\s+/).length>=2)||"";
+  const junk=/(barcode|batch|serial|www\.|\.com|made in|warning|voltage|wattage|pack\b|qty\b|model\b|catalog|catalogue|part\b|item\b|code\b|sku\b)/i;
+  const cleanLines=raw
+    .filter(x=>!junk.test(x))
+    .filter(x=>/[A-Za-z]{3,}/.test(x))
+    .filter(x=>!model||compact(x)!==compact(model))
+    .filter(x=>compact(x)!==barcodeCompact)
+    .filter(x=>x.replace(/[^A-Za-z ]/g,"").trim().length>=4);
+  let desc=cleanLines.find(x=>productWords.test(x))||"";
   if(desc&&supplier&&!desc.toLowerCase().includes(supplier.toLowerCase())) desc=`${supplier} ${desc}`;
-  if(desc&&modelOnly(desc)) desc="";
-  return {name:desc.slice(0,160),supplier,model};
+
+  let name="";
+  if(desc) name=desc.slice(0,160);
+  else if(model&&supplier) name=`${supplier} ${model}`;
+  else if(model) name=model;
+
+  return {name,supplier,model};
 }
 
 function machineLike(name:string,barcode:string|null){const n=name.replace(/\s+/g,"");return name===barcode||/^[A-Z]{1,6}[A-Z0-9-]{2,12}$/i.test(n)||/^\d{5,14}$/.test(n);}
 async function photoBytes(key:string){if(key.startsWith("data:image/")){const comma=key.indexOf(",");if(comma<0)throw new Error("invalid embedded photo");return Buffer.from(key.slice(comma+1),"base64");}const image=await fetch(createDownloadUrl(key));if(!image.ok)throw new Error(`photo download ${image.status}`);return Buffer.from(await image.arrayBuffer());}
 
 async function requeueModelNumberNames(){
-  const done=await prisma.scanEnrichmentJob.findMany({
-    where:{status:"DONE",attempts:{lt:3}},
-    select:{id:true,attempts:true,stockItem:{select:{name:true,barcode:true}}},
-    take:200
-  });
+  const done=await prisma.scanEnrichmentJob.findMany({where:{status:"DONE",attempts:{lt:3}},select:{id:true,attempts:true,stockItem:{select:{name:true,barcode:true}}},take:200});
   const ids=done.filter(j=>machineLike(j.stockItem.name,j.stockItem.barcode)).map(j=>j.id);
-  if(ids.length){
-    await prisma.scanEnrichmentJob.updateMany({
-      where:{id:{in:ids},attempts:{lt:3}},
-      data:{status:"PENDING",lastError:null}
-    });
-    console.log(`Requeued ${ids.length} model-number material names with attempts remaining`);
-  }
+  if(ids.length){await prisma.scanEnrichmentJob.updateMany({where:{id:{in:ids},attempts:{lt:3}},data:{status:"PENDING",lastError:null}});console.log(`Requeued ${ids.length} model-number material names with attempts remaining`);}
 }
 
 async function main(){
@@ -47,6 +76,7 @@ async function main(){
   const jobs=await prisma.scanEnrichmentJob.findMany({where:{status:"PENDING",attempts:{lt:3}},orderBy:{createdAt:"asc"},take:50,include:{stockItem:true}});
   if(!jobs.length){console.log("No pending scan enrichment jobs");return;}
   const worker=await createWorker("eng");
+  await worker.setParameters({tessedit_pageseg_mode:PSM.AUTO});
   try{
     for(const job of jobs){
       await prisma.scanEnrichmentJob.update({where:{id:job.id},data:{status:"PROCESSING",attempts:{increment:1},lastError:null}});
@@ -55,7 +85,7 @@ async function main(){
         if(bytes.length<500) throw new Error(`Photo too small for reliable OCR (${bytes.length} bytes)`);
         const out=await worker.recognize(bytes);
         const p=parse(out.data.text||"",job.stockItem.barcode||"");
-        if(!p.name&&!p.model) throw new Error("No product identity found");
+        if(!p.model) throw new Error("No reliable model number found");
         const target=job.stockItem;
         if(p.model){
           const same=await prisma.stockItem.findFirst({where:{modelNumber:{equals:p.model,mode:"insensitive"},id:{not:target.id}}});
@@ -71,10 +101,10 @@ async function main(){
             continue;
           }
         }
-        await prisma.stockItem.update({where:{id:target.id},data:{name:p.name||target.name,supplier:p.supplier||target.supplier,modelNumber:p.model||target.modelNumber}});
+        await prisma.stockItem.update({where:{id:target.id},data:{name:p.name||target.name,supplier:p.supplier||target.supplier,modelNumber:p.model}});
         if(target.barcode)await prisma.stockBarcode.upsert({where:{barcode:target.barcode},create:{barcode:target.barcode,stockItemId:target.id},update:{stockItemId:target.id}});
         await prisma.scanEnrichmentJob.update({where:{id:job.id},data:{status:"DONE",lastError:null}});
-        console.log(`Updated ${target.barcode||target.id}: ${p.name||target.name} [${p.model||"no model"}]`);
+        console.log(`Updated ${target.barcode||target.id}: ${p.name||target.name} [${p.model}]`);
       }catch(e){const msg=e instanceof Error?e.message:String(e);const attempts=job.attempts+1;await prisma.scanEnrichmentJob.update({where:{id:job.id},data:{status:attempts>=3?"FAILED":"PENDING",lastError:msg.slice(0,500)}});console.error(`Failed ${job.id} attempt ${attempts}/3: ${msg}`);}
     }
   }finally{await worker.terminate();}
