@@ -17,24 +17,21 @@ const clientSchema = z.object({
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canAccess(user.role, "clients")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  // Only roles that can see the Clients screen may create clients.
-  if (!canAccess(user.role, "clients")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true } });
+  if (!dbUser?.businessId) {
+    return NextResponse.json({ error: "Select a customer business before creating client data." }, { status: 409 });
   }
 
   const parsed = clientSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid input", issues: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
   const d = parsed.data;
 
   try {
     const client = await prisma.client.create({
       data: {
+        businessId: dbUser.businessId,
         name: d.name,
         contactName: d.contactName || null,
         phone: d.phone || null,
@@ -43,22 +40,7 @@ export async function POST(req: Request) {
         billingNotes: d.billingNotes || null,
       },
     });
-
-    await recordAudit({
-      actor: user,
-      action: "CLIENT_CREATED",
-      entityType: "Client",
-      entityId: client.id,
-      details: {
-        name: client.name,
-        hasContactName: Boolean(client.contactName),
-        hasPhone: Boolean(client.phone),
-        hasEmail: Boolean(client.email),
-        hasAddress: Boolean(client.address),
-        hasBillingNotes: Boolean(client.billingNotes),
-      },
-    });
-
+    await recordAudit({ actor: user, action: "CLIENT_CREATED", entityType: "Client", entityId: client.id, details: { businessId: dbUser.businessId, name: client.name } });
     return NextResponse.json(client, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Could not create client" }, { status: 400 });
