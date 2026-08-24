@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAccess } from "@/lib/session";
-function cleanBarcode(value:unknown){return String(value??"").replace(/[^0-9A-Za-z-]/g,"").slice(0,64)}
-export async function POST(req:Request){await requireAccess("materials");const body=await req.json().catch(()=>({}));const barcode=cleanBarcode(body.barcode);if(!barcode)return NextResponse.json({error:"Barcode is required"},{status:400});
-const alias=await prisma.stockBarcode.findUnique({where:{barcode},include:{stockItem:true}});if(alias){const item=await prisma.stockItem.update({where:{id:alias.stockItemId},data:{onHand:{increment:1}}});return NextResponse.json({status:"incremented",item})}
-const found=await prisma.stockItem.findUnique({where:{barcode}});if(found){await prisma.stockBarcode.upsert({where:{barcode},create:{barcode,stockItemId:found.id},update:{stockItemId:found.id}});const item=await prisma.stockItem.update({where:{id:found.id},data:{onHand:{increment:1}}});return NextResponse.json({status:"incremented",item})}
-const name=String(body.name??barcode).trim().slice(0,160)||barcode,unit=String(body.unit??"each").trim().slice(0,40)||"each",supplier=String(body.supplier??"").trim().slice(0,100)||null,quantity=Math.max(1,Math.min(9999,Number(body.quantity)||1));
-try{const item=await prisma.stockItem.create({data:{name,unit,onHand:quantity,parLevel:0,supplier,barcode,barcodes:{create:{barcode}}}});return NextResponse.json({status:"created",item},{status:201})}catch{const retry=await prisma.stockBarcode.findUnique({where:{barcode},include:{stockItem:true}});if(retry){const item=await prisma.stockItem.update({where:{id:retry.stockItemId},data:{onHand:{increment:1}}});return NextResponse.json({status:"incremented",item})}return NextResponse.json({error:"Could not save barcode"},{status:500})}}
+
+export async function POST() {
+  return NextResponse.json(
+    { error: "Material scanning is not enabled in Your Plan. Use manual materials entry." },
+    { status: 410 },
+  );
+}
