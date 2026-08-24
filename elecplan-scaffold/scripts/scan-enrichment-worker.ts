@@ -5,6 +5,36 @@ import { createDownloadUrl } from "../src/lib/storage";
 const prisma = new PrismaClient();
 const brands = ["Voltex","Clipsal","Hager","NHP","Legrand","Trader","HPM","Deta","Cabac","Schneider","NB Lights","SAL","Pierlite","Brilliant"];
 
+const knownProducts: Record<string,string> = {
+  "VMB16B": "Voltex Mounting Block 16mm Black"
+};
+
+function humanNameFromModel(model:string|null, supplier:string|null, text:string){
+  if(!model) return "";
+  const clean=model.replace(/[^A-Za-z0-9]/g,"").toUpperCase();
+  if(knownProducts[clean]) return knownProducts[clean];
+
+  if((supplier||"").toLowerCase()==="voltex"){
+    const m=clean.match(/^VMB(\d{1,3})([A-Z])$/);
+    if(m){
+      const colour:Record<string,string>={B:"Black",W:"White",G:"Grey"};
+      return `Voltex Mounting Block ${m[1]}mm ${colour[m[2]]||m[2]}`;
+    }
+  }
+
+  const lines=text.split(/\n/).map(x=>x.replace(/[^\x20-\x7E]/g," ").replace(/\s+/g," ").trim()).filter(Boolean);
+  const productWords=/(mounting\s*block|socket|outlet|switch|plug|downlight|batten|power\s*point|junction\s*box|enclosure|dimmer|sensor|breaker|rcbo|rccb|isolator|transformer|driver|cable|conduit|coupler|adapter|connector|wall\s*plate|mechanism|smoke\s*alarm|pendant|floodlight|fan|light fitting)/i;
+  const line=lines.find(x=>productWords.test(x) && /[A-Za-z]{4,}/.test(x));
+  if(line){
+    const stripped=line.replace(model," ").replace(/\b(model|cat(?:alogue)?|catalog|part|item|code|sku)\b/gi," ").replace(/\s+/g," ").trim();
+    if(stripped.length>=6){
+      const pref=supplier&&!stripped.toLowerCase().includes(supplier.toLowerCase())?`${supplier} `:"";
+      return `${pref}${stripped}`.slice(0,160);
+    }
+  }
+  return "";
+}
+
 function parse(text:string, barcode="") {
   const compact=(x:string)=>x.replace(/[^A-Za-z0-9]/g,"").toUpperCase();
   const raw=text.split(/\n/).map(x=>x.replace(/[|_]+/g," ").replace(/\s+/g," ").trim()).filter(x=>x.length>1);
@@ -15,8 +45,7 @@ function parse(text:string, barcode="") {
   const labelled:string[]=[];
   for(const line of raw){
     if(/\b(model|cat(?:alogue)?|catalog|part|item|code|sku)\b/i.test(line)){
-      const hits=line.match(/[A-Z0-9][A-Z0-9._\/-]{2,18}/gi)||[];
-      labelled.push(...hits);
+      labelled.push(...(line.match(/[A-Z0-9][A-Z0-9._\/-]{2,18}/gi)||[]));
     }
   }
   const allTokens=text.match(/\b[A-Z0-9][A-Z0-9._\/-]{2,18}\b/gi)||[];
@@ -31,33 +60,17 @@ function parse(text:string, barcode="") {
     .filter(x=>!/(240V|230V|220V|50HZ|60HZ|IP\d\d|WATT|VOLT|AMP|BATCH|SERIAL|QTY|PACK)/i.test(x));
 
   const score=(x:string)=>{
-    let s=0;
-    const c=compact(x);
+    let s=0; const c=compact(x);
     if(/[A-Z]{1,5}\d/.test(c)) s+=4;
     if(/\d[A-Z]/.test(c)) s+=2;
     if(c.length>=5&&c.length<=12) s+=2;
     if(labelled.some(v=>compact(v)===c)) s+=5;
     if(/^[A-Z]{1,6}\d[A-Z0-9-]{2,12}$/.test(c)) s+=4;
+    if(knownProducts[c]) s+=10;
     return s;
   };
   const model=candidates.sort((a,b)=>score(b)-score(a))[0]||null;
-
-  const productWords=/(mounting\s*block|socket|outlet|switch|plug|downlight|batten|power\s*point|junction\s*box|enclosure|dimmer|sensor|breaker|rcbo|rccb|isolator|transformer|driver|cable|conduit|coupler|adapter|connector|wall\s*plate|mechanism|smoke\s*alarm|pendant|floodlight|fan|light fitting)/i;
-  const junk=/(barcode|batch|serial|www\.|\.com|made in|warning|voltage|wattage|pack\b|qty\b|model\b|catalog|catalogue|part\b|item\b|code\b|sku\b)/i;
-  const cleanLines=raw
-    .filter(x=>!junk.test(x))
-    .filter(x=>/[A-Za-z]{3,}/.test(x))
-    .filter(x=>!model||compact(x)!==compact(model))
-    .filter(x=>compact(x)!==barcodeCompact)
-    .filter(x=>x.replace(/[^A-Za-z ]/g,"").trim().length>=4);
-  let desc=cleanLines.find(x=>productWords.test(x))||"";
-  if(desc&&supplier&&!desc.toLowerCase().includes(supplier.toLowerCase())) desc=`${supplier} ${desc}`;
-
-  let name="";
-  if(desc) name=desc.slice(0,160);
-  else if(model&&supplier) name=`${supplier} ${model}`;
-  else if(model) name=model;
-
+  const name=humanNameFromModel(model,supplier,text);
   return {name,supplier,model};
 }
 
@@ -86,25 +99,24 @@ async function main(){
         const out=await worker.recognize(bytes);
         const p=parse(out.data.text||"",job.stockItem.barcode||"");
         if(!p.model) throw new Error("No reliable model number found");
+        if(!p.name) throw new Error(`Model ${p.model} found but no reliable human product name resolved`);
         const target=job.stockItem;
-        if(p.model){
-          const same=await prisma.stockItem.findFirst({where:{modelNumber:{equals:p.model,mode:"insensitive"},id:{not:target.id}}});
-          if(same){
-            await prisma.$transaction(async tx=>{
-              await tx.stockBarcode.updateMany({where:{stockItemId:target.id},data:{stockItemId:same.id}});
-              if(target.barcode)await tx.stockBarcode.upsert({where:{barcode:target.barcode},create:{barcode:target.barcode,stockItemId:same.id},update:{stockItemId:same.id}});
-              await tx.stockItem.update({where:{id:same.id},data:{onHand:{increment:target.onHand},name:p.name||same.name,supplier:p.supplier||same.supplier,modelNumber:p.model,photoStorageKey:same.photoStorageKey||target.photoStorageKey}});
-              await tx.stockItem.delete({where:{id:target.id}});
-              await tx.scanEnrichmentJob.update({where:{id:job.id},data:{status:"DONE",lastError:null}});
-            });
-            console.log(`Merged ${target.barcode||target.id} into ${p.model} as ${p.name||same.name}`);
-            continue;
-          }
+        const same=await prisma.stockItem.findFirst({where:{modelNumber:{equals:p.model,mode:"insensitive"},id:{not:target.id}}});
+        if(same){
+          await prisma.$transaction(async tx=>{
+            await tx.stockBarcode.updateMany({where:{stockItemId:target.id},data:{stockItemId:same.id}});
+            if(target.barcode)await tx.stockBarcode.upsert({where:{barcode:target.barcode},create:{barcode:target.barcode,stockItemId:same.id},update:{stockItemId:same.id}});
+            await tx.stockItem.update({where:{id:same.id},data:{onHand:{increment:target.onHand},name:p.name,supplier:p.supplier||same.supplier,modelNumber:p.model,photoStorageKey:same.photoStorageKey||target.photoStorageKey}});
+            await tx.stockItem.delete({where:{id:target.id}});
+            await tx.scanEnrichmentJob.update({where:{id:job.id},data:{status:"DONE",lastError:null}});
+          });
+          console.log(`Merged ${target.barcode||target.id} into ${p.model} as ${p.name}`);
+          continue;
         }
-        await prisma.stockItem.update({where:{id:target.id},data:{name:p.name||target.name,supplier:p.supplier||target.supplier,modelNumber:p.model}});
+        await prisma.stockItem.update({where:{id:target.id},data:{name:p.name,supplier:p.supplier||target.supplier,modelNumber:p.model}});
         if(target.barcode)await prisma.stockBarcode.upsert({where:{barcode:target.barcode},create:{barcode:target.barcode,stockItemId:target.id},update:{stockItemId:target.id}});
         await prisma.scanEnrichmentJob.update({where:{id:job.id},data:{status:"DONE",lastError:null}});
-        console.log(`Updated ${target.barcode||target.id}: ${p.name||target.name} [${p.model}]`);
+        console.log(`Updated ${target.barcode||target.id}: ${p.name} [${p.model}]`);
       }catch(e){const msg=e instanceof Error?e.message:String(e);const attempts=job.attempts+1;await prisma.scanEnrichmentJob.update({where:{id:job.id},data:{status:attempts>=3?"FAILED":"PENDING",lastError:msg.slice(0,500)}});console.error(`Failed ${job.id} attempt ${attempts}/3: ${msg}`);}
     }
   }finally{await worker.terminate();}
