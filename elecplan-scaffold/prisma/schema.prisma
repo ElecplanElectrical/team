@@ -9,69 +9,589 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role { ADMIN SUPERVISOR EMPLOYEE }
-enum JobStatus { QUOTED SCHEDULED IN_PROGRESS COMPLETE INVOICED }
-enum QuoteStatus { DRAFT SENT ACCEPTED DECLINED }
-enum InvoiceStatus { UNPAID PAID OVERDUE }
-enum LeadStage { NEW QUOTED WON LOST }
-enum SmsStatus { SENT CONFIRMED DECLINED FAILED }
-enum CertStatus { ISSUED PENDING EXPIRING }
-enum InspectionStatus { PASSED SCHEDULED FAILED }
-enum TimesheetStatus { PENDING APPROVED }
-enum PasswordTokenType { INVITE RESET }
-enum ScanEnrichmentStatus { PENDING PROCESSING DONE FAILED }
+enum Role {
+  ADMIN
+  SUPERVISOR
+  EMPLOYEE
+}
+
+enum JobStatus {
+  QUOTED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETE
+  INVOICED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  OVERDUE
+}
+
+enum LeadStage {
+  NEW
+  QUOTED
+  WON
+  LOST
+}
+
+enum SmsStatus {
+  SENT
+  CONFIRMED
+  DECLINED
+  FAILED
+}
+
+enum CertStatus {
+  ISSUED
+  PENDING
+  EXPIRING
+}
+
+enum InspectionStatus {
+  PASSED
+  SCHEDULED
+  FAILED
+}
+
+enum TimesheetStatus {
+  PENDING
+  APPROVED
+}
+
+enum PasswordTokenType {
+  INVITE
+  RESET
+}
+
+enum ScanEnrichmentStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
 
 model User {
-  id String @id @default(cuid())
-  name String
-  email String @unique
-  phone String?
-  role Role @default(EMPLOYEE)
-  passwordHash String?
-  active Boolean @default(true)
-  licenseNumber String?
-  licenseExpiry DateTime?
-  createdAt DateTime @default(now())
-  business BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: SetNull)
-  businessId String?
-  assignedJobs Job[] @relation("AssignedEmployee")
-  timesheets Timesheet[]
-  reminders Reminder[]
-  certificates Certificate[]
-  jobEvents JobEvent[]
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  phone          String?
+  role           Role      @default(EMPLOYEE)
+  passwordHash   String?
+  active         Boolean   @default(true)
+  licenseNumber  String?
+  licenseExpiry  DateTime?
+  createdAt      DateTime  @default(now())
+  business       BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  businessId     String?
+  assignedJobs   Job[]        @relation("AssignedEmployee")
+  timesheets     Timesheet[]
+  reminders      Reminder[]
+  certificates   Certificate[]
+  jobEvents      JobEvent[]
   passwordTokens PasswordToken[]
-  kpis EmployeeKpi[]
+  kpis           EmployeeKpi[]
+
   @@index([businessId, active])
 }
-model PasswordToken { id String @id @default(cuid()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) userId String tokenHash String @unique type PasswordTokenType expiresAt DateTime usedAt DateTime? createdAt DateTime @default(now()) @@index([userId]) }
-model Client { id String @id @default(cuid()) name String contactName String? phone String? email String? address String? billingNotes String? createdAt DateTime @default(now()) business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? leads Lead[] jobs Job[] quotes Quote[] invoices Invoice[] reviews Review[] @@index([businessId,createdAt]) }
-model Lead { id String @id @default(cuid()) client Client @relation(fields:[clientId],references:[id]) clientId String description String stage LeadStage @default(NEW) value Decimal source String? createdAt DateTime @default(now()) business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? @@index([businessId,createdAt]) }
-model Job { id String @id @default(cuid()) title String client Client @relation(fields:[clientId],references:[id]) clientId String address String status JobStatus @default(SCHEDULED) assignedTo User? @relation("AssignedEmployee",fields:[assignedToId],references:[id]) assignedToId String? scheduledStart DateTime? scheduledEnd DateTime? notes String? createdAt DateTime @default(now()) business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? events JobEvent[] quotes Quote[] invoices Invoice[] certificates Certificate[] inspections Inspection[] documents Document[] photos ProjectPhoto[] smsLogs SmsLog[] tasks JobTask[] materials JobMaterial[] @@index([businessId,status,createdAt]) }
-model JobEvent { id String @id @default(cuid()) job Job? @relation(fields:[jobId],references:[id]) jobId String? title String? notes String? type String startsAt DateTime endsAt DateTime assignedTo User? @relation(fields:[assignedToId],references:[id]) assignedToId String? }
-model Quote { id String @id @default(cuid()) quoteNumber String? @unique job Job? @relation(fields:[jobId],references:[id]) jobId String? client Client @relation(fields:[clientId],references:[id]) clientId String subtotal Decimal? gstAmount Decimal? amount Decimal status QuoteStatus @default(DRAFT) xeroId String? createdAt DateTime @default(now()) business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? lineItems QuoteLineItem[] convertedInvoice Invoice? @relation("ConvertedQuote") @@index([businessId,status,createdAt]) }
-model QuoteLineItem { id String @id @default(cuid()) quote Quote @relation(fields:[quoteId],references:[id],onDelete:Cascade) quoteId String description String quantity Decimal unitPrice Decimal lineTotal Decimal gstRate Decimal @default(0.10) @@index([quoteId]) }
-model Invoice { id String @id @default(cuid()) invoiceNumber String? @unique job Job? @relation(fields:[jobId],references:[id]) jobId String? client Client? @relation(fields:[clientId],references:[id]) clientId String? supplier String? subtotal Decimal? gstAmount Decimal? amount Decimal dueDate DateTime status InvoiceStatus @default(UNPAID) xeroId String? createdAt DateTime @default(now()) business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? sourceQuote Quote? @relation("ConvertedQuote",fields:[sourceQuoteId],references:[id]) sourceQuoteId String? @unique lineItems InvoiceLineItem[] @@index([businessId,status,createdAt]) }
-model InvoiceLineItem { id String @id @default(cuid()) invoice Invoice @relation(fields:[invoiceId],references:[id],onDelete:Cascade) invoiceId String description String quantity Decimal unitPrice Decimal lineTotal Decimal gstRate Decimal @default(0.10) @@index([invoiceId]) }
-model Certificate { id String @id @default(cuid()) job Job @relation(fields:[jobId],references:[id]) jobId String certNumber String @unique type String electrician User @relation(fields:[electricianId],references:[id]) electricianId String issuedDate DateTime? status CertStatus @default(PENDING) }
-model Inspection { id String @id @default(cuid()) job Job @relation(fields:[jobId],references:[id]) jobId String type String date DateTime status InspectionStatus @default(SCHEDULED) }
-model StockItem { id String @id @default(cuid()) name String unit String onHand Int parLevel Int supplier String? barcode String? @unique modelNumber String? photoStorageKey String? photoOriginalName String? photoContentType String? photoSizeBytes Int? business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? enrichmentJobs ScanEnrichmentJob[] barcodes StockBarcode[] @@index([modelNumber]) @@index([businessId,name]) }
-model StockBarcode { barcode String @id stockItem StockItem @relation(fields:[stockItemId],references:[id],onDelete:Cascade) stockItemId String createdAt DateTime @default(now()) @@index([stockItemId]) }
-model ScanEnrichmentJob { id String @id @default(cuid()) stockItem StockItem @relation(fields:[stockItemId],references:[id],onDelete:Cascade) stockItemId String photoStorageKey String status ScanEnrichmentStatus @default(PENDING) attempts Int @default(0) lastError String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt @@index([status,createdAt]) @@index([stockItemId]) }
-model Timesheet { id String @id @default(cuid()) user User @relation(fields:[userId],references:[id]) userId String date DateTime hours Decimal status TimesheetStatus @default(PENDING) business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? @@index([businessId,date]) }
-model Document { id String @id @default(cuid()) job Job? @relation(fields:[jobId],references:[id]) jobId String? name String fileUrl String type String storageKey String? @unique originalName String? contentType String? sizeBytes Int? uploadedAt DateTime @default(now()) business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? @@index([businessId,uploadedAt]) }
-model ProjectPhoto { id String @id @default(cuid()) job Job @relation(fields:[jobId],references:[id]) jobId String fileUrl String storageKey String? @unique originalName String? contentType String? sizeBytes Int? uploadedAt DateTime @default(now()) }
-model JobTask { id String @id @default(cuid()) job Job @relation(fields:[jobId],references:[id],onDelete:Cascade) jobId String title String completed Boolean @default(false) sortOrder Int @default(0) createdAt DateTime @default(now()) @@index([jobId,sortOrder]) }
-model JobMaterial { id String @id @default(cuid()) job Job @relation(fields:[jobId],references:[id],onDelete:Cascade) jobId String name String quantity Decimal unit String? unitCost Decimal @default(0) unitSell Decimal @default(0) createdAt DateTime @default(now()) @@index([jobId]) }
-model Reminder { id String @id @default(cuid()) user User @relation(fields:[userId],references:[id]) userId String title String dueDate DateTime? tag String? completed Boolean @default(false) business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? @@index([businessId,dueDate]) }
-model Review { id String @id @default(cuid()) client Client @relation(fields:[clientId],references:[id]) clientId String rating Int text String? source String? createdAt DateTime @default(now()) }
-model SmsLog { id String @id @default(cuid()) job Job @relation(fields:[jobId],references:[id]) jobId String phoneNumber String message String status SmsStatus @default(SENT) providerId String? createdAt DateTime @default(now()) }
-model ReelIdea { id String @id @default(cuid()) title String hook String? platform String status String @default("IDEA") scheduledAt DateTime? publishedUrl String? notes String? createdAt DateTime @default(now()) business BusinessPortal @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String @@index([businessId,createdAt]) }
-model AuditLog { id String @id @default(uuid()) actorId String? actorEmail String? action String entityType String entityId String? details Json? createdAt DateTime @default(now()) @@index([createdAt]) @@index([entityType,entityId]) @@index([actorId]) }
-model RateLimitBucket { key String @id count Int windowStart DateTime expiresAt DateTime @@index([expiresAt]) }
-model Equipment { id String @id @default(cuid()) name String category String quantity Int @default(1) assetNumber String? @unique serialNumber String? condition String @default("GOOD") status String @default("AVAILABLE") location String @default("Workshop") assignedUserId String? assignedJobId String? purchaseDate DateTime? notes String? lastStocktakeAt DateTime? photoStorageKey String? @unique photoOriginalName String? photoContentType String? photoSizeBytes Int? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt business BusinessPortal? @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String? movements EquipmentMovement[] @@index([businessId,status]) }
-model EquipmentMovement { id String @id @default(cuid()) equipment Equipment @relation(fields:[equipmentId],references:[id],onDelete:Cascade) equipmentId String actorId String? action String fromLocation String? toLocation String? assignedUserId String? assignedJobId String? notes String? createdAt DateTime @default(now()) @@index([equipmentId,createdAt]) }
-model EmployeeKpi { id String @id @default(cuid()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) userId String jobsCompleted Int @default(0) callbacks Int @default(0) revenueGenerated Decimal @default(0) periodStart DateTime periodEnd DateTime createdAt DateTime @default(now()) updatedAt DateTime @updatedAt @@unique([userId,periodStart,periodEnd]) @@index([periodStart,periodEnd]) }
-model WeeklyGoal { id String @id @default(cuid()) weekStart DateTime text String createdBy String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt business BusinessPortal @relation(fields:[businessId],references:[id],onDelete:Cascade) businessId String @@unique([businessId,weekStart]) @@index([businessId,weekStart]) }
-model TeamChatMessage { id String @id @default(cuid()) authorId String body String createdAt DateTime @default(now()) @@index([createdAt]) }
-model TeamChatRead { userId String @id lastReadAt DateTime @default(now()) }
-model BusinessPortal { id String @id @default(cuid()) name String slug String @unique industry String? contactName String? contactEmail String? logoUrl String? primaryColor String @default("#168dff") accentColor String @default("#25c7ff") modules Json plan String @default("CUSTOM") monthlyPrice Decimal? active Boolean @default(true) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt users User[] clients Client[] leads Lead[] jobs Job[] quotes Quote[] invoices Invoice[] stockItems StockItem[] timesheets Timesheet[] documents Document[] reminders Reminder[] equipment Equipment[] reelIdeas ReelIdea[] weeklyGoals WeeklyGoal[] @@index([active,createdAt]) }
+
+model PasswordToken {
+  id        String            @id @default(cuid())
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String            @unique
+  type      PasswordTokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime          @default(now())
+
+  @@index([userId])
+}
+
+model Client {
+  id           String   @id @default(cuid())
+  name         String
+  contactName  String?
+  phone        String?
+  email        String?
+  address      String?
+  billingNotes String?
+  createdAt    DateTime @default(now())
+  business     BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId   String?
+  leads        Lead[]
+  jobs         Job[]
+  quotes       Quote[]
+  invoices     Invoice[]
+  reviews      Review[]
+
+  @@index([businessId, createdAt])
+}
+
+model Lead {
+  id          String    @id @default(cuid())
+  client      Client    @relation(fields: [clientId], references: [id])
+  clientId    String
+  description String
+  stage       LeadStage @default(NEW)
+  value       Decimal
+  source      String?
+  createdAt   DateTime  @default(now())
+  business    BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId  String?
+
+  @@index([businessId, createdAt])
+}
+
+model Job {
+  id             String    @id @default(cuid())
+  title          String
+  client         Client    @relation(fields: [clientId], references: [id])
+  clientId       String
+  address        String
+  status         JobStatus @default(SCHEDULED)
+  assignedTo     User?     @relation("AssignedEmployee", fields: [assignedToId], references: [id])
+  assignedToId   String?
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  business       BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId     String?
+  events         JobEvent[]
+  quotes         Quote[]
+  invoices       Invoice[]
+  certificates   Certificate[]
+  inspections    Inspection[]
+  documents      Document[]
+  photos         ProjectPhoto[]
+  smsLogs        SmsLog[]
+  tasks          JobTask[]
+  materials      JobMaterial[]
+
+  @@index([businessId, status, createdAt])
+}
+
+model JobEvent {
+  id           String   @id @default(cuid())
+  job          Job?     @relation(fields: [jobId], references: [id])
+  jobId        String?
+  title        String?
+  notes        String?
+  type         String
+  startsAt     DateTime
+  endsAt       DateTime
+  assignedTo   User?    @relation(fields: [assignedToId], references: [id])
+  assignedToId String?
+}
+
+model Quote {
+  id               String      @id @default(cuid())
+  quoteNumber      String?     @unique
+  job              Job?        @relation(fields: [jobId], references: [id])
+  jobId            String?
+  client           Client      @relation(fields: [clientId], references: [id])
+  clientId         String
+  subtotal         Decimal?
+  gstAmount        Decimal?
+  amount           Decimal
+  status           QuoteStatus @default(DRAFT)
+  xeroId           String?
+  createdAt        DateTime    @default(now())
+  business         BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId       String?
+  lineItems        QuoteLineItem[]
+  convertedInvoice Invoice?    @relation("ConvertedQuote")
+
+  @@index([businessId, status, createdAt])
+}
+
+model QuoteLineItem {
+  id          String  @id @default(cuid())
+  quote       Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId     String
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  lineTotal   Decimal
+  gstRate     Decimal @default(0.10)
+
+  @@index([quoteId])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String?       @unique
+  job           Job?          @relation(fields: [jobId], references: [id])
+  jobId         String?
+  client        Client?       @relation(fields: [clientId], references: [id])
+  clientId      String?
+  supplier      String?
+  subtotal      Decimal?
+  gstAmount     Decimal?
+  amount        Decimal
+  dueDate       DateTime
+  status        InvoiceStatus @default(UNPAID)
+  xeroId        String?
+  createdAt     DateTime      @default(now())
+  business      BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId    String?
+  sourceQuote   Quote?        @relation("ConvertedQuote", fields: [sourceQuoteId], references: [id])
+  sourceQuoteId String?       @unique
+  lineItems     InvoiceLineItem[]
+
+  @@index([businessId, status, createdAt])
+}
+
+model InvoiceLineItem {
+  id          String  @id @default(cuid())
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId   String
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  lineTotal   Decimal
+  gstRate     Decimal @default(0.10)
+
+  @@index([invoiceId])
+}
+
+model Certificate {
+  id            String     @id @default(cuid())
+  job           Job        @relation(fields: [jobId], references: [id])
+  jobId         String
+  certNumber    String     @unique
+  type          String
+  electrician   User       @relation(fields: [electricianId], references: [id])
+  electricianId String
+  issuedDate    DateTime?
+  status        CertStatus @default(PENDING)
+}
+
+model Inspection {
+  id     String           @id @default(cuid())
+  job    Job              @relation(fields: [jobId], references: [id])
+  jobId  String
+  type   String
+  date   DateTime
+  status InspectionStatus @default(SCHEDULED)
+}
+
+model StockItem {
+  id                String @id @default(cuid())
+  name              String
+  unit              String
+  onHand            Int
+  parLevel          Int
+  supplier          String?
+  barcode           String? @unique
+  modelNumber       String?
+  photoStorageKey   String?
+  photoOriginalName String?
+  photoContentType  String?
+  photoSizeBytes    Int?
+  business          BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId        String?
+  enrichmentJobs    ScanEnrichmentJob[]
+  barcodes          StockBarcode[]
+
+  @@index([modelNumber])
+  @@index([businessId, name])
+}
+
+model StockBarcode {
+  barcode     String    @id
+  stockItem   StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  stockItemId String
+  createdAt   DateTime  @default(now())
+
+  @@index([stockItemId])
+}
+
+model ScanEnrichmentJob {
+  id              String               @id @default(cuid())
+  stockItem       StockItem            @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  stockItemId     String
+  photoStorageKey String
+  status          ScanEnrichmentStatus @default(PENDING)
+  attempts        Int                  @default(0)
+  lastError       String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([status, createdAt])
+  @@index([stockItemId])
+}
+
+model Timesheet {
+  id         String          @id @default(cuid())
+  user       User            @relation(fields: [userId], references: [id])
+  userId     String
+  date       DateTime
+  hours      Decimal
+  status     TimesheetStatus @default(PENDING)
+  business   BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String?
+
+  @@index([businessId, date])
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  job          Job?     @relation(fields: [jobId], references: [id])
+  jobId        String?
+  name         String
+  fileUrl      String
+  type         String
+  storageKey   String?  @unique
+  originalName String?
+  contentType  String?
+  sizeBytes    Int?
+  uploadedAt   DateTime @default(now())
+  business     BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId   String?
+
+  @@index([businessId, uploadedAt])
+}
+
+model ProjectPhoto {
+  id           String   @id @default(cuid())
+  job          Job      @relation(fields: [jobId], references: [id])
+  jobId        String
+  fileUrl      String
+  storageKey   String?  @unique
+  originalName String?
+  contentType  String?
+  sizeBytes    Int?
+  uploadedAt   DateTime @default(now())
+}
+
+model JobTask {
+  id        String   @id @default(cuid())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId     String
+  title     String
+  completed Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([jobId, sortOrder])
+}
+
+model JobMaterial {
+  id        String   @id @default(cuid())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId     String
+  name      String
+  quantity  Decimal
+  unit      String?
+  unitCost  Decimal  @default(0)
+  unitSell  Decimal  @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+}
+
+model Reminder {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  title      String
+  dueDate    DateTime?
+  tag        String?
+  completed  Boolean  @default(false)
+  business   BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String?
+
+  @@index([businessId, dueDate])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  client    Client   @relation(fields: [clientId], references: [id])
+  clientId  String
+  rating    Int
+  text      String?
+  source    String?
+  createdAt DateTime @default(now())
+}
+
+model SmsLog {
+  id          String    @id @default(cuid())
+  job         Job       @relation(fields: [jobId], references: [id])
+  jobId       String
+  phoneNumber String
+  message     String
+  status      SmsStatus @default(SENT)
+  providerId  String?
+  createdAt   DateTime  @default(now())
+}
+
+model ReelIdea {
+  id           String    @id @default(cuid())
+  title        String
+  hook         String?
+  platform     String
+  status       String    @default("IDEA")
+  scheduledAt  DateTime?
+  publishedUrl String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  business     BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId   String?
+
+  @@index([businessId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actorEmail String?
+  action     String
+  entityType String
+  entityId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId])
+}
+
+model RateLimitBucket {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+  expiresAt   DateTime
+
+  @@index([expiresAt])
+}
+
+model Equipment {
+  id                String   @id @default(cuid())
+  name              String
+  category          String
+  quantity          Int      @default(1)
+  assetNumber       String?  @unique
+  serialNumber      String?
+  condition         String   @default("GOOD")
+  status            String   @default("AVAILABLE")
+  location          String   @default("Workshop")
+  assignedUserId    String?
+  assignedJobId     String?
+  purchaseDate      DateTime?
+  notes             String?
+  lastStocktakeAt   DateTime?
+  photoStorageKey   String?  @unique
+  photoOriginalName String?
+  photoContentType  String?
+  photoSizeBytes    Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  business          BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId        String?
+  movements         EquipmentMovement[]
+
+  @@index([businessId, status])
+}
+
+model EquipmentMovement {
+  id             String    @id @default(cuid())
+  equipment      Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  equipmentId    String
+  actorId        String?
+  action         String
+  fromLocation   String?
+  toLocation     String?
+  assignedUserId String?
+  assignedJobId  String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+
+  @@index([equipmentId, createdAt])
+}
+
+model EmployeeKpi {
+  id               String   @id @default(cuid())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  jobsCompleted    Int      @default(0)
+  callbacks        Int      @default(0)
+  revenueGenerated Decimal  @default(0)
+  periodStart      DateTime
+  periodEnd        DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, periodStart, periodEnd])
+  @@index([periodStart, periodEnd])
+}
+
+model WeeklyGoal {
+  id         String   @id @default(cuid())
+  weekStart  DateTime
+  text       String
+  createdBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  business   BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String?
+
+  @@unique([businessId, weekStart])
+  @@index([businessId, weekStart])
+}
+
+model TeamChatMessage {
+  id        String   @id @default(cuid())
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model TeamChatRead {
+  userId     String   @id
+  lastReadAt DateTime @default(now())
+}
+
+model BusinessPortal {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  industry      String?
+  contactName   String?
+  contactEmail  String?
+  logoUrl       String?
+  primaryColor  String   @default("#168dff")
+  accentColor   String   @default("#25c7ff")
+  modules       Json
+  plan          String   @default("CUSTOM")
+  monthlyPrice  Decimal?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  users         User[]
+  clients       Client[]
+  leads         Lead[]
+  jobs          Job[]
+  quotes        Quote[]
+  invoices      Invoice[]
+  stockItems    StockItem[]
+  timesheets    Timesheet[]
+  documents     Document[]
+  reminders     Reminder[]
+  equipment     Equipment[]
+  reelIdeas     ReelIdea[]
+  weeklyGoals   WeeklyGoal[]
+
+  @@index([active, createdAt])
+}
