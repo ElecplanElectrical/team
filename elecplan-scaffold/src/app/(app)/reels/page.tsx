@@ -3,9 +3,13 @@ import { prisma } from "@/lib/prisma";
 import ReelsView from "@/components/ReelsView";
 
 export default async function ReelsPage() {
-  await requireAccess("reels");
+  const user = await requireAccess("reels");
+  const businessId = user.businessId ?? "__unassigned__";
 
-  const ideas = await prisma.reelIdea.findMany({ orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }] });
+  const ideas = await prisma.reelIdea.findMany({
+    where: { businessId },
+    orderBy: [{ scheduledAt: "asc" }, { createdAt: "desc" }],
+  });
 
   return <ReelsView ideas={ideas.map((idea) => ({
     ...idea,
