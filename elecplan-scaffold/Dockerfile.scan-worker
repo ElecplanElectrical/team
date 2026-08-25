@@ -11,4 +11,6 @@ RUN pnpm add tesseract.js@6.0.1 --ignore-scripts
 COPY . .
 RUN pnpm prisma generate
 
+CMD ["./node_modules/.bin/tsx", "scripts/scan-enrichment-worker.ts"]
+
 WORKDIR /app
