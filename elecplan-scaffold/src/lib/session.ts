@@ -10,7 +10,7 @@ async function currentActiveUser() {
 
   const user = await prisma.user.findUnique({
     where: { id: sessionUser.id },
-    select: { id: true, name: true, email: true, role: true, active: true },
+    select: { id: true, name: true, email: true, role: true, active: true, businessId: true },
   });
 
   if (!user?.active) return null;
@@ -20,6 +20,7 @@ async function currentActiveUser() {
     name: user.name,
     email: user.email,
     role: user.role,
+    businessId: user.businessId,
   };
 }
 
