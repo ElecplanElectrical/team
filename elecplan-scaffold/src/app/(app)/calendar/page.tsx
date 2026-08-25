@@ -3,6 +3,7 @@ import { requireAccess } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { weekStartFrom, weekKey } from "@/lib/week";
 import CalendarView from "@/components/CalendarView";
+import CalendarDoubleClickBridge from "@/components/CalendarDoubleClickBridge";
 import type { Prisma } from "@prisma/client";
 
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
@@ -56,24 +57,28 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     }),
   ];
 
-  return <CalendarView
-    weekStart={weekKey(start)}
-    events={events}
-    jobs={jobs.map((job) => ({
-      id: job.id,
-      title: job.title,
-      client: job.client.name,
-      contactName: job.client.contactName,
-      phone: job.client.phone,
-      address: job.address,
-      notes: job.notes,
-      status: job.status,
-      crew: job.assignedTo?.name ?? null,
-      scheduledStart: job.scheduledStart?.toISOString() ?? null,
-      scheduledEnd: job.scheduledEnd?.toISOString() ?? null,
-    }))}
-    employees={employees}
-    role={user.role}
-    currentUserId={user.id}
-  />;
+  const currentWeekKey = weekKey(start);
+  return <>
+    <CalendarDoubleClickBridge weekStart={currentWeekKey} />
+    <CalendarView
+      weekStart={currentWeekKey}
+      events={events}
+      jobs={jobs.map((job) => ({
+        id: job.id,
+        title: job.title,
+        client: job.client.name,
+        contactName: job.client.contactName,
+        phone: job.client.phone,
+        address: job.address,
+        notes: job.notes,
+        status: job.status,
+        crew: job.assignedTo?.name ?? null,
+        scheduledStart: job.scheduledStart?.toISOString() ?? null,
+        scheduledEnd: job.scheduledEnd?.toISOString() ?? null,
+      }))}
+      employees={employees}
+      role={user.role}
+      currentUserId={user.id}
+    />
+  </>;
 }
