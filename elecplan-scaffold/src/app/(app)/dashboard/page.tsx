@@ -35,7 +35,7 @@ export default async function DashboardPage() {
       take: 6,
       select: { id: true, title: true, dueDate: true, tag: true },
     }),
-    prisma.weeklyGoal.findUnique({ where: { weekStart: currentWeekStart() }, select: { text: true } }),
+    prisma.weeklyGoal.findFirst({ where: { weekStart: currentWeekStart() }, select: { text: true } }),
   ]);
 
   const quotePipeline = quotes.filter((q) => q.status === "DRAFT" || q.status === "SENT").reduce((sum, q) => sum + Number(q.amount), 0);
