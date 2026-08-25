@@ -13,24 +13,25 @@ function currentWeekStart() {
 
 export default async function DashboardPage() {
   const user = await requireAccess("dashboard");
+  const businessId = user.businessId ?? "__unassigned__";
   const now = new Date();
   const weekAgo = new Date(now);
   weekAgo.setDate(weekAgo.getDate() - 6);
   weekAgo.setHours(0, 0, 0, 0);
 
   const [quotes, invoices, jobs, clients, upcomingJobs, reminders, weeklyGoal] = await Promise.all([
-    prisma.quote.findMany({ select: { amount: true, status: true } }),
-    prisma.invoice.findMany({ select: { amount: true, status: true, clientId: true, supplier: true, dueDate: true, createdAt: true } }),
-    prisma.job.findMany({ select: { status: true } }),
-    prisma.client.count(),
+    prisma.quote.findMany({ where: { businessId }, select: { amount: true, status: true } }),
+    prisma.invoice.findMany({ where: { businessId }, select: { amount: true, status: true, clientId: true, supplier: true, dueDate: true, createdAt: true } }),
+    prisma.job.findMany({ where: { businessId }, select: { status: true } }),
+    prisma.client.count({ where: { businessId } }),
     prisma.job.findMany({
-      where: { scheduledStart: { gte: now }, status: { notIn: ["COMPLETE", "INVOICED"] } },
+      where: { businessId, scheduledStart: { gte: now }, status: { notIn: ["COMPLETE", "INVOICED"] } },
       orderBy: { scheduledStart: "asc" },
       take: 4,
       select: { id: true, title: true, scheduledStart: true, scheduledEnd: true, status: true, assignedTo: { select: { name: true } }, client: { select: { name: true } } },
     }),
     prisma.reminder.findMany({
-      where: { userId: user.id, completed: false },
+      where: { businessId, userId: user.id, completed: false },
       orderBy: [{ dueDate: "asc" }, { id: "asc" }],
       take: 6,
       select: { id: true, title: true, dueDate: true, tag: true },
