@@ -10,7 +10,5 @@ RUN pnpm add tesseract.js@6.0.1 --ignore-scripts
 
 COPY . .
 RUN pnpm prisma generate
-RUN chmod +x /app/scripts/worker-entrypoint.sh
 
 WORKDIR /app
-ENTRYPOINT ["/app/scripts/worker-entrypoint.sh"]
