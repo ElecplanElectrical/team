@@ -7,8 +7,9 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm add tesseract.js@6.0.1 --ignore-scripts
-
 COPY . .
 RUN pnpm prisma generate
 
 WORKDIR /app
+
+CMD ["./node_modules/.bin/tsx", "scripts/scan-enrichment-worker.ts"]
