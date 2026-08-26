@@ -7,10 +7,12 @@ function billRef(id: string): string {
 }
 
 export default async function BillsPage() {
-  await requireAccess("bills");
+  const user = await requireAccess("bills");
+  const businessId = user.businessId ?? "__unassigned__";
 
   const [invoiceRows, clients, jobs] = await Promise.all([
     prisma.invoice.findMany({
+      where: { businessId },
       include: {
         client: { select: { name: true } },
         job: { select: { title: true } },
@@ -18,10 +20,12 @@ export default async function BillsPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.client.findMany({
+      where: { businessId },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
     prisma.job.findMany({
+      where: { businessId },
       select: { id: true, title: true, clientId: true },
       orderBy: { createdAt: "desc" },
     }),
