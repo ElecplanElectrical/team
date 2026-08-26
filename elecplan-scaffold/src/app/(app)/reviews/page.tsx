@@ -3,14 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { requireAccess } from "@/lib/session";
 
 export default async function ReviewsPage() {
-  await requireAccess("reviews");
+  const user = await requireAccess("reviews");
+  const businessId = user.businessId ?? "__unassigned__";
 
   const [reviews, clients] = await Promise.all([
     prisma.review.findMany({
+      where: { businessId },
       orderBy: { createdAt: "desc" },
       include: { client: { select: { name: true } } },
     }),
-    prisma.client.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.client.findMany({ where: { businessId }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   return (
