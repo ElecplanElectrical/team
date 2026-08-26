@@ -15,7 +15,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const queryEnd = addDays(end, 1);
 
   const where: Prisma.JobEventWhereInput = {
-    businessId,
+    job: { businessId },
     startsAt: { gte: queryStart, lt: queryEnd },
     type: { notIn: ["field-arrived", "field-complete", "field-revisit"] },
   };
@@ -42,7 +42,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     }),
     user.role === "EMPLOYEE" ? Promise.resolve([]) : prisma.user.findMany({ where: { businessId, active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.inspection.findMany({
-      where: { businessId, date: { gte: queryStart, lt: queryEnd }, status: "SCHEDULED", ...(user.role === "EMPLOYEE" ? { job: { assignedToId: user.id } } : {}) },
+      where: { date: { gte: queryStart, lt: queryEnd }, status: "SCHEDULED", job: { businessId, ...(user.role === "EMPLOYEE" ? { assignedToId: user.id } : {}) } },
       select: { id: true, type: true, date: true, jobId: true, job: { select: { title: true, assignedToId: true } } },
       orderBy: { date: "asc" },
     }),
