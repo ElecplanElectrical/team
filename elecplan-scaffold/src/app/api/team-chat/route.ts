@@ -23,15 +23,14 @@ export async function GET() {
     SELECT m."id", m."body", m."createdAt", m."senderId", u."name" AS "senderName"
     FROM "TeamChatMessage" m
     JOIN "User" u ON u."id" = m."senderId"
-    WHERE u."businessId" = ${businessId}
+    WHERE m."businessId" = ${businessId}
     ORDER BY m."createdAt" DESC LIMIT 80
   `;
 
   const unreadRows = await prisma.$queryRaw<{count:bigint}[]>`
     SELECT COUNT(*)::bigint AS count
     FROM "TeamChatMessage" m
-    JOIN "User" sender ON sender."id" = m."senderId"
-    WHERE sender."businessId" = ${businessId}
+    WHERE m."businessId" = ${businessId}
       AND m."senderId" <> ${user.id}
       AND m."createdAt" > COALESCE((SELECT r."lastReadAt" FROM "TeamChatReadState" r WHERE r."userId" = ${user.id}), TIMESTAMP '1970-01-01')
   `;
@@ -42,7 +41,7 @@ export async function GET() {
 export async function POST(req:Request) {
   const auth = await activeBusinessUser();
   if ("response" in auth) return auth.response;
-  const { user } = auth;
+  const { user, businessId } = auth;
 
   const data = await req.json().catch(()=>null) as {body?:string}|null;
   const body = data?.body?.trim();
@@ -50,7 +49,7 @@ export async function POST(req:Request) {
   if (body.length > 2000) return NextResponse.json({ error: "Message is too long" }, { status: 400 });
 
   const id = randomUUID();
-  await prisma.$executeRaw`INSERT INTO "TeamChatMessage" ("id","senderId","body") VALUES (${id},${user.id},${body})`;
+  await prisma.$executeRaw`INSERT INTO "TeamChatMessage" ("id","senderId","businessId","body") VALUES (${id},${user.id},${businessId},${body})`;
   await prisma.$executeRaw`
     INSERT INTO "TeamChatReadState" ("userId","lastReadAt") VALUES (${user.id},CURRENT_TIMESTAMP)
     ON CONFLICT ("userId") DO UPDATE SET "lastReadAt" = CURRENT_TIMESTAMP
