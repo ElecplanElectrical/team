@@ -15,7 +15,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const queryEnd = addDays(end, 1);
 
   const where: Prisma.JobEventWhereInput = {
-    job: { businessId },
+    OR: [{ job: { businessId } }, { jobId: null, assignedTo: { businessId } }],
     startsAt: { gte: queryStart, lt: queryEnd },
     type: { notIn: ["field-arrived", "field-complete", "field-revisit"] },
   };
