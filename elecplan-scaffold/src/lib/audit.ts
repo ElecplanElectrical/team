@@ -38,10 +38,15 @@ export type AuditRow = AuditLog;
 
 export async function recentAuditRowsForBusiness(businessId: string, limit = 200): Promise<AuditRow[]> {
   const safeLimit = Math.max(1, Math.min(limit, 500));
+  const tenantUsers = await prisma.user.findMany({
+    where: { businessId },
+    select: { id: true },
+  });
+  const actorIds = tenantUsers.map((user) => user.id);
   return prisma.auditLog.findMany({
     where: {
       OR: [
-        { actor: { businessId } },
+        ...(actorIds.length ? [{ actorId: { in: actorIds } }] : []),
         { details: { path: ["businessId"], equals: businessId } },
       ],
     },
