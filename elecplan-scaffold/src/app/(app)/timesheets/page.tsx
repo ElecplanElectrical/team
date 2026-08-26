@@ -4,9 +4,10 @@ import TimesheetsView, { type TimesheetRow } from "@/components/TimesheetsView";
 
 export default async function TimesheetsPage() {
   const user = await requireAccess("timesheets");
+  const businessId = user.businessId ?? "__unassigned__";
 
   const rows = await prisma.timesheet.findMany({
-    where: user.role === "EMPLOYEE" ? { userId: user.id } : {},
+    where: { businessId, ...(user.role === "EMPLOYEE" ? { userId: user.id } : {}) },
     include: { user: { select: { name: true } } },
     orderBy: [{ date: "desc" }, { user: { name: "asc" } }],
   });
