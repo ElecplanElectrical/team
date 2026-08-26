@@ -8,7 +8,7 @@ export default async function InspectionsPage() {
 
   const [inspectionRows, jobs] = await Promise.all([
     prisma.inspection.findMany({
-      where: { businessId },
+      where: { job: { businessId } },
       include: { job: { select: { title: true, address: true } } },
       orderBy: { date: "asc" },
     }),
