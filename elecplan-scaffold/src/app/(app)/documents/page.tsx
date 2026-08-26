@@ -5,13 +5,16 @@ import DocumentsView from "@/components/DocumentsView";
 
 export default async function DocumentsPage() {
   const user = await requireAccess("documents");
+  const businessId = user.businessId ?? "__unassigned__";
 
   const [documents, jobs] = await Promise.all([
     prisma.document.findMany({
+      where: { businessId },
       orderBy: { uploadedAt: "desc" },
       include: { job: { select: { title: true } } },
     }),
     prisma.job.findMany({
+      where: { businessId },
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true },
     }),
