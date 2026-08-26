@@ -8,7 +8,7 @@ export default async function ReviewsPage() {
 
   const [reviews, clients] = await Promise.all([
     prisma.review.findMany({
-      where: { businessId },
+      where: { client: { businessId } },
       orderBy: { createdAt: "desc" },
       include: { client: { select: { name: true } } },
     }),
