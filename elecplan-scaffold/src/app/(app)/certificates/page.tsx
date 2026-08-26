@@ -3,10 +3,12 @@ import { prisma } from "@/lib/prisma";
 import CertificatesView, { type CertificateRow } from "@/components/CertificatesView";
 
 export default async function CertificatesPage() {
-  await requireAccess("certificates");
+  const user = await requireAccess("certificates");
+  const businessId = user.businessId ?? "__unassigned__";
 
   const [certificateRows, jobs, electricians] = await Promise.all([
     prisma.certificate.findMany({
+      where: { job: { businessId }, electrician: { businessId } },
       include: {
         job: { select: { title: true, address: true } },
         electrician: { select: { name: true, licenseNumber: true } },
@@ -14,11 +16,12 @@ export default async function CertificatesPage() {
       orderBy: [{ issuedDate: "desc" }, { certNumber: "asc" }],
     }),
     prisma.job.findMany({
+      where: { businessId },
       select: { id: true, title: true, address: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.findMany({
-      where: { active: true },
+      where: { active: true, businessId },
       select: { id: true, name: true, licenseNumber: true },
       orderBy: { name: "asc" },
     }),
@@ -36,11 +39,5 @@ export default async function CertificatesPage() {
     licenseNumber: certificate.electrician.licenseNumber,
   }));
 
-  return (
-    <CertificatesView
-      certificates={certificates}
-      jobs={jobs}
-      electricians={electricians}
-    />
-  );
+  return <CertificatesView certificates={certificates} jobs={jobs} electricians={electricians} />;
 }
