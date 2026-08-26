@@ -13,6 +13,9 @@ const schema = z.object({
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
+  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  const businessId = dbUser.businessId;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid scheduling window" }, { status: 400 });
@@ -22,13 +25,25 @@ export async function POST(req: Request) {
   if (!(endsAt > startsAt)) return NextResponse.json({ error: "End time must be after start time" }, { status: 400 });
 
   const assignedToId = user.role === "EMPLOYEE" ? user.id : parsed.data.assignedToId ?? null;
+  if (assignedToId) {
+    const assignee = await prisma.user.findFirst({ where: { id: assignedToId, businessId, active: true }, select: { id: true } });
+    if (!assignee) return NextResponse.json({ error: "Assignee not found for this business or inactive" }, { status: 400 });
+  }
+  if (parsed.data.jobId) {
+    const job = await prisma.job.findFirst({ where: { id: parsed.data.jobId, businessId }, select: { id: true } });
+    if (!job) return NextResponse.json({ error: "Job not found for this business" }, { status: 404 });
+  }
+
   const conflicts = await prisma.jobEvent.findMany({
     where: {
       startsAt: { lt: endsAt },
       endsAt: { gt: startsAt },
-      OR: [
-        ...(assignedToId ? [{ assignedToId }] : []),
-        ...(parsed.data.jobId ? [{ jobId: parsed.data.jobId }] : []),
+      AND: [
+        { OR: [{ job: { businessId } }, { jobId: null, assignedTo: { businessId } }] },
+        { OR: [
+          ...(assignedToId ? [{ assignedToId }] : []),
+          ...(parsed.data.jobId ? [{ jobId: parsed.data.jobId }] : []),
+        ] },
       ],
     },
     orderBy: { startsAt: "asc" },
