@@ -26,7 +26,7 @@ async function confirmationForJob(id: string, businessId: string) {
   const to = normalizeAustralianMobile(job.client.phone);
   if (!to) return { error: "Client phone must be a valid Australian mobile number (04xx xxx xxx or +61 4xx xxx xxx)", status: 400 } as const;
   const firstName = (job.client.contactName || job.client.name).trim().split(/\s+/)[0] || "there";
-  const message = `Hi ${firstName}, your booking is confirmed for ${bookingTime(job.scheduledStart)} at ${job.address}. If your plans change or you need to reschedule, please get in touch with us as soon as possible.`;
+  const message = `Hi ${firstName}, your booking is set for ${bookingTime(job.scheduledStart)} at ${job.address}. Reply YES to confirm, or NO if you need us to contact you to reschedule.`;
   return { job, to, message, preview: { jobId: job.id, jobTitle: job.title, clientName: job.client.name, contactName: job.client.contactName, phoneNumber: to, address: job.address, scheduledStart: job.scheduledStart.toISOString(), scheduledEnd: job.scheduledEnd?.toISOString() ?? null, message, configured: smsConfigured() } } as const;
 }
 
