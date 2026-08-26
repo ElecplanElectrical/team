@@ -6,8 +6,9 @@ function invoiceRef(id:string, invoiceNumber:string|null){return invoiceNumber ?
 function money(value:number){return new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(value);}
 
 export default async function InvoicesPage(){
-  await requireAccess("invoices");
-  const rows=await prisma.invoice.findMany({where:{supplier:null},include:{client:{select:{name:true}},job:{select:{title:true}}},orderBy:{createdAt:"desc"}});
+  const user=await requireAccess("invoices");
+  const businessId=user.businessId ?? "__unassigned__";
+  const rows=await prisma.invoice.findMany({where:{businessId,supplier:null},include:{client:{select:{name:true}},job:{select:{title:true}}},orderBy:{createdAt:"desc"}});
   const total=rows.reduce((sum,row)=>sum+Number(row.amount),0);
   const outstanding=rows.filter(row=>row.status!=="PAID").reduce((sum,row)=>sum+Number(row.amount),0);
   return <>
