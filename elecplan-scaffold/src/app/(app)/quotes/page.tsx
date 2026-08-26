@@ -7,10 +7,12 @@ function legacyQuoteRef(id: string): string {
 }
 
 export default async function QuotesPage() {
-  await requireAccess("quotes");
+  const user = await requireAccess("quotes");
+  const businessId = user.businessId ?? "__unassigned__";
 
   const [quoteRows, clients, jobs] = await Promise.all([
     prisma.quote.findMany({
+      where: { businessId },
       include: {
         client: { select: { name: true } },
         job: { select: { title: true } },
@@ -19,8 +21,8 @@ export default async function QuotesPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.client.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.job.findMany({ select: { id: true, title: true, clientId: true }, orderBy: { createdAt: "desc" } }),
+    prisma.client.findMany({ where: { businessId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.job.findMany({ where: { businessId }, select: { id: true, title: true, clientId: true }, orderBy: { createdAt: "desc" } }),
   ]);
 
   const quotes: QuoteRow[] = quoteRows.map((q) => ({
