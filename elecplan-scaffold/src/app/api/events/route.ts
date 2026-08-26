@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const data = parsed.data;
   if (user.role === "EMPLOYEE" && (data.type === "job" || data.jobId)) return NextResponse.json({ error: "Job scheduling must be done by an admin or supervisor" }, { status: 403 });
 
-  const assignedToId = user.role === "EMPLOYEE" ? user.id : data.assignedToId ?? null;
+  const assignedToId = user.role === "EMPLOYEE" ? user.id : data.assignedToId ?? (data.jobId ? null : user.id);
   if (assignedToId) {
     const assignee = await prisma.user.findFirst({ where: { id: assignedToId, businessId, active: true }, select: { id: true } });
     if (!assignee) return NextResponse.json({ error: "Assignee not found for this business or inactive" }, { status: 400 });
