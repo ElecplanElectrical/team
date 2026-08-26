@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { requireUser } from "@/lib/session";
-import { recentAuditRows } from "@/lib/audit";
+import { recentAuditRowsForBusiness } from "@/lib/audit";
 import TopBar from "@/components/TopBar";
 
 const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", cyan: "#25c7ff" };
@@ -18,8 +18,8 @@ function detailSummary(value: unknown): string {
 
 export default async function AuditPage() {
   const user = await requireUser();
-  if (user.role !== "ADMIN") notFound();
-  const rows = await recentAuditRows(200);
+  if (user.role !== "ADMIN" || !user.businessId) notFound();
+  const rows = await recentAuditRowsForBusiness(user.businessId, 200);
   const actors = new Set(rows.map((row) => row.actorEmail ?? row.actorId ?? "System")).size;
   const actions = new Set(rows.map((row) => row.action)).size;
 
