@@ -3,15 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { requireAccess } from "@/lib/session";
 
 export default async function AnalyticsPage() {
-  await requireAccess("analytics");
+  const user = await requireAccess("analytics");
+  const businessId = user.businessId ?? "__unassigned__";
 
   const [leads, quotes, invoices, jobs, reviews, timesheets] = await Promise.all([
-    prisma.lead.findMany({ select: { stage: true, value: true } }),
-    prisma.quote.findMany({ select: { status: true, amount: true } }),
-    prisma.invoice.findMany({ select: { status: true, amount: true, clientId: true, supplier: true, dueDate: true } }),
-    prisma.job.findMany({ select: { status: true } }),
-    prisma.review.findMany({ select: { rating: true } }),
-    prisma.timesheet.findMany({ select: { status: true, hours: true } }),
+    prisma.lead.findMany({ where: { businessId }, select: { stage: true, value: true } }),
+    prisma.quote.findMany({ where: { businessId }, select: { status: true, amount: true } }),
+    prisma.invoice.findMany({ where: { businessId }, select: { status: true, amount: true, clientId: true, supplier: true, dueDate: true } }),
+    prisma.job.findMany({ where: { businessId }, select: { status: true } }),
+    prisma.review.findMany({ where: { client: { businessId } }, select: { rating: true } }),
+    prisma.timesheet.findMany({ where: { businessId }, select: { status: true, hours: true } }),
   ]);
 
   const wonLeads = leads.filter((lead) => lead.stage === "WON");
