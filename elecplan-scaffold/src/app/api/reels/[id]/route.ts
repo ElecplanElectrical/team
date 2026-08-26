@@ -15,8 +15,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const parsed = patchSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   const { id } = await params;
-  const existing = await prisma.reelIdea.findFirst({ where: { id, businessId: actor.businessId }, select: { id: true } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  await prisma.reelIdea.update({ where: { id }, data: { status: parsed.data.status } });
+  const updated = await prisma.reelIdea.updateMany({
+    where: { id, businessId: actor.businessId },
+    data: { status: parsed.data.status },
+  });
+  if (updated.count !== 1) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
