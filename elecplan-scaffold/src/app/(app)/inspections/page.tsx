@@ -3,14 +3,17 @@ import { prisma } from "@/lib/prisma";
 import InspectionsView, { type InspectionRow } from "@/components/InspectionsView";
 
 export default async function InspectionsPage() {
-  await requireAccess("inspections");
+  const user = await requireAccess("inspections");
+  const businessId = user.businessId ?? "__unassigned__";
 
   const [inspectionRows, jobs] = await Promise.all([
     prisma.inspection.findMany({
+      where: { businessId },
       include: { job: { select: { title: true, address: true } } },
       orderBy: { date: "asc" },
     }),
     prisma.job.findMany({
+      where: { businessId },
       select: { id: true, title: true, address: true },
       orderBy: { createdAt: "desc" },
     }),
