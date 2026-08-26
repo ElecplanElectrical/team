@@ -4,9 +4,11 @@ import ClientsView, { type ClientRow } from "@/components/ClientsView";
 
 export default async function ClientsPage() {
   const user = await requireAccess("clients");
+  const businessId = user.businessId ?? "__unassigned__";
 
   const [clients, billedByClient, lastJobByClient, jobs, crew, inspections] = await Promise.all([
     prisma.client.findMany({
+      where: { businessId },
       select: {
         id: true,
         name: true,
@@ -19,18 +21,20 @@ export default async function ClientsPage() {
       },
       orderBy: { name: "asc" },
     }),
-    prisma.invoice.groupBy({ by: ["clientId"], _sum: { amount: true } }),
-    prisma.job.groupBy({ by: ["clientId"], _max: { scheduledStart: true, createdAt: true } }),
+    prisma.invoice.groupBy({ where: { businessId }, by: ["clientId"], _sum: { amount: true } }),
+    prisma.job.groupBy({ where: { businessId }, by: ["clientId"], _max: { scheduledStart: true, createdAt: true } }),
     prisma.job.findMany({
+      where: { businessId },
       select: { id: true, clientId: true, title: true, address: true, status: true, scheduledStart: true, createdAt: true },
       orderBy: [{ scheduledStart: "desc" }, { createdAt: "desc" }],
     }),
     prisma.user.findMany({
-      where: { active: true },
+      where: { businessId, active: true },
       select: { id: true, name: true, role: true },
       orderBy: { name: "asc" },
     }),
     prisma.inspection.findMany({
+      where: { job: { businessId } },
       select: { id: true, jobId: true, type: true, status: true, date: true },
       orderBy: { date: "desc" },
     }),
