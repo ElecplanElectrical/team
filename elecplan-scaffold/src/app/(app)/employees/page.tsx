@@ -5,8 +5,10 @@ import { assignableRoles } from "@/lib/access";
 
 export default async function EmployeesPage() {
   const actor = await requireAccess("employees");
+  const businessId = actor.businessId ?? "__unassigned__";
 
   const users = await prisma.user.findMany({
+    where: { businessId },
     select: {
       id: true,
       name: true,
