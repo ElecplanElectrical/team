@@ -44,13 +44,22 @@ export async function POST(req: Request) {
   const body = replyRaw.trim().toUpperCase();
   if (!from || !["YES", "Y", "NO", "N"].includes(body)) return NextResponse.json({ ok: true });
 
-  const latest = await prisma.smsLog.findFirst({
+  const candidates = await prisma.smsLog.findMany({
     where: { phoneNumber: from, status: "SENT" },
     orderBy: { createdAt: "desc" },
+    take: 20,
     include: { job: { select: { id: true, businessId: true } } },
   });
-  if (!latest) return NextResponse.json({ ok: true });
+  if (candidates.length === 0) return NextResponse.json({ ok: true });
 
+  const businessIds = new Set(candidates.map((entry) => entry.job.businessId).filter(Boolean));
+  if (businessIds.size !== 1) {
+    // A phone number can exist in multiple customer businesses. Without a tenant
+    // identifier from the provider, fail closed rather than mutate the wrong tenant.
+    return NextResponse.json({ ok: true, ignored: "ambiguous-tenant" });
+  }
+
+  const latest = candidates[0];
   const status = body === "YES" || body === "Y" ? "CONFIRMED" : "DECLINED";
   await prisma.smsLog.update({ where: { id: latest.id }, data: { status } });
   await recordAudit({ actor: {}, action: status === "CONFIRMED" ? "CLIENT_CONFIRMATION_SMS_CONFIRMED" : "CLIENT_CONFIRMATION_SMS_DECLINED", entityType: "Job", entityId: latest.job.id, details: { businessId: latest.job.businessId, smsLogId: latest.id } });
