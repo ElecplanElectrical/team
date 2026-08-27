@@ -9,13 +9,26 @@ import { generateToken, expiryFromNow, setPasswordUrl, INVITE_TTL_HOURS } from "
 
 const createSchema = z.object({ name: z.string().trim().min(1, "Name is required").max(120), email: z.string().trim().toLowerCase().email().max(160), phone: z.string().trim().max(40).optional().nullable(), role: z.enum(["ADMIN", "SUPERVISOR", "EMPLOYEE"]) });
 
+async function employeeContext(){
+  const actor=await getSessionUser();
+  if(!actor)return{error:NextResponse.json({error:"Unauthorized"},{status:401})}as const;
+  if(!canAccess(actor.role,"employees"))return{error:NextResponse.json({error:"Forbidden"},{status:403})}as const;
+  const actorRecord=await prisma.user.findUnique({where:{id:actor.id},select:{businessId:true,active:true}});
+  if(!actorRecord?.active||!actorRecord.businessId)return{error:NextResponse.json({error:"No active customer business selected."},{status:409})}as const;
+  return{actor,businessId:actorRecord.businessId}as const;
+}
+
+export async function GET(){
+  const ctx=await employeeContext();
+  if("error" in ctx)return ctx.error;
+  const users=await prisma.user.findMany({where:{businessId:ctx.businessId},select:{id:true,name:true,email:true,phone:true,role:true,active:true,licenseNumber:true,licenseExpiry:true,createdAt:true},orderBy:[{active:"desc"},{name:"asc"}]});
+  return NextResponse.json(users);
+}
+
 export async function POST(req: Request) {
-  const actor = await getSessionUser();
-  if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canAccess(actor.role, "employees")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const actorRecord = await prisma.user.findUnique({ where: { id: actor.id }, select: { businessId: true, active: true } });
-  if (!actorRecord?.active || !actorRecord.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = actorRecord.businessId;
+  const ctx=await employeeContext();
+  if("error" in ctx)return ctx.error;
+  const {actor,businessId}=ctx;
 
   const limit = await consumeRateLimit(`user-invite:actor:${actor.id}`, 20, 60 * 60 * 1000);
   if (!limit.allowed) {
