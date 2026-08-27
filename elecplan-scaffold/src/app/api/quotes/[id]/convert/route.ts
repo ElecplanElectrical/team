@@ -9,24 +9,14 @@ function invoiceNumber() {
   return `INV-${year}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
-export async function POST(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canAccess(user.role, "quotes") || !canAccess(user.role, "bills")) {
+  if (!canAccess(user.role, "quotes") || !canAccess(user.role, "invoices")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { businessId: true },
-  });
-  if (!dbUser?.businessId) {
-    return NextResponse.json({ error: "Select a customer business before creating invoice data." }, { status: 409 });
-  }
-  const businessId = dbUser.businessId;
+  if (!user.businessId) return NextResponse.json({ error: "Select a customer business before creating invoice data." }, { status: 409 });
+  const businessId = user.businessId;
 
   const { id } = await params;
   const quote = await prisma.quote.findFirst({
@@ -34,66 +24,21 @@ export async function POST(
     include: { lineItems: true, convertedInvoice: { select: { id: true, invoiceNumber: true } } },
   });
   if (!quote) return NextResponse.json({ error: "Quote not found for this business" }, { status: 404 });
-  if (quote.status !== "ACCEPTED") {
-    return NextResponse.json({ error: "Only accepted quotes can be converted" }, { status: 400 });
-  }
-  if (quote.convertedInvoice) {
-    return NextResponse.json({ error: "This quote has already been converted", invoice: quote.convertedInvoice }, { status: 409 });
-  }
+  if (quote.status !== "ACCEPTED") return NextResponse.json({ error: "Only accepted quotes can be converted" }, { status: 400 });
+  if (quote.convertedInvoice) return NextResponse.json({ error: "This quote has already been converted", invoice: quote.convertedInvoice }, { status: 409 });
 
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 14);
-
   try {
     const invoice = await prisma.$transaction(async (tx) => {
       const created = await tx.invoice.create({
-        data: {
-          businessId,
-          invoiceNumber: invoiceNumber(),
-          sourceQuoteId: quote.id,
-          clientId: quote.clientId,
-          jobId: quote.jobId,
-          subtotal: quote.subtotal ?? quote.amount,
-          gstAmount: quote.gstAmount ?? 0,
-          amount: quote.amount,
-          dueDate,
-          status: "UNPAID",
-          lineItems: quote.lineItems.length > 0 ? {
-            create: quote.lineItems.map((item) => ({
-              description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              lineTotal: item.lineTotal,
-              gstRate: item.gstRate,
-            })),
-          } : undefined,
-        },
+        data: { businessId, invoiceNumber: invoiceNumber(), sourceQuoteId: quote.id, clientId: quote.clientId, jobId: quote.jobId, subtotal: quote.subtotal ?? quote.amount, gstAmount: quote.gstAmount ?? 0, amount: quote.amount, dueDate, status: "UNPAID", lineItems: quote.lineItems.length ? { create: quote.lineItems.map((item) => ({ description: item.description, quantity: item.quantity, unitPrice: item.unitPrice, lineTotal: item.lineTotal, gstRate: item.gstRate })) } : undefined },
         select: { id: true, invoiceNumber: true, amount: true, dueDate: true },
       });
-
-      if (quote.jobId) {
-        await tx.job.updateMany({
-          where: { id: quote.jobId, businessId, status: "COMPLETE" },
-          data: { status: "INVOICED" },
-        });
-      }
+      if (quote.jobId) await tx.job.updateMany({ where: { id: quote.jobId, businessId, status: "COMPLETE" }, data: { status: "INVOICED" } });
       return created;
     });
-
-    await recordAudit({
-      actor: user,
-      action: "QUOTE_CONVERTED_TO_INVOICE",
-      entityType: "Quote",
-      entityId: quote.id,
-      details: {
-        businessId,
-        invoiceId: invoice.id,
-        invoiceNumber: invoice.invoiceNumber,
-        jobId: quote.jobId,
-        amount: Number(quote.amount),
-      },
-    });
-
+    await recordAudit({ actor: user, action: "QUOTE_CONVERTED_TO_INVOICE", entityType: "Quote", entityId: quote.id, details: { businessId, invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, jobId: quote.jobId, amount: Number(quote.amount) } });
     return NextResponse.json(invoice, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Could not convert quote. It may already have an invoice." }, { status: 409 });
