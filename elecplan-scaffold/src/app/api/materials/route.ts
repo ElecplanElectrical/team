@@ -12,12 +12,25 @@ const schema = z.object({
   supplier: z.string().trim().max(120).optional().nullable(),
 });
 
+async function context(){
+  const user=await getSessionUser();
+  if(!user)return{error:NextResponse.json({error:"Unauthorized"},{status:401})}as const;
+  const dbUser=await prisma.user.findUnique({where:{id:user.id},select:{businessId:true,active:true}});
+  if(!dbUser?.active||!dbUser.businessId)return{error:NextResponse.json({error:"No active customer business selected."},{status:409})}as const;
+  return{user,businessId:dbUser.businessId}as const;
+}
+
+export async function GET(){
+  const ctx=await context();
+  if("error" in ctx)return ctx.error;
+  const items=await prisma.stockItem.findMany({where:{businessId:ctx.businessId},orderBy:{name:"asc"}});
+  return NextResponse.json(items);
+}
+
 export async function POST(req: Request) {
-  const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = dbUser.businessId;
+  const ctx=await context();
+  if("error" in ctx)return ctx.error;
+  const {user,businessId}=ctx;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid material item", issues: parsed.error.flatten() }, { status: 400 });
