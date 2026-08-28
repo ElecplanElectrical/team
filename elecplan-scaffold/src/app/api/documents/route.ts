@@ -24,7 +24,6 @@ export async function GET(){
   const documents=await prisma.document.findMany({
     where:{businessId:ctx.businessId},
     include:{job:{select:{id:true,title:true,status:true}}},
-    orderBy:{createdAt:"desc"},
   });
   return NextResponse.json(documents);
 }
