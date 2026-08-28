@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { getPlatformAdmin } from "@/lib/platform-admin";
 import { DEFAULT_MODULES } from "@/lib/brand";
 
 const schema = z.object({
@@ -17,19 +17,38 @@ function slugify(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
 }
 
+async function requirePlatformAdmin() {
+  const admin = await getPlatformAdmin();
+  if (!admin) return null;
+  return admin;
+}
+
+export async function GET() {
+  const admin = await requirePlatformAdmin();
+  if (!admin) return NextResponse.json({ error: "Platform owner access required" }, { status: 403 });
+
+  const businesses = await prisma.businessPortal.findMany({
+    select: {
+      id: true, name: true, slug: true, industry: true, contactName: true, contactEmail: true,
+      logoUrl: true, primaryColor: true, accentColor: true, modules: true, plan: true,
+      monthlyPrice: true, active: true, createdAt: true, updatedAt: true,
+      _count: { select: { users: true, clients: true, jobs: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return NextResponse.json(businesses);
+}
+
 export async function POST(req: Request) {
-  const user = await requireUser();
-  const actor = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, businessId: true, active: true } });
-  if (!actor?.active || actor.role !== "ADMIN" || actor.businessId) {
-    return NextResponse.json({ error: "Platform owner access required" }, { status: 403 });
-  }
+  const admin = await requirePlatformAdmin();
+  if (!admin) return NextResponse.json({ error: "Platform owner access required" }, { status: 403 });
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Check the business details, owner email and modules." }, { status: 400 });
 
   let slug = slugify(parsed.data.name);
   if (!slug) return NextResponse.json({ error: "Business name cannot create a portal address." }, { status: 400 });
-  const existing = await prisma.businessPortal.findUnique({ where: { slug } });
+  const existing = await prisma.businessPortal.findUnique({ where: { slug }, select: { id: true } });
   if (existing) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
   const raw = parsed.data.monthlyPrice;
@@ -40,8 +59,7 @@ export async function POST(req: Request) {
 
   const business = await prisma.businessPortal.create({
     data: {
-      name: parsed.data.name,
-      slug,
+      name: parsed.data.name, slug,
       industry: parsed.data.industry || null,
       contactName: parsed.data.contactName || null,
       contactEmail: parsed.data.contactEmail || null,
