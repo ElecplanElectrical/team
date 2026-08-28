@@ -6,13 +6,30 @@ import { recordAudit } from "@/lib/audit";
 
 const schema = z.object({ jobId: z.string().cuid(), type: z.string().trim().min(1).max(120), date: z.string().datetime(), status: z.enum(["SCHEDULED", "PASSED", "FAILED"]) });
 
+async function context(){
+  const user=await getSessionUser();
+  if(!user)return{error:NextResponse.json({error:"Unauthorized"},{status:401})}as const;
+  const dbUser=await prisma.user.findUnique({where:{id:user.id},select:{businessId:true,active:true}});
+  if(!dbUser?.active||!dbUser.businessId)return{error:NextResponse.json({error:"No active customer business selected."},{status:409})}as const;
+  return{user,businessId:dbUser.businessId}as const;
+}
+
+export async function GET(){
+  const ctx=await context();
+  if("error" in ctx)return ctx.error;
+  const inspections=await prisma.inspection.findMany({
+    where:{job:{businessId:ctx.businessId}},
+    include:{job:{select:{id:true,title:true,status:true,client:{select:{id:true,name:true}}}}},
+    orderBy:[{date:"desc"}],
+  });
+  return NextResponse.json(inspections);
+}
+
 export async function POST(req: Request) {
-  const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const ctx=await context();
+  if("error" in ctx)return ctx.error;
+  const {user,businessId}=ctx;
   if (user.role !== "ADMIN") return NextResponse.json({ error: "Only admins can manage inspections" }, { status: 403 });
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = dbUser.businessId;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid inspection details", issues: parsed.error.flatten() }, { status: 400 });
