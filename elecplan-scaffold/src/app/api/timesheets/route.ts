@@ -19,7 +19,7 @@ export async function GET(){
   const entries=await prisma.timesheet.findMany({
     where:{businessId:ctx.businessId,...(ctx.user.role==="EMPLOYEE"?{userId:ctx.user.id}:{})},
     include:{user:{select:{id:true,name:true,email:true}}},
-    orderBy:[{date:"desc"},{createdAt:"desc"}],
+    orderBy:{date:"desc"},
   });
   return NextResponse.json(entries);
 }
