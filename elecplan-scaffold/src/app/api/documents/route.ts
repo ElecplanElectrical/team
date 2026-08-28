@@ -9,13 +9,30 @@ import { verifyCommitToken } from "@/lib/storage";
 
 const schema = z.object({ name: z.string().trim().min(1).max(200), type: z.string().trim().min(1).max(80), jobId: z.string().trim().min(1).nullable().optional(), commitToken: z.string().min(1) });
 
+async function context(){
+  const user=await getSessionUser();
+  if(!user)return{error:NextResponse.json({error:"Unauthorized"},{status:401})}as const;
+  if(!canAccess(user.role,"documents"))return{error:NextResponse.json({error:"Forbidden"},{status:403})}as const;
+  const dbUser=await prisma.user.findUnique({where:{id:user.id},select:{businessId:true,active:true}});
+  if(!dbUser?.active||!dbUser.businessId)return{error:NextResponse.json({error:"No active customer business selected."},{status:409})}as const;
+  return{user,businessId:dbUser.businessId}as const;
+}
+
+export async function GET(){
+  const ctx=await context();
+  if("error" in ctx)return ctx.error;
+  const documents=await prisma.document.findMany({
+    where:{businessId:ctx.businessId},
+    include:{job:{select:{id:true,title:true,status:true}}},
+    orderBy:{createdAt:"desc"},
+  });
+  return NextResponse.json(documents);
+}
+
 export async function POST(req: Request) {
-  const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canAccess(user.role, "documents")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = dbUser.businessId;
+  const ctx=await context();
+  if("error" in ctx)return ctx.error;
+  const {user,businessId}=ctx;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Document name, type and completed private upload are required" }, { status: 400 });
