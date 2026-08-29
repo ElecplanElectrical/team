@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { landingPath } from "@/lib/access";
+import { getSessionUser } from "@/lib/session";
+import { firstAccessibleModulePath } from "@/lib/access";
 
-// Middleware normally redirects "/" already; this is a safety net.
 export default async function RootPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  redirect(landingPath(session.user.role));
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+
+  if (!user.businessId && user.role === "ADMIN") redirect("/platform");
+  if (user.business) redirect(firstAccessibleModulePath(user.role, user.business.modules));
+
+  redirect("/account");
 }
