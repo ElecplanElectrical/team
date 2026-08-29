@@ -29,6 +29,7 @@ const DEFAULT_STATE: SubscriptionState = {
 };
 
 export function subscriptionAllowsAccess(state: SubscriptionState, now = new Date()): boolean {
+  if (state.cancelAtPeriodEnd && state.currentPeriodEnd && state.currentPeriodEnd <= now) return false;
   if (state.status === "ACTIVE" || state.status === "TRIAL") return true;
   if (state.status === "GRACE") return !state.graceEndsAt || state.graceEndsAt >= now;
   if (state.status === "PAST_DUE") return !!state.graceEndsAt && state.graceEndsAt >= now;
