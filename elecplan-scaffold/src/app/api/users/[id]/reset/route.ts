@@ -16,9 +16,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const businessId = actorRecord.businessId;
 
   const { id } = await params;
-  const target = await prisma.user.findFirst({ where: { id, businessId }, select: { id: true, role: true, email: true } });
+  const target = await prisma.user.findFirst({ where: { id, businessId }, select: { id: true, role: true, email: true, active: true } });
   if (!target) return NextResponse.json({ error: "User not found for this business" }, { status: 404 });
   if (!canManageUser(actor.role, target.role)) return NextResponse.json({ error: "You cannot manage this user." }, { status: 403 });
+  if (!target.active) return NextResponse.json({ error: "Reactivate this user before issuing a password reset link." }, { status: 400 });
 
   const limit = await consumeRateLimit(`password-reset:${businessId}:actor:${actor.id}:target:${id}`, 5, 60 * 60 * 1000);
   if (!limit.allowed) {
