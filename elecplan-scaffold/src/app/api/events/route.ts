@@ -7,12 +7,44 @@ import { recordAudit } from "@/lib/audit";
 
 const eventSchema = z.object({ title: z.string().trim().max(120).optional().nullable(), notes: z.string().trim().max(2000).optional().nullable(), type: z.enum(EVENT_TYPES), jobId: z.string().cuid().optional().nullable(), assignedToId: z.string().cuid().optional().nullable(), startsAt: z.string().datetime(), endsAt: z.string().datetime() }).refine((d) => new Date(d.endsAt) > new Date(d.startsAt), { message: "End time must be after start time", path: ["endsAt"] });
 
-export async function POST(req: Request) {
+async function context() {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return null;
   const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = dbUser.businessId;
+  if (!dbUser?.active || !dbUser.businessId) return null;
+  return { user, businessId: dbUser.businessId };
+}
+
+export async function GET() {
+  const ctx = await context();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized or no active customer business selected" }, { status: 401 });
+  const { user, businessId } = ctx;
+
+  const events = await prisma.jobEvent.findMany({
+    where: {
+      job: { businessId },
+      ...(user.role === "EMPLOYEE" ? { OR: [{ assignedToId: user.id }, { job: { businessId, assignedToId: user.id } }] } : {}),
+    },
+    select: {
+      id: true,
+      title: true,
+      notes: true,
+      type: true,
+      startsAt: true,
+      endsAt: true,
+      assignedTo: { select: { id: true, name: true, email: true } },
+      job: { select: { id: true, title: true, address: true, status: true, client: { select: { id: true, name: true } } } },
+    },
+    orderBy: { startsAt: "asc" },
+  });
+
+  return NextResponse.json(events);
+}
+
+export async function POST(req: Request) {
+  const ctx = await context();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, businessId } = ctx;
 
   const parsed = eventSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
