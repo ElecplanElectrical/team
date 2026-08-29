@@ -11,6 +11,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ target: string
   const businessId = dbUser.businessId;
 
   const { target, id } = await ctx.params;
+  if (target === "material" && !user.business?.modules.includes("materials")) return NextResponse.json({ error: "Materials module is disabled for this business" }, { status: 403 });
   let key: string | null = null;
   if (target === "equipment") key = (await prisma.equipment.findFirst({ where: { id, businessId }, select: { photoStorageKey: true } }))?.photoStorageKey ?? null;
   else if (target === "material") key = (await prisma.stockItem.findFirst({ where: { id, businessId }, select: { photoStorageKey: true } }))?.photoStorageKey ?? null;
