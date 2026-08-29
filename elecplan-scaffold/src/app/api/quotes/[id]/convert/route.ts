@@ -10,12 +10,13 @@ function invoiceNumber() {
 }
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getSessionUser("quotes");
+  if (!user) return NextResponse.json({ error: "Unauthorized or Quotes module disabled" }, { status: 403 });
   if (!canAccess(user.role, "quotes") || !canAccess(user.role, "invoices")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (!user.businessId) return NextResponse.json({ error: "Select a customer business before creating invoice data." }, { status: 409 });
+  if (!user.businessId || !user.business) return NextResponse.json({ error: "Select a customer business before creating invoice data." }, { status: 409 });
+  if (!user.business.modules.includes("invoices")) return NextResponse.json({ error: "Invoices module is disabled for this business." }, { status: 403 });
   const businessId = user.businessId;
 
   const { id } = await params;
