@@ -35,7 +35,14 @@ export async function POST(req: Request) {
 
   const record = await prisma.passwordToken.findUnique({
     where: { tokenHash },
-    select: { id: true, userId: true, type: true, usedAt: true, expiresAt: true },
+    select: {
+      id: true,
+      userId: true,
+      type: true,
+      usedAt: true,
+      expiresAt: true,
+      user: { select: { active: true, businessId: true, business: { select: { active: true } } } },
+    },
   });
   if (!record || record.usedAt || record.expiresAt < new Date()) {
     return NextResponse.json(
@@ -43,13 +50,16 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  if (!record.user.active || (record.user.businessId && !record.user.business?.active)) {
+    return NextResponse.json(
+      { error: "This account is inactive. Ask your administrator to reactivate it before setting a password." },
+      { status: 403 },
+    );
+  }
 
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.$transaction([
-    prisma.user.update({
-      where: { id: record.userId },
-      data: { passwordHash, ...(record.type === "INVITE" ? { active: true } : {}) },
-    }),
+    prisma.user.update({ where: { id: record.userId }, data: { passwordHash } }),
     prisma.passwordToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
     prisma.passwordToken.deleteMany({ where: { userId: record.userId, usedAt: null } }),
   ]);
