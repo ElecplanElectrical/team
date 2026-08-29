@@ -14,10 +14,10 @@ export async function POST(req:Request){
   const parsed=schema.safeParse(await req.json().catch(()=>null));
   if(!parsed.success)return NextResponse.json({error:"Invalid upload request"},{status:400});
   const{kind,fileName,contentType,sizeBytes}=parsed.data;
-  if(kind==="documents"&&!canAccess(user.role,"documents"))return NextResponse.json({error:"Forbidden"},{status:403});
+  if(kind==="documents"&&(!canAccess(user.role,"documents")||!user.business?.modules.includes("documents")))return NextResponse.json({error:"Documents module is disabled or unavailable"},{status:403});
+  if(kind==="material-photos"&&(!canAccess(user.role,"materials")||!user.business?.modules.includes("materials")))return NextResponse.json({error:"Materials module is disabled or unavailable"},{status:403});
   if(kind==="project-photos"&&!canAccess(user.role,"projects"))return NextResponse.json({error:"Forbidden"},{status:403});
   if(kind==="equipment-photos"&&!canAccess(user.role,"equipment"))return NextResponse.json({error:"Forbidden"},{status:403});
-  if(kind==="material-photos"&&!canAccess(user.role,"materials"))return NextResponse.json({error:"Forbidden"},{status:403});
   const isDocument=kind==="documents";
   const allowedTypes=isDocument?DOCUMENT_TYPES:PHOTO_TYPES;
   const maxBytes=isDocument?DOCUMENT_MAX_BYTES:PHOTO_MAX_BYTES;
