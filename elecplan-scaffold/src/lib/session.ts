@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { canAccess, landingPath, moduleForScreen, type Screen } from "@/lib/access";
+import { canAccess, firstAccessibleModulePath, landingPath, moduleForScreen, type Screen } from "@/lib/access";
 import { DEFAULT_MODULES, type YourPlanModule } from "@/lib/brand";
 
 async function currentActiveUser() {
@@ -49,8 +49,7 @@ export async function requireAccess(screen: Screen) {
   if (!canAccess(user.role, screen)) redirect(landingPath(user.role));
   const module = moduleForScreen(screen);
   if (module && user.business && !user.business.modules.includes(module)) {
-    const fallback = user.business.modules.includes("dashboard") && user.role === "ADMIN" ? "/dashboard" : "/calendar";
-    redirect(fallback);
+    redirect(firstAccessibleModulePath(user.role, user.business.modules));
   }
   return user;
 }
