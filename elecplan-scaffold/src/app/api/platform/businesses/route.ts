@@ -3,14 +3,19 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getPlatformAdmin } from "@/lib/platform-admin";
 import { DEFAULT_MODULES } from "@/lib/brand";
+import { generateToken, expiryFromNow, setPasswordUrl, INVITE_TTL_HOURS } from "@/lib/tokens";
 
 const schema = z.object({
   name: z.string().trim().min(2).max(120),
   industry: z.string().trim().max(120).optional().default(""),
-  contactName: z.string().trim().max(120).optional().default(""),
-  contactEmail: z.string().trim().email().optional().or(z.literal("")),
+  contactName: z.string().trim().min(1).max(120),
+  contactEmail: z.string().trim().toLowerCase().email().max(160),
   monthlyPrice: z.union([z.string(), z.number()]).optional(),
   modules: z.array(z.enum(DEFAULT_MODULES)).min(1),
+  logoUrl: z.string().trim().url().optional().or(z.literal("")),
+  primaryColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional().default("#168dff"),
+  accentColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional().default("#25c7ff"),
+  plan: z.string().trim().min(1).max(80).optional().default("CUSTOM"),
 });
 
 function slugify(value: string) {
@@ -44,29 +49,59 @@ export async function POST(req: Request) {
   if (!admin) return NextResponse.json({ error: "Platform owner access required" }, { status: 403 });
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Check the business details, owner email and modules." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "Check the business details, owner email, branding and modules." }, { status: 400 });
 
   let slug = slugify(parsed.data.name);
   if (!slug) return NextResponse.json({ error: "Business name cannot create a portal address." }, { status: 400 });
-  const existing = await prisma.businessPortal.findUnique({ where: { slug }, select: { id: true } });
-  if (existing) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+  const existingSlug = await prisma.businessPortal.findUnique({ where: { slug }, select: { id: true } });
+  if (existingSlug) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
-  const raw = parsed.data.monthlyPrice;
-  const monthlyPrice = raw == null || String(raw).trim() === "" ? null : Number(raw);
+  const existingUser = await prisma.user.findUnique({ where: { email: parsed.data.contactEmail }, select: { id: true } });
+  if (existingUser) return NextResponse.json({ error: "That owner email already belongs to a YourPlan user." }, { status: 409 });
+
+  const rawPrice = parsed.data.monthlyPrice;
+  const monthlyPrice = rawPrice == null || String(rawPrice).trim() === "" ? null : Number(rawPrice);
   if (monthlyPrice !== null && (!Number.isFinite(monthlyPrice) || monthlyPrice < 0)) {
     return NextResponse.json({ error: "Enter a valid monthly subscription." }, { status: 400 });
   }
 
-  const business = await prisma.businessPortal.create({
-    data: {
-      name: parsed.data.name, slug,
-      industry: parsed.data.industry || null,
-      contactName: parsed.data.contactName || null,
-      contactEmail: parsed.data.contactEmail || null,
-      modules: parsed.data.modules,
-      monthlyPrice,
-    },
-  });
+  const { raw, hash } = generateToken();
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const business = await tx.businessPortal.create({
+        data: {
+          name: parsed.data.name,
+          slug,
+          industry: parsed.data.industry || null,
+          contactName: parsed.data.contactName,
+          contactEmail: parsed.data.contactEmail,
+          logoUrl: parsed.data.logoUrl || null,
+          primaryColor: parsed.data.primaryColor,
+          accentColor: parsed.data.accentColor,
+          modules: parsed.data.modules,
+          plan: parsed.data.plan,
+          monthlyPrice,
+        },
+      });
 
-  return NextResponse.json(business, { status: 201 });
+      const owner = await tx.user.create({
+        data: {
+          businessId: business.id,
+          name: parsed.data.contactName,
+          email: parsed.data.contactEmail,
+          role: "ADMIN",
+          passwordTokens: {
+            create: { tokenHash: hash, type: "INVITE", expiresAt: expiryFromNow(INVITE_TTL_HOURS) },
+          },
+        },
+        select: { id: true, name: true, email: true, role: true },
+      });
+      return { business, owner };
+    });
+
+    const inviteUrl = setPasswordUrl(new URL(req.url).origin, raw);
+    return NextResponse.json({ ...result, inviteUrl, portalPath: `/b/${result.business.slug}/dashboard` }, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: "Could not create the customer portal and owner account." }, { status: 400 });
+  }
 }
