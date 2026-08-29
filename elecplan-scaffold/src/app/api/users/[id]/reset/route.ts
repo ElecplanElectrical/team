@@ -7,8 +7,8 @@ import { consumeRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { generateToken, expiryFromNow, setPasswordUrl, RESET_TTL_HOURS } from "@/lib/tokens";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const actor = await getSessionUser();
-  if (!actor) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const actor = await getSessionUser("employees");
+  if (!actor) return NextResponse.json({ error: "Unauthorized or Employees module disabled" }, { status: 403 });
   if (!canAccess(actor.role, "employees")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const actorRecord = await prisma.user.findUnique({ where: { id: actor.id }, select: { businessId: true, active: true } });
