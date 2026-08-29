@@ -15,14 +15,46 @@ const jobSchema = z.object({
   notes: z.string().trim().max(2000).optional().nullable(),
 });
 
-export async function POST(req: Request) {
+async function context() {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (user.role === "EMPLOYEE") return NextResponse.json({ error: "Only admins and supervisors can create jobs" }, { status: 403 });
-
+  if (!user) return null;
   const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true } });
-  if (!dbUser?.businessId) return NextResponse.json({ error: "Select a customer business before creating job data." }, { status: 409 });
-  const businessId = dbUser.businessId;
+  if (!dbUser?.businessId) return null;
+  return { user, businessId: dbUser.businessId };
+}
+
+export async function GET() {
+  const ctx = await context();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized or no customer business selected" }, { status: 401 });
+  const { user, businessId } = ctx;
+
+  const jobs = await prisma.job.findMany({
+    where: {
+      businessId,
+      ...(user.role === "EMPLOYEE" ? { assignedToId: user.id } : {}),
+    },
+    select: {
+      id: true,
+      title: true,
+      address: true,
+      status: true,
+      scheduledStart: true,
+      scheduledEnd: true,
+      notes: true,
+      client: { select: { id: true, name: true, contactName: true, phone: true, email: true } },
+      assignedTo: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: [{ scheduledStart: "asc" }, { title: "asc" }],
+  });
+
+  return NextResponse.json(jobs);
+}
+
+export async function POST(req: Request) {
+  const ctx = await context();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized or no customer business selected" }, { status: 401 });
+  const { user, businessId } = ctx;
+  if (user.role === "EMPLOYEE") return NextResponse.json({ error: "Only admins and supervisors can create jobs" }, { status: 403 });
 
   const parsed = jobSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
