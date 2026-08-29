@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccess, firstAccessibleModulePath, landingPath, moduleForScreen, type Screen } from "@/lib/access";
 import { DEFAULT_MODULES, type YourPlanModule } from "@/lib/brand";
+import { getBusinessSubscription, subscriptionAllowsAccess } from "@/lib/subscription";
 
 const MODULES = new Set<YourPlanModule>(DEFAULT_MODULES);
 
@@ -30,6 +31,12 @@ async function currentActiveUser(requiredModule?: YourPlanModule) {
   });
 
   if (!user?.active || (user.businessId && !user.business?.active)) return null;
+
+  if (user.businessId) {
+    const subscription = await getBusinessSubscription(user.businessId);
+    if (!subscriptionAllowsAccess(subscription)) return null;
+  }
+
   const modules = Array.isArray(user.business?.modules)
     ? user.business.modules.filter((value): value is YourPlanModule => typeof value === "string" && MODULES.has(value as YourPlanModule))
     : [...DEFAULT_MODULES];
