@@ -11,7 +11,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const actor = await getSessionUser("employees");
   if (!actor) return NextResponse.json({ error: "Unauthorized or Employees module disabled" }, { status: 403 });
   if (!canAccess(actor.role, "employees")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const actorRecord = await prisma.user.findUnique({ where: { id: actor.id }, select: { businessId: true, active: true } });
+  const actorRecord = await prisma.user.findUnique({
+    where: { id: actor.id },
+    select: { businessId: true, active: true, business: { select: { contactEmail: true } } },
+  });
   if (!actorRecord?.active || !actorRecord.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
   const businessId = actorRecord.businessId;
 
@@ -23,6 +26,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!target) return NextResponse.json({ error: "User not found for this business" }, { status: 404 });
   if (!canManageUser(actor.role, target.role)) return NextResponse.json({ error: "You cannot manage this user." }, { status: 403 });
   if (target.id === actor.id && parsed.data.active === false) return NextResponse.json({ error: "You cannot deactivate your own account." }, { status: 400 });
+
+  const ownerEmail = actorRecord.business?.contactEmail?.trim().toLowerCase() ?? null;
+  if (parsed.data.active === false && ownerEmail && target.email.trim().toLowerCase() === ownerEmail && target.id !== actor.id) {
+    return NextResponse.json({ error: "The designated Owner Admin cannot be deactivated by another customer administrator." }, { status: 403 });
+  }
 
   if (target.role === "ADMIN" && target.active && parsed.data.active === false) {
     const activeAdmins = await prisma.user.count({ where: { businessId, role: "ADMIN", active: true } });
