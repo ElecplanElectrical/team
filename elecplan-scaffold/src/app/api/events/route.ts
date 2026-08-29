@@ -20,11 +20,11 @@ export async function GET() {
   if (!ctx) return NextResponse.json({ error: "Unauthorized or no active customer business selected" }, { status: 401 });
   const { user, businessId } = ctx;
 
+  const tenantScope = { OR: [{ job: { businessId } }, { jobId: null, assignedTo: { businessId } }] };
   const events = await prisma.jobEvent.findMany({
-    where: {
-      job: { businessId },
-      ...(user.role === "EMPLOYEE" ? { OR: [{ assignedToId: user.id }, { job: { businessId, assignedToId: user.id } }] } : {}),
-    },
+    where: user.role === "EMPLOYEE"
+      ? { AND: [tenantScope, { assignedToId: user.id }] }
+      : tenantScope,
     select: {
       id: true,
       title: true,
