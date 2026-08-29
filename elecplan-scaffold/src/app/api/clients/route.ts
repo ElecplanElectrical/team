@@ -14,15 +14,30 @@ const clientSchema = z.object({
   billingNotes: z.string().trim().max(1000).optional().nullable(),
 });
 
-export async function POST(req: Request) {
+async function context() {
   const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canAccess(user.role, "clients")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
+  if (!canAccess(user.role, "clients")) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) } as const;
+  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
+  if (!dbUser?.active || !dbUser.businessId) return { error: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) } as const;
+  return { user, businessId: dbUser.businessId } as const;
+}
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true } });
-  if (!dbUser?.businessId) {
-    return NextResponse.json({ error: "Select a customer business before creating client data." }, { status: 409 });
-  }
+export async function GET() {
+  const ctx = await context();
+  if ("error" in ctx) return ctx.error;
+  const clients = await prisma.client.findMany({
+    where: { businessId: ctx.businessId },
+    select: { id: true, name: true, contactName: true, phone: true, email: true, address: true, billingNotes: true, createdAt: true },
+    orderBy: { name: "asc" },
+  });
+  return NextResponse.json(clients);
+}
+
+export async function POST(req: Request) {
+  const ctx = await context();
+  if ("error" in ctx) return ctx.error;
+  const { user, businessId } = ctx;
 
   const parsed = clientSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
@@ -31,7 +46,7 @@ export async function POST(req: Request) {
   try {
     const client = await prisma.client.create({
       data: {
-        businessId: dbUser.businessId,
+        businessId,
         name: d.name,
         contactName: d.contactName || null,
         phone: d.phone || null,
@@ -40,7 +55,7 @@ export async function POST(req: Request) {
         billingNotes: d.billingNotes || null,
       },
     });
-    await recordAudit({ actor: user, action: "CLIENT_CREATED", entityType: "Client", entityId: client.id, details: { businessId: dbUser.businessId, name: client.name } });
+    await recordAudit({ actor: user, action: "CLIENT_CREATED", entityType: "Client", entityId: client.id, details: { businessId, name: client.name } });
     return NextResponse.json(client, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Could not create client" }, { status: 400 });
