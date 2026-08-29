@@ -1,8 +1,20 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccess, firstAccessibleModulePath, landingPath, moduleForScreen, type Screen } from "@/lib/access";
 import { DEFAULT_MODULES, type YourPlanModule } from "@/lib/brand";
+
+const MODULES = new Set<YourPlanModule>(DEFAULT_MODULES);
+
+async function inferredModule(): Promise<YourPlanModule | undefined> {
+  try {
+    const value = (await headers()).get("x-yourplan-required-module");
+    return value && MODULES.has(value as YourPlanModule) ? value as YourPlanModule : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 async function currentActiveUser(requiredModule?: YourPlanModule) {
   const session = await auth();
@@ -19,10 +31,11 @@ async function currentActiveUser(requiredModule?: YourPlanModule) {
 
   if (!user?.active || (user.businessId && !user.business?.active)) return null;
   const modules = Array.isArray(user.business?.modules)
-    ? user.business.modules.filter((value): value is YourPlanModule => typeof value === "string")
+    ? user.business.modules.filter((value): value is YourPlanModule => typeof value === "string" && MODULES.has(value as YourPlanModule))
     : [...DEFAULT_MODULES];
 
-  if (requiredModule && user.businessId && !modules.includes(requiredModule)) return null;
+  const module = requiredModule ?? await inferredModule();
+  if (module && user.businessId && !modules.includes(module)) return null;
 
   return {
     id: user.id,
