@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
-import { Building2, CircleDollarSign, Layers3, Plus, Power } from "lucide-react";
+import { Building2, CircleDollarSign, Layers3, Power } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { getPlatformAdmin } from "@/lib/platform-admin";
 import TopBar from "@/components/TopBar";
 import BusinessPortalForm from "@/components/BusinessPortalForm";
 
 const UI={panel:"#07192b",border:"rgba(77,150,221,.24)",text:"#f5f9ff",mute:"#93a9c2",faint:"#617993",cyan:"#25c7ff",green:"#18d3a0"};
 export default async function PlatformPage(){
- const user=await requireUser(); if(user.role!=="ADMIN") notFound();
+ const user=await getPlatformAdmin(); if(!user) notFound();
  const businesses=await prisma.businessPortal.findMany({orderBy:{createdAt:"desc"}});
  const active=businesses.filter(b=>b.active);
  const mrr=active.reduce((sum,b)=>sum+Number(b.monthlyPrice??0),0);
