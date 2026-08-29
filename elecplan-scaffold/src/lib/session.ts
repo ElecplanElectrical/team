@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { canAccess, firstAccessibleModulePath, landingPath, moduleForScreen, type Screen } from "@/lib/access";
 import { DEFAULT_MODULES, type YourPlanModule } from "@/lib/brand";
 
-async function currentActiveUser() {
+async function currentActiveUser(requiredModule?: YourPlanModule) {
   const session = await auth();
   const sessionUser = session?.user;
   if (!sessionUser?.id) return null;
@@ -21,6 +21,8 @@ async function currentActiveUser() {
   const modules = Array.isArray(user.business?.modules)
     ? user.business.modules.filter((value): value is YourPlanModule => typeof value === "string")
     : [...DEFAULT_MODULES];
+
+  if (requiredModule && user.businessId && !modules.includes(requiredModule)) return null;
 
   return {
     id: user.id,
@@ -54,6 +56,6 @@ export async function requireAccess(screen: Screen) {
   return user;
 }
 
-export async function getSessionUser() {
-  return currentActiveUser();
+export async function getSessionUser(requiredModule?: YourPlanModule) {
+  return currentActiveUser(requiredModule);
 }
