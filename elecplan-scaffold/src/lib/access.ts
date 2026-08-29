@@ -20,19 +20,9 @@ export const SCREEN_ACCESS: Record<Screen, Role[]> = {
 };
 
 export const SCREEN_MODULE: Partial<Record<Screen, YourPlanModule>> = {
-  dashboard: "dashboard",
-  timelines: "jobs",
-  calendar: "calendar",
-  clients: "clients",
-  leads: "leads",
-  quotes: "quotes",
-  invoices: "invoices",
-  employees: "employees",
-  timesheets: "timesheets",
-  inspections: "inspections",
-  documents: "documents",
-  materials: "materials",
-  reminders: "reminders",
+  dashboard: "dashboard", timelines: "jobs", calendar: "calendar", clients: "clients", leads: "leads",
+  quotes: "quotes", invoices: "invoices", employees: "employees", timesheets: "timesheets",
+  inspections: "inspections", documents: "documents", materials: "materials", reminders: "reminders",
   analytics: "analytics",
 };
 
@@ -43,10 +33,21 @@ export const SCREEN_PATH: Record<Screen, string> = {
   timesheets:"/timesheets", documents:"/documents", quotes:"/quotes", invoices:"/invoices", bills:"/bills",
   employees:"/employees", teamChat:"/team-chat", kpis:"/kpis", reviews:"/reviews", reels:"/reels", analytics:"/analytics",
 };
+
+const MODULE_SCREEN: Record<YourPlanModule, Screen> = {
+  dashboard:"dashboard", jobs:"timelines", calendar:"calendar", clients:"clients", leads:"leads",
+  quotes:"quotes", invoices:"invoices", employees:"employees", timesheets:"timesheets",
+  inspections:"inspections", documents:"documents", materials:"materials", reminders:"reminders", analytics:"analytics",
+};
 const PATH_TO_SCREEN: Record<string, Screen> = Object.fromEntries((Object.entries(SCREEN_PATH) as [Screen,string][]).map(([s,p])=>[p,s])) as Record<string,Screen>;
 export function screenForPath(pathname:string):Screen|null{const seg="/"+(pathname.split("/").filter(Boolean)[0]??"");return PATH_TO_SCREEN[seg]??null;}
 export function canAccess(role:Role,screen:Screen):boolean{return SCREEN_ACCESS[screen].includes(role);}
 export function moduleForScreen(screen:Screen):YourPlanModule|undefined{return SCREEN_MODULE[screen];}
+export function pathForModule(module:YourPlanModule):string{return SCREEN_PATH[MODULE_SCREEN[module]];}
+export function firstAccessibleModulePath(role:Role,modules:YourPlanModule[]):string{
+  for(const module of modules){const screen=MODULE_SCREEN[module];if(canAccess(role,screen))return SCREEN_PATH[screen];}
+  return "/account";
+}
 export function landingPath(role:Role):string{return role==="ADMIN"?"/dashboard":"/calendar";}
 export function assignableRoles(actor:Role):Role[]{if(actor==="ADMIN")return["ADMIN","SUPERVISOR","EMPLOYEE"];if(actor==="SUPERVISOR")return["EMPLOYEE"];return[];}
 export function canManageUser(actor:Role,target:Role):boolean{return assignableRoles(actor).includes(target);}
