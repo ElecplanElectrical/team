@@ -26,17 +26,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid customer settings" }, { status: 400 });
 
-  const existing = await prisma.businessPortal.findUnique({ where: { id }, select: { id: true } });
+  const existing = await prisma.businessPortal.findUnique({ where: { id }, select: { id: true, name: true } });
   if (!existing) return NextResponse.json({ error: "Business not found" }, { status: 404 });
 
-  const business = await prisma.businessPortal.update({
-    where: { id },
-    data: parsed.data,
-    select: {
-      id: true, name: true, slug: true, industry: true, contactName: true, contactEmail: true,
-      logoUrl: true, primaryColor: true, accentColor: true, modules: true, plan: true,
-      monthlyPrice: true, active: true, updatedAt: true,
-    },
+  const business = await prisma.$transaction(async (tx) => {
+    const updated = await tx.businessPortal.update({
+      where: { id },
+      data: parsed.data,
+      select: {
+        id: true, name: true, slug: true, industry: true, contactName: true, contactEmail: true,
+        logoUrl: true, primaryColor: true, accentColor: true, modules: true, plan: true,
+        monthlyPrice: true, active: true, updatedAt: true,
+      },
+    });
+    await tx.auditLog.create({
+      data: {
+        actorId: admin.id,
+        actorEmail: admin.email,
+        action: "PLATFORM_CUSTOMER_UPDATED",
+        entityType: "BusinessPortal",
+        entityId: id,
+        details: { businessName: updated.name, changedFields: Object.keys(parsed.data) },
+      },
+    });
+    return updated;
   });
 
   return NextResponse.json(business);
