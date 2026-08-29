@@ -1,6 +1,7 @@
 import { LayoutGrid, Calendar as CalendarIcon, Users, FileCheck2, Bell, Clock, ClipboardList, Receipt, FileText, TrendingUp, Briefcase, FolderOpen, MessageCircle, type LucideIcon } from "lucide-react";
 import type { Role } from "@prisma/client";
-import type { Screen } from "@/lib/access";
+import { moduleForScreen, type Screen } from "@/lib/access";
+import type { YourPlanModule } from "@/lib/brand";
 export type NavItem={screen:Screen;label:string;icon:LucideIcon}; export type NavGroup={heading?:string;items:NavItem[]};
 const NAV:Record<Role,NavGroup[]>={
  ADMIN:[{items:[{screen:"dashboard",label:"Dashboard",icon:LayoutGrid},{screen:"timelines",label:"Jobs",icon:Clock},{screen:"calendar",label:"Calendar",icon:CalendarIcon},{screen:"clients",label:"Clients",icon:Briefcase},{screen:"leads",label:"Leads",icon:Users},{screen:"reminders",label:"Reminders",icon:Bell}]},{heading:"Finance",items:[{screen:"quotes",label:"Quotes",icon:FileText},{screen:"invoices",label:"Invoices",icon:Receipt}]},{heading:"Team & Operations",items:[{screen:"employees",label:"Employees",icon:Users},{screen:"timesheets",label:"Timesheets",icon:Clock},{screen:"inspections",label:"Inspections",icon:FileCheck2},{screen:"documents",label:"Documents",icon:FolderOpen},{screen:"materials",label:"Materials",icon:ClipboardList},{screen:"teamChat",label:"Team Chat",icon:MessageCircle}]},{heading:"Reporting",items:[{screen:"analytics",label:"Reports",icon:TrendingUp}]}],
@@ -8,6 +9,8 @@ const NAV:Record<Role,NavGroup[]>={
  EMPLOYEE:[{items:[{screen:"calendar",label:"Calendar",icon:CalendarIcon},{screen:"timelines",label:"My jobs",icon:Clock},{screen:"materials",label:"Materials",icon:ClipboardList},{screen:"timesheets",label:"Timesheets",icon:Clock},{screen:"documents",label:"Documents",icon:FolderOpen},{screen:"teamChat",label:"Team Chat",icon:MessageCircle}]}]
 };
 const MOBILE_NAV:Record<Role,NavItem[]>={ADMIN:[{screen:"dashboard",label:"Home",icon:LayoutGrid},{screen:"calendar",label:"Calendar",icon:CalendarIcon},{screen:"timelines",label:"Jobs",icon:Clock},{screen:"clients",label:"Clients",icon:Briefcase},{screen:"employees",label:"Team",icon:Users}],SUPERVISOR:[{screen:"calendar",label:"Schedule",icon:CalendarIcon},{screen:"timelines",label:"Jobs",icon:Clock},{screen:"employees",label:"Team",icon:Users},{screen:"timesheets",label:"Hours",icon:Clock},{screen:"documents",label:"Docs",icon:FolderOpen}],EMPLOYEE:[{screen:"calendar",label:"Calendar",icon:CalendarIcon},{screen:"timelines",label:"Jobs",icon:Clock},{screen:"timesheets",label:"Hours",icon:Clock},{screen:"documents",label:"Docs",icon:FolderOpen}]};
-export function navGroupsFor(role:Role){return NAV[role]} export function mobileNavFor(role:Role){return MOBILE_NAV[role]}
+function enabled(item:NavItem,modules?:YourPlanModule[]){const module=moduleForScreen(item.screen);return !module||!modules||modules.includes(module)}
+export function navGroupsFor(role:Role,modules?:YourPlanModule[]){return NAV[role].map(group=>({...group,items:group.items.filter(item=>enabled(item,modules))})).filter(group=>group.items.length>0)}
+export function mobileNavFor(role:Role,modules?:YourPlanModule[]){return MOBILE_NAV[role].filter(item=>enabled(item,modules))}
 export const ROLE_TITLE:Record<Role,string>={ADMIN:"Owner / Admin",SUPERVISOR:"Supervisor",EMPLOYEE:"Team Member"};
 export function initialsOf(name:string){const parts=name.trim().split(/\s+/);return parts.length===1?parts[0].slice(0,1).toUpperCase():(parts[0][0]+parts[parts.length-1][0]).toUpperCase()}
