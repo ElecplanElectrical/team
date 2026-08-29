@@ -24,8 +24,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!canManageUser(actor.role, target.role)) return NextResponse.json({ error: "You cannot manage this user." }, { status: 403 });
   if (target.id === actor.id && parsed.data.active === false) return NextResponse.json({ error: "You cannot deactivate your own account." }, { status: 400 });
 
-  const updated = await prisma.user.updateMany({ where: { id, businessId }, data: { active: parsed.data.active } });
-  if (updated.count !== 1) return NextResponse.json({ error: "User not found for this business" }, { status: 404 });
+  if (target.role === "ADMIN" && target.active && parsed.data.active === false) {
+    const activeAdmins = await prisma.user.count({ where: { businessId, role: "ADMIN", active: true } });
+    if (activeAdmins <= 1) return NextResponse.json({ error: "Keep at least one active administrator for this business." }, { status: 400 });
+  }
+
+  const operations = [
+    prisma.user.updateMany({ where: { id, businessId }, data: { active: parsed.data.active } }),
+    ...(parsed.data.active === false ? [prisma.passwordToken.deleteMany({ where: { userId: id, usedAt: null } })] : []),
+  ];
+  const [updated] = await prisma.$transaction(operations);
+  if (!("count" in updated) || updated.count !== 1) return NextResponse.json({ error: "User not found for this business" }, { status: 404 });
+
   await recordAudit({ actor, action: parsed.data.active ? "USER_REACTIVATED" : "USER_DEACTIVATED", entityType: "User", entityId: target.id, details: { businessId, targetRole: target.role, targetEmail: target.email, fromActive: target.active, toActive: parsed.data.active } });
   return NextResponse.json({ id, active: parsed.data.active });
 }
