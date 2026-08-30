@@ -4,12 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { getPlatformAdmin } from "@/lib/platform-admin";
 import { DEFAULT_MODULES } from "@/lib/brand";
 
+const logoUrlSchema = z.string().trim().refine((value) => {
+  if (/^https:\/\//i.test(value)) {
+    try { new URL(value); return true; } catch { return false; }
+  }
+  return /^\/api\/branding\/[a-z0-9-]+\/logo\?key=documents%2F/i.test(value);
+}, "Invalid logo URL");
+
 const patchSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   industry: z.string().trim().max(120).nullable().optional(),
   contactName: z.string().trim().max(120).nullable().optional(),
   contactEmail: z.string().trim().email().nullable().optional(),
-  logoUrl: z.string().trim().url().nullable().optional(),
+  logoUrl: logoUrlSchema.nullable().optional(),
   primaryColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   accentColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   modules: z.array(z.enum(DEFAULT_MODULES)).min(1).optional(),
@@ -26,8 +33,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid customer settings" }, { status: 400 });
 
-  const existing = await prisma.businessPortal.findUnique({ where: { id }, select: { id: true, name: true } });
+  const existing = await prisma.businessPortal.findUnique({ where: { id }, select: { id: true, name: true, slug: true } });
   if (!existing) return NextResponse.json({ error: "Business not found" }, { status: 404 });
+  if (parsed.data.logoUrl?.startsWith("/api/branding/") && !parsed.data.logoUrl.startsWith(`/api/branding/${existing.slug}/logo?`)) {
+    return NextResponse.json({ error: "Branding URL does not belong to this customer" }, { status: 400 });
+  }
 
   const business = await prisma.$transaction(async (tx) => {
     const updated = await tx.businessPortal.update({
