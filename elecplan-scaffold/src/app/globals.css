@@ -18,6 +18,54 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Approved YourPlan homepage responsive behaviour. */
+.yp-approved-wrap {
+  width: 100%;
+  overflow-x: hidden;
+  background: #04090e;
+}
+
+/* Keep the exact desktop composition on tablets, but scale the entire page to the browser width. */
+@media (min-width: 768px) and (max-width: 1447px) {
+  .yp-approved-wrap > main {
+    width: 1448px;
+    max-width: none;
+    zoom: calc(100vw / 1448px);
+  }
+}
+
+/* Stone-washed charcoal hero treatment from the approved concept. */
+.yp-approved-wrap > main > div > section:first-child {
+  background:
+    radial-gradient(ellipse at 15% 22%, rgba(255,255,255,.10) 0%, rgba(255,255,255,.035) 26%, transparent 49%),
+    radial-gradient(ellipse at 42% 4%, rgba(125,136,146,.10) 0%, transparent 39%),
+    linear-gradient(115deg, #454b51 0%, #353b41 18%, #242a30 36%, #141a20 57%, #090e13 78%, #05090d 100%) !important;
+}
+
+.yp-approved-wrap > main > div > section:first-child::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .26;
+  background-image:
+    repeating-linear-gradient(17deg, rgba(255,255,255,.022) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(103deg, rgba(0,0,0,.055) 0 1px, transparent 1px 7px);
+  mix-blend-mode: soft-light;
+  z-index: 0;
+}
+
+.yp-approved-wrap > main > div > section:first-child::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.035), transparent 37%),
+    radial-gradient(ellipse at 74% 54%, rgba(22,141,255,.09), transparent 46%);
+  z-index: 0;
+}
+
 /* Interactive card hover — ported verbatim from the mockup FONT_IMPORT. */
 .hover-glow {
   transition:
