@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { firstAccessibleModulePath } from "@/lib/access";
@@ -10,5 +11,31 @@ export default async function RootPage() {
     if (user.business) redirect(firstAccessibleModulePath(user.role, user.business.modules));
     redirect("/account");
   }
-  return <HomePage />;
+
+  return (
+    <>
+      <div className="hidden min-h-screen bg-[#05080c] lg:block">
+        <div className="relative mx-auto w-full max-w-[1448px]">
+          <img
+            src="/locked-home-desktop.svg"
+            alt="YourPlan homepage"
+            className="block h-auto w-full select-none"
+          />
+
+          <Link aria-label="Features" href="/features" className="absolute left-[28.4%] top-[2.4%] h-[4%] w-[6.7%]" />
+          <Link aria-label="Industries" href="/industries" className="absolute left-[35.8%] top-[2.4%] h-[4%] w-[7.1%]" />
+          <Link aria-label="Pricing" href="/pricing" className="absolute left-[43.2%] top-[2.4%] h-[4%] w-[5.1%]" />
+          <Link aria-label="About" href="/about" className="absolute left-[48.5%] top-[2.4%] h-[4%] w-[4.8%]" />
+          <Link aria-label="Resources" href="/resources" className="absolute left-[53.9%] top-[2.4%] h-[4%] w-[7.1%]" />
+          <Link aria-label="Contact" href="/contact" className="absolute left-[61.4%] top-[2.4%] h-[4%] w-[5.6%]" />
+          <Link aria-label="Login" href="/login" className="absolute left-[81.6%] top-[2.1%] h-[4.7%] w-[5.7%]" />
+          <Link aria-label="Book a Demo" href="/contact" className="absolute left-[88.2%] top-[2.1%] h-[4.7%] w-[8.4%]" />
+          <Link aria-label="Book a Demo" href="/contact" className="absolute left-[4.2%] top-[39%] h-[4.5%] w-[12.8%]" />
+          <Link aria-label="See Features" href="/features" className="absolute left-[18%] top-[39%] h-[4.5%] w-[10.2%]" />
+          <Link aria-label="Book a Demo" href="/contact" className="absolute left-[68.8%] top-[83%] h-[4.6%] w-[12.5%]" />
+        </div>
+      </div>
+      <div className="lg:hidden"><HomePage /></div>
+    </>
+  );
 }
