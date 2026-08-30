@@ -1,2 +1,3 @@
 import { InfoPage } from "@/components/yourplan-public";
-export default function Page(){return <InfoPage kind="resources"/>}
+import { LockedPublicFrame } from "@/components/locked-public-frame";
+export default function Page(){return <LockedPublicFrame active="Resources"><InfoPage kind="resources"/></LockedPublicFrame>}
