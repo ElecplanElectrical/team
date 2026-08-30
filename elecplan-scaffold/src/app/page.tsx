@@ -14,8 +14,8 @@ export default async function RootPage() {
 
   return (
     <>
-      <div className="hidden lg:block"><LockedExactHome /></div>
-      <div className="lg:hidden"><HomePage /></div>
+      <div className="yp-approved-wrap hidden md:block"><LockedExactHome /></div>
+      <div className="md:hidden"><HomePage /></div>
     </>
   );
 }
