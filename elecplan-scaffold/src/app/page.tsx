@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/session";
 import { firstAccessibleModulePath } from "@/lib/access";
 import { HomePage } from "@/components/yourplan-public";
 import lockedHome0 from "@/lib/locked-home-0";
+import lockedHomeGap from "@/lib/locked-home-gap";
 import lockedHome1 from "@/lib/locked-home-1";
 import lockedHome2 from "@/lib/locked-home-2";
 import lockedHome3 from "@/lib/locked-home-3";
@@ -16,6 +17,7 @@ import lockedHome9 from "@/lib/locked-home-9";
 
 const lockedHome = [
   lockedHome0,
+  lockedHomeGap,
   lockedHome1,
   lockedHome2,
   lockedHome3,
