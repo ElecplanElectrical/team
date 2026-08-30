@@ -3,31 +3,6 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { firstAccessibleModulePath } from "@/lib/access";
 import { HomePage } from "@/components/yourplan-public";
-import lockedHome0 from "@/lib/locked-home-0";
-import lockedHomeGap from "@/lib/locked-home-gap";
-import lockedHome1 from "@/lib/locked-home-1";
-import lockedHome2 from "@/lib/locked-home-2";
-import lockedHome3 from "@/lib/locked-home-3";
-import lockedHome4 from "@/lib/locked-home-4";
-import lockedHome5 from "@/lib/locked-home-5";
-import lockedHome6 from "@/lib/locked-home-6";
-import lockedHome7 from "@/lib/locked-home-7";
-import lockedHome8 from "@/lib/locked-home-8";
-import lockedHome9 from "@/lib/locked-home-9";
-
-const lockedHome = [
-  lockedHome0,
-  lockedHomeGap,
-  lockedHome1,
-  lockedHome2,
-  lockedHome3,
-  lockedHome4,
-  lockedHome5,
-  lockedHome6,
-  lockedHome7,
-  lockedHome8,
-  lockedHome9,
-].join("");
 
 export default async function RootPage() {
   const user = await getSessionUser();
@@ -42,7 +17,7 @@ export default async function RootPage() {
       <div className="hidden min-h-screen bg-[#05080c] lg:block">
         <div className="relative mx-auto w-full max-w-[1448px]">
           <img
-            src={`data:image/webp;base64,${lockedHome}`}
+            src="/locked-home-desktop.svg"
             alt="YourPlan homepage"
             className="block h-auto w-full select-none"
             draggable={false}
