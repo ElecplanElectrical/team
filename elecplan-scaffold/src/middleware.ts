@@ -50,8 +50,6 @@ export default auth((req) => {
   const isDemoSession = req.auth?.user?.demo === true;
 
   if (pathname.startsWith("/api/")) {
-    // External SMS callbacks cannot be same-origin. This exact endpoint verifies
-    // its raw body with a timing-safe HMAC before making any state change.
     if (pathname === "/api/sms/inbound") return NextResponse.next();
     if (isDemoSession && !SAFE_METHODS.has(method)) {
       return NextResponse.json({ error: "Demo workspace is read only" }, { status: 403 });
@@ -65,6 +63,8 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth?.user;
   const role = req.auth?.user?.role;
 
+  // Public YourPlan website and sales demo.
+  if (pathname === "/") return NextResponse.next();
   if (pathname === "/demo" || pathname.startsWith("/demo/")) return NextResponse.next();
   if (pathname === "/set-password") return NextResponse.next();
 
@@ -75,11 +75,9 @@ export default auth((req) => {
 
   if (!isLoggedIn || !role) {
     const url = new URL("/login", nextUrl);
-    if (pathname !== "/") url.searchParams.set("callbackUrl", pathname);
+    url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
-
-  if (pathname === "/") return NextResponse.next();
 
   const screen = screenForPath(pathname);
   if (screen && !canAccess(role, screen)) return NextResponse.redirect(new URL("/", nextUrl));
