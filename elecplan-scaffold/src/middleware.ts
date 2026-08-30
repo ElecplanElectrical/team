@@ -6,6 +6,16 @@ import type { YourPlanModule } from "@/lib/brand";
 
 const { auth } = NextAuth(authConfig);
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const PUBLIC_WEBSITE_PATHS = new Set([
+  "/",
+  "/features",
+  "/industries",
+  "/pricing",
+  "/about",
+  "/resources",
+  "/contact",
+  "/set-password",
+]);
 const API_MODULE_PREFIXES: Array<[string, YourPlanModule]> = [
   ["/api/jobs", "jobs"],
   ["/api/events", "calendar"],
@@ -60,13 +70,16 @@ export default auth((req) => {
     return nextWithModule(req, pathname);
   }
 
+  // Files in /public are public website assets. They must not be sent to /login.
+  // The locked desktop artwork is one of these assets.
+  if (pathname.includes(".")) return NextResponse.next();
+
   const isLoggedIn = !!req.auth?.user;
   const role = req.auth?.user?.role;
 
-  // Public YourPlan website and sales demo.
-  if (pathname === "/") return NextResponse.next();
+  // Public YourPlan marketing website and sales demo.
+  if (PUBLIC_WEBSITE_PATHS.has(pathname)) return NextResponse.next();
   if (pathname === "/demo" || pathname.startsWith("/demo/")) return NextResponse.next();
-  if (pathname === "/set-password") return NextResponse.next();
 
   if (pathname === "/login") {
     if (isLoggedIn && role) return NextResponse.redirect(new URL("/", nextUrl));
