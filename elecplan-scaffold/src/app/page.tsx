@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { firstAccessibleModulePath } from "@/lib/access";
 import { HomePage } from "@/components/yourplan-public";
-import { DesktopHomePage } from "@/components/yourplan-home-desktop";
+import { LockedExactHome } from "@/components/locked-exact-home";
 
 export default async function RootPage() {
   const user = await getSessionUser();
@@ -14,7 +14,7 @@ export default async function RootPage() {
 
   return (
     <>
-      <div className="hidden lg:block"><DesktopHomePage /></div>
+      <div className="hidden lg:block"><LockedExactHome /></div>
       <div className="lg:hidden"><HomePage /></div>
     </>
   );
