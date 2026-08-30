@@ -1,5 +1,47 @@
 "use client";
-import { useState } from "react"; import { useRouter } from "next/navigation"; import { signIn } from "next-auth/react"; import { AlertTriangle, LockKeyhole, LogIn, ShieldCheck } from "lucide-react"; import { LOGO_WORDMARK } from "@/lib/logo"; import { BRAND } from "@/lib/brand";
-const UI={panel:"#07192b",border:"rgba(77,150,221,.24)",borderSoft:"rgba(77,150,221,.12)",text:"#f5f9ff",mute:"#93a9c2",faint:"#617993",blue:"#168dff",cyan:"#25c7ff",red:"#ff5e72"};
-export default function LoginForm({callbackUrl}:{callbackUrl:string}){const router=useRouter();const[email,setEmail]=useState("");const[password,setPassword]=useState("");const[error,setError]=useState<string|null>(null);const[loading,setLoading]=useState(false);async function onSubmit(e:React.FormEvent){e.preventDefault();setError(null);setLoading(true);const res=await signIn("credentials",{email,password,redirect:false});setLoading(false);if(!res||res.error){setError("Incorrect email or password.");return}router.push(callbackUrl);router.refresh()}const inputStyle={background:"#041323",border:`1px solid ${UI.border}`,color:UI.text};return <div className="grid w-full max-w-5xl overflow-hidden rounded-2xl shadow-[0_28px_90px_rgba(0,0,0,.35)] lg:grid-cols-[1.05fr_.95fr]" style={{border:`1px solid ${UI.border}`,background:UI.panel}}><section className="hidden min-h-[590px] flex-col justify-between p-8 lg:flex" style={{background:"linear-gradient(145deg, rgba(13,53,91,.95), rgba(5,24,43,.98))",borderRight:`1px solid ${UI.borderSoft}`}}><div><img src={LOGO_WORDMARK} alt={BRAND.name} style={{width:220,height:"auto"}}/><p className="mt-6 max-w-md text-3xl font-semibold leading-tight" style={{color:UI.text}}>One place to run your entire business.</p><p className="mt-3 max-w-md text-sm leading-6" style={{color:UI.mute}}>Jobs, clients, scheduling, quoting, invoicing, employees, documents and daily operations — built around the way your business works.</p></div><div className="space-y-3"><Info icon={<ShieldCheck size={16}/>} title="Built for your business" text="Modules and permissions can be tailored to each company."/><Info icon={<LockKeyhole size={16}/>} title="Secure business portal" text="Role-based access keeps the right tools with the right people."/></div></section><section className="flex min-h-[560px] items-center p-5 sm:p-8"><div className="mx-auto w-full max-w-sm"><div className="mb-7 lg:hidden"><img src={LOGO_WORDMARK} alt={BRAND.name} style={{width:190,height:"auto"}}/></div><p className="text-[10px] font-semibold uppercase tracking-[.16em]" style={{color:UI.cyan}}>Business portal</p><h1 className="mt-2 text-2xl font-semibold" style={{color:UI.text}}>Sign in to {BRAND.name}</h1><p className="mt-2 text-sm" style={{color:UI.mute}}>Use your business account to continue.</p><form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4"><label className="flex flex-col gap-1.5"><span className="text-xs" style={{color:UI.mute}}>Email</span><input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none" style={inputStyle} placeholder="you@yourbusiness.com.au"/></label><label className="flex flex-col gap-1.5"><span className="text-xs" style={{color:UI.mute}}>Password</span><input type="password" required value={password} onChange={e=>setPassword(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none" style={inputStyle}/></label>{error&&<div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs" style={{color:UI.red}}><AlertTriangle size={14}/>{error}</div>}<button disabled={loading} className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold" style={{background:UI.blue,color:"white"}}><LogIn size={16}/>{loading?"Signing in…":"Sign in"}</button></form><p className="mt-5 text-xs" style={{color:UI.faint}}>Forgot your password? Contact your business administrator.</p></div></section></div>}
-function Info({icon,title,text}:{icon:React.ReactNode;title:string;text:string}){return <div className="flex gap-3 rounded-xl p-4" style={{background:"rgba(4,19,35,.45)",border:`1px solid ${UI.borderSoft}`}}><span style={{color:UI.cyan}}>{icon}</span><div><p className="text-sm font-semibold" style={{color:UI.text}}>{title}</p><p className="mt-1 text-xs" style={{color:UI.mute}}>{text}</p></div></div>}
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
+
+export default function LoginForm({callbackUrl}:{callbackUrl:string}){
+  const router=useRouter();
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[show,setShow]=useState(false);
+  const[remember,setRemember]=useState(true);
+  const[error,setError]=useState<string|null>(null);
+  const[loading,setLoading]=useState(false);
+
+  async function onSubmit(e:React.FormEvent){
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    const res=await signIn("credentials",{email,password,redirect:false});
+    setLoading(false);
+    if(!res||res.error){setError("Incorrect email or password.");return}
+    router.push(callbackUrl);
+    router.refresh();
+  }
+
+  return <div className="w-full max-w-[470px] rounded-lg border border-white/[.11] bg-[#07131d] p-6 shadow-[0_24px_70px_rgba(0,0,0,.38)] sm:p-8">
+    <div className="text-[28px] font-medium tracking-[-.075em]"><span className="text-[#168dff]">Your</span><span className="text-white">plan</span></div>
+    <h1 className="mt-8 text-[24px] font-semibold tracking-[-.03em] text-white">Welcome back</h1>
+    <p className="mt-2 text-[12px] text-slate-400">Sign in to your account.</p>
+    <form onSubmit={onSubmit} className="mt-6 space-y-3">
+      <input aria-label="Email Address" type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email Address" className="h-11 w-full rounded border border-white/[.11] bg-[#050e16] px-3 text-[12px] text-white outline-none placeholder:text-slate-500 focus:border-[#168dff]/50" />
+      <div className="relative">
+        <input aria-label="Password" type={show?"text":"password"} required value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" className="h-11 w-full rounded border border-white/[.11] bg-[#050e16] px-3 pr-11 text-[12px] text-white outline-none placeholder:text-slate-500 focus:border-[#168dff]/50" />
+        <button type="button" onClick={()=>setShow(v=>!v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-label={show?"Hide password":"Show password"}>{show?<EyeOff size={16}/>:<Eye size={16}/>}</button>
+      </div>
+      <div className="flex items-center justify-between gap-3 text-[10px]">
+        <label className="flex items-center gap-2 text-slate-300"><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)} className="accent-[#168dff]"/> Remember me</label>
+        <Link href="/contact" className="text-[#168dff]">Forgot password?</Link>
+      </div>
+      {error?<p className="text-[11px] text-red-400">{error}</p>:null}
+      <button disabled={loading} className="mt-2 flex h-11 w-full items-center justify-center gap-3 rounded bg-[#0d78ff] text-[12px] font-semibold text-white disabled:opacity-60">{loading?"Signing in…":"Sign In"}<span>→</span></button>
+    </form>
+    <p className="mt-6 text-center text-[11px] text-slate-400">Don’t have an account? <Link href="/contact" className="text-[#168dff]">Contact us</Link></p>
+  </div>
+}
