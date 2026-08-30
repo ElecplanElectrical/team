@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { firstAccessibleModulePath } from "@/lib/access";
-import { HomePage } from "@/components/yourplan-public";
 import { LockedExactHome } from "@/components/locked-exact-home";
+import { LockedMobileHome } from "@/components/locked-mobile-home";
 
 export default async function RootPage() {
   const user = await getSessionUser();
@@ -14,8 +14,8 @@ export default async function RootPage() {
 
   return (
     <>
-      <div className="yp-approved-wrap hidden md:block"><LockedExactHome /></div>
-      <div className="md:hidden"><HomePage /></div>
+      <div className="hidden md:block"><LockedExactHome /></div>
+      <div className="md:hidden"><LockedMobileHome /></div>
     </>
   );
 }
