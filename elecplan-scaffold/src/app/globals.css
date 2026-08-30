@@ -66,20 +66,22 @@ body {
   z-index: 0;
 }
 
-/* Use the supplied YourPlan artwork everywhere the locked design calls for the wordmark. */
+/* Use the supplied YourPlan artwork without showing the black canvas around it. */
 span[role="img"][aria-label="YourPlan"] {
   background-image: url('/yourplan-wordmark.webp') !important;
   background-repeat: no-repeat !important;
   background-position: center !important;
-  background-size: 100% 100% !important;
+  background-size: contain !important;
+  mix-blend-mode: screen;
 }
 
-/* Use the supplied powered-by lockup in the footer without moving the approved layout. */
+/* Use the supplied Powered by YourPlan lockup in the footer, blending away its black sheet background. */
 footer > div:first-child > div:first-child {
   background-image: url('/yourplan-powered-footer.webp');
   background-repeat: no-repeat;
   background-position: left center;
   background-size: contain;
+  mix-blend-mode: screen;
 }
 footer > div:first-child > div:first-child > * {
   visibility: hidden;
