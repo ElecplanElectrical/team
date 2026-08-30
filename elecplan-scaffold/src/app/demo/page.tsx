@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { BarChart3, BriefcaseBusiness, CalendarDays, CheckCircle2, CircleDollarSign, FileText, Package, Users } from "lucide-react";
 import DemoLaunchButton from "@/components/DemoLaunchButton";
 import { LockedPublicFrame } from "@/components/locked-public-frame";
@@ -14,5 +15,5 @@ export default function DemoPage(){return <LockedPublicFrame><main className="te
 <section className="mt-4 rounded-[10px] border border-white/15 bg-[#090e13]/85 p-5"><div className="mb-4"><h2 className="font-semibold">Inside the demo</h2><p className="mt-1 text-xs text-slate-500">These are real YourPlan modules, backed by an isolated demo tenant.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{modules.map(([n,m,I])=><div key={n} className="hover-glow rounded-[7px] border border-white/[.08] bg-[#0b1015] p-4"><I size={18} className="mb-3 text-[#168dff]"/><div className="text-sm font-semibold">{n}</div><div className="mt-1 text-xs text-slate-500">{m}</div></div>)}</div></section>
 <section className="mt-4 flex flex-col gap-4 rounded-[10px] border border-[#168dff]/25 bg-[#168dff]/[.045] p-5 md:flex-row md:items-center md:justify-between"><div><h2 className="font-semibold">Ready to click through the real workspace?</h2><p className="mt-1 text-xs text-slate-400">One click signs you into the isolated read-only demo tenant.</p></div><DemoLaunchButton label="Launch YourPlan demo"/></section>
 </div></main></LockedPublicFrame>}
-function Panel({children}:{children:React.ReactNode}){return <div className="rounded-[10px] border border-white/15 bg-[#090e13]/85 p-5">{children}</div>}
+function Panel({children}:{children:ReactNode}){return <div className="rounded-[10px] border border-white/15 bg-[#090e13]/85 p-5">{children}</div>}
 function Metric({label,value,note}:{label:string;value:string;note:string}){return <div className="hover-glow rounded-[10px] border border-white/15 bg-[#090e13]/85 p-5"><div className="text-xs text-slate-500">{label}</div><div className="mt-2 text-2xl font-semibold">{value}</div><div className="mt-1 text-xs text-[#168dff]">{note}</div></div>}
