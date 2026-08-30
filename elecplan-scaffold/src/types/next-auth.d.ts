@@ -6,11 +6,13 @@ declare module "next-auth" {
     user: {
       id: string;
       role: Role;
+      demo?: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     role: Role;
+    demo?: boolean;
   }
 }
 
@@ -18,4 +20,4 @@ declare module "next-auth" {
 // only re-exports `@auth/core/jwt` (so augmenting it is a no-op), and under pnpm
 // `@auth/core` isn't resolvable as a direct module to augment either. The token
 // therefore stays `Record<string, unknown>`; `src/auth.config.ts` narrows
-// `token.id` / `token.role` with explicit casts where it reads them.
+// token values with explicit casts where it reads them.
