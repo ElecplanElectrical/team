@@ -66,6 +66,25 @@ body {
   z-index: 0;
 }
 
+/* Use the supplied YourPlan artwork everywhere the locked design calls for the wordmark. */
+span[role="img"][aria-label="YourPlan"] {
+  background-image: url('/yourplan-wordmark.webp') !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 100% 100% !important;
+}
+
+/* Use the supplied powered-by lockup in the footer without moving the approved layout. */
+footer > div:first-child > div:first-child {
+  background-image: url('/yourplan-powered-footer.webp');
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: contain;
+}
+footer > div:first-child > div:first-child > * {
+  visibility: hidden;
+}
+
 /* Interactive card hover — ported verbatim from the mockup FONT_IMPORT. */
 .hover-glow {
   transition:
