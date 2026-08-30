@@ -46,11 +46,16 @@ function nextWithModule(req: Request, pathname: string) {
 export default auth((req) => {
   const { nextUrl } = req;
   const pathname = nextUrl.pathname;
+  const method = req.method.toUpperCase();
+  const isDemoSession = req.auth?.user?.demo === true;
 
   if (pathname.startsWith("/api/")) {
     // External SMS callbacks cannot be same-origin. This exact endpoint verifies
     // its raw body with a timing-safe HMAC before making any state change.
     if (pathname === "/api/sms/inbound") return NextResponse.next();
+    if (isDemoSession && !SAFE_METHODS.has(method)) {
+      return NextResponse.json({ error: "Demo workspace is read only" }, { status: 403 });
+    }
     if (!sameOriginMutation(req)) {
       return NextResponse.json({ error: "Cross-site request rejected" }, { status: 403 });
     }
@@ -60,6 +65,7 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth?.user;
   const role = req.auth?.user?.role;
 
+  if (pathname === "/demo" || pathname.startsWith("/demo/")) return NextResponse.next();
   if (pathname === "/set-password") return NextResponse.next();
 
   if (pathname === "/login") {
