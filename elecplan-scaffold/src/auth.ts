@@ -19,6 +19,7 @@ const credentialsSchema = z.object({
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_EMAIL_LIMIT = 8;
 const LOGIN_IP_LIMIT = 40;
+const DEMO_EMAIL = "demo@your-plan.com.au";
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync("elecplan-invalid-login-sentinel", 10);
 
 function requestIp(request: Request): string {
@@ -82,6 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           email: user.email,
           role: user.role,
+          demo: email === DEMO_EMAIL,
         };
       },
     }),
