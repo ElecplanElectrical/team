@@ -1,132 +1,49 @@
 @import url("https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap");
 @import "tailwindcss";
 
-:root {
-  --bg: #0a0d12;
-  --text: #edeff2;
-}
-
-html,
-body {
-  height: 100%;
-}
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Inter", sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
+:root { --bg:#0a0d12; --text:#edeff2; }
+html,body { height:100%; }
+body { background:var(--bg); color:var(--text); font-family:"Inter",sans-serif; -webkit-font-smoothing:antialiased; }
 
 /* Approved YourPlan homepage responsive behaviour. */
-.yp-approved-wrap {
-  width: 100%;
-  overflow-x: hidden;
-  background: #04090e;
+.yp-approved-wrap { width:100%; overflow-x:hidden; background:#04090e; }
+@media (min-width:768px) and (max-width:1447px) {
+  .yp-approved-wrap > main { width:1448px; max-width:none; zoom:calc(100vw / 1448px); }
 }
-
-/* Keep the exact desktop composition on tablets, but scale the entire page to the browser width. */
-@media (min-width: 768px) and (max-width: 1447px) {
-  .yp-approved-wrap > main {
-    width: 1448px;
-    max-width: none;
-    zoom: calc(100vw / 1448px);
-  }
-}
-
-/* Stone-washed charcoal hero treatment from the approved concept. */
 .yp-approved-wrap > main > div > section:first-child {
-  background:
-    radial-gradient(ellipse at 15% 22%, rgba(255,255,255,.10) 0%, rgba(255,255,255,.035) 26%, transparent 49%),
-    radial-gradient(ellipse at 42% 4%, rgba(125,136,146,.10) 0%, transparent 39%),
-    linear-gradient(115deg, #454b51 0%, #353b41 18%, #242a30 36%, #141a20 57%, #090e13 78%, #05090d 100%) !important;
+  background:radial-gradient(ellipse at 15% 22%,rgba(255,255,255,.10) 0%,rgba(255,255,255,.035) 26%,transparent 49%),radial-gradient(ellipse at 42% 4%,rgba(125,136,146,.10) 0%,transparent 39%),linear-gradient(115deg,#454b51 0%,#353b41 18%,#242a30 36%,#141a20 57%,#090e13 78%,#05090d 100%) !important;
+}
+.yp-approved-wrap > main > div > section:first-child::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.26; background-image:repeating-linear-gradient(17deg,rgba(255,255,255,.022) 0 1px,transparent 1px 5px),repeating-linear-gradient(103deg,rgba(0,0,0,.055) 0 1px,transparent 1px 7px); mix-blend-mode:soft-light; z-index:0; }
+.yp-approved-wrap > main > div > section:first-child::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg,rgba(255,255,255,.035),transparent 37%),radial-gradient(ellipse at 74% 54%,rgba(22,141,255,.09),transparent 46%); z-index:0; }
+
+span[role="img"][aria-label="YourPlan"] { background-image:url('/yourplan-wordmark.webp') !important; background-repeat:no-repeat !important; background-position:center !important; background-size:contain !important; mix-blend-mode:screen; }
+
+/* Locked public pages: inherit the homepage shell and suppress the legacy duplicate chrome. */
+.locked-public-content > main { min-height:0 !important; flex:1; background:transparent !important; overflow:visible !important; }
+.locked-public-content > main > header,
+.locked-public-content > main > footer { display:none !important; }
+.locked-public-content > main > div { flex:1; }
+.locked-public-content section { position:relative; }
+.locked-public-content section > div[class*="rounded"],
+.locked-public-content div[class*="rounded-lg"],
+.locked-public-content div[class*="rounded-xl"],
+.locked-public-content div[class*="rounded-2xl"] { backdrop-filter:blur(8px); }
+.locked-public-content [class*="bg-[#06121c]"],
+.locked-public-content [class*="bg-[#07111b]"],
+.locked-public-content [class*="bg-[#08141f]"],
+.locked-public-content [class*="bg-[#061521]"] { background-color:rgba(8,13,18,.84) !important; }
+.locked-public-content [class*="border-white"] { border-color:rgba(255,255,255,.13); }
+.locked-public-content h1 { text-shadow:0 12px 40px rgba(0,0,0,.25); }
+.locked-public-content h1::first-line { color:inherit; }
+@media (min-width:1024px) {
+  .locked-public-content > main > div > section:first-child { padding-top:clamp(42px,4vw,76px) !important; }
 }
 
-.yp-approved-wrap > main > div > section:first-child::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: .26;
-  background-image:
-    repeating-linear-gradient(17deg, rgba(255,255,255,.022) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(103deg, rgba(0,0,0,.055) 0 1px, transparent 1px 7px);
-  mix-blend-mode: soft-light;
-  z-index: 0;
-}
-
-.yp-approved-wrap > main > div > section:first-child::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(255,255,255,.035), transparent 37%),
-    radial-gradient(ellipse at 74% 54%, rgba(22,141,255,.09), transparent 46%);
-  z-index: 0;
-}
-
-/* Use the supplied YourPlan artwork without showing the black canvas around it. */
-span[role="img"][aria-label="YourPlan"] {
-  background-image: url('/yourplan-wordmark.webp') !important;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
-  background-size: contain !important;
-  mix-blend-mode: screen;
-}
-
-/* Use the supplied Powered by YourPlan lockup in the footer, blending away its black sheet background. */
-footer > div:first-child > div:first-child {
-  background-image: url('/yourplan-powered-footer.webp');
-  background-repeat: no-repeat;
-  background-position: left center;
-  background-size: contain;
-  mix-blend-mode: screen;
-}
-footer > div:first-child > div:first-child > * {
-  visibility: hidden;
-}
-
-/* Interactive card hover — ported verbatim from the mockup FONT_IMPORT. */
-.hover-glow {
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
-}
-.hover-glow:hover {
-  border-color: rgba(61, 197, 240, 0.5) !important;
-  box-shadow:
-    0 0 0 1px rgba(61, 197, 240, 0.15),
-    0 8px 24px rgba(61, 197, 240, 0.12);
-  transform: translateY(-1px);
-}
-
-.side-panel {
-  width: 280px;
-}
-.search-box {
-  width: 320px;
-}
-@media (max-width: 767px) {
-  .side-panel {
-    width: 100%;
-  }
-  .search-box {
-    width: 100%;
-  }
-}
-
-/* Subtle dark scrollbars to match the theme. */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #242a33 transparent;
-}
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-*::-webkit-scrollbar-thumb {
-  background: #242a33;
-  border-radius: 8px;
-}
+.hover-glow { transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease; }
+.hover-glow:hover { border-color:rgba(61,197,240,.5) !important; box-shadow:0 0 0 1px rgba(61,197,240,.15),0 8px 24px rgba(61,197,240,.12); transform:translateY(-1px); }
+.side-panel { width:280px; }
+.search-box { width:320px; }
+@media (max-width:767px) { .side-panel,.search-box { width:100%; } }
+* { scrollbar-width:thin; scrollbar-color:#242a33 transparent; }
+*::-webkit-scrollbar { width:8px; height:8px; }
+*::-webkit-scrollbar-thumb { background:#242a33; border-radius:8px; }
