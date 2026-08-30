@@ -13,5 +13,17 @@ function safeCallback(value?: string) {
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string }> }) {
   const { callbackUrl } = await searchParams;
-  return <main className="relative min-h-screen overflow-hidden px-4 py-8 sm:px-6" style={{background:"radial-gradient(circle at 20% 10%, rgba(22,141,255,.20), transparent 30%), radial-gradient(circle at 85% 85%, rgba(37,199,255,.10), transparent 26%), #03101f"}}><div className="pointer-events-none absolute inset-0 opacity-30" style={{backgroundImage:"linear-gradient(rgba(77,150,221,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(77,150,221,.05) 1px, transparent 1px)",backgroundSize:"42px 42px"}}/><div className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col items-center justify-center gap-4"><LoginForm callbackUrl={safeCallback(callbackUrl)}/><Link href="/demo" className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 px-4 py-2 text-sm font-medium text-cyan-200 transition hover:bg-cyan-300/10">View the YourPlan demo</Link></div></main>;
+  return <main className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_17%_0%,rgba(14,72,117,.16),transparent_30%),linear-gradient(180deg,#020b12,#020a11)] px-5 text-white sm:px-7">
+    <header className="mx-auto flex h-[68px] w-full max-w-[1180px] items-center justify-between lg:h-[74px]">
+      <Link href="/" className="text-[25px] font-medium tracking-[-.075em]"><span className="text-[#168dff]">Your</span><span>plan</span></Link>
+      <Link href="/" className="text-[12px] text-slate-400 hover:text-white">Back to website</Link>
+    </header>
+    <section className="flex flex-1 items-center justify-center py-8">
+      <LoginForm callbackUrl={safeCallback(callbackUrl)}/>
+    </section>
+    <footer className="mx-auto hidden h-[54px] w-full max-w-[1180px] items-center justify-between border-t border-white/[.07] text-[10px] text-slate-500 lg:flex">
+      <span>© 2025 YourPlan. All rights reserved.</span>
+      <div className="flex items-center gap-8"><Link href="/privacy">Privacy Policy</Link><Link href="/terms">Terms of Service</Link><span className="text-white">f</span><span className="text-white">in</span><span className="text-white">▶</span></div>
+    </footer>
+  </main>;
 }
