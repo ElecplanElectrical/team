@@ -18,7 +18,7 @@ body { background:var(--bg); color:var(--text); font-family:"Inter",sans-serif; 
 
 span[role="img"][aria-label="YourPlan"] { background-image:url('/yourplan-wordmark.webp') !important; background-repeat:no-repeat !important; background-position:center !important; background-size:contain !important; mix-blend-mode:screen; }
 
-/* Locked public pages: inherit the homepage shell and suppress the legacy duplicate chrome. */
+/* Locked public pages legacy wrapper support. */
 .locked-public-content > main { min-height:0 !important; flex:1; background:transparent !important; overflow:visible !important; }
 .locked-public-content > main > header,
 .locked-public-content > main > footer { display:none !important; }
@@ -34,19 +34,25 @@ span[role="img"][aria-label="YourPlan"] { background-image:url('/yourplan-wordma
 .locked-public-content [class*="bg-[#061521]"] { background-color:rgba(8,13,18,.84) !important; }
 .locked-public-content [class*="border-white"] { border-color:rgba(255,255,255,.13); }
 .locked-public-content h1 { text-shadow:0 12px 40px rgba(0,0,0,.25); }
-.locked-public-content h1::first-line { color:inherit; }
 
-/* Desktop public-page scale. The original inner pages were authored around an 1180px canvas and looked shrunken once placed inside the new full-width shell. Scale the page body as one composition so spacing, typography and cards stay in the approved proportions. Mobile remains untouched. */
-@media (min-width:1024px) {
-  .locked-public-content > main > div {
-    width:84.75%;
-    margin-left:auto;
-    margin-right:auto;
-    zoom:1.18;
-  }
-  .locked-public-content > main > div > section:first-child {
-    padding-top:clamp(24px,2.1vw,40px) !important;
-  }
+/* Desktop public pages: preserve the approved layouts but let them fill a modern browser width. */
+@media (min-width:1280px) {
+  [class*="max-w-[1180px]"] { max-width:1440px !important; }
+  [class*="max-w-[980px]"] { max-width:1180px !important; }
+}
+
+/* Desktop homepage headline: keep a deliberate gap between YOUR and BUSINESS/WAY/PLAN. */
+@media (min-width:768px) {
+  [class*="grid-cols-[2.65em_1fr]"] { grid-template-columns:2.95em 1fr !important; }
+}
+
+/* Mobile homepage dashboard: match the approved compact tablet proportions. */
+@media (max-width:767px) {
+  [class*="h-[255px]"][class*="w-[108%]"] { width:100% !important; height:235px !important; transform:none !important; margin-top:24px !important; }
+  [class*="h-[255px]"][class*="w-[108%]"] > div { transform:rotateY(-4deg) rotateX(1deg) rotateZ(-0.6deg) !important; }
+  [class*="h-[255px]"][class*="w-[108%]"] aside { width:21% !important; padding:10px !important; }
+  [class*="h-[255px]"][class*="w-[108%]"] aside span[role="img"][aria-label="YourPlan"] { width:68px !important; height:15px !important; }
+  [class*="h-[255px]"][class*="w-[108%]"] section { padding:10px !important; }
 }
 
 .hover-glow { transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease; }
