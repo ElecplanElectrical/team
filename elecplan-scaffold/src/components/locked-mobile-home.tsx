@@ -58,33 +58,69 @@ function BrandLogo({ small = false }: { small?: boolean }) {
   );
 }
 
+function MiniLine() {
+  return (
+    <svg viewBox="0 0 100 20" className="h-3 w-full" aria-hidden="true">
+      <polyline points="0,16 16,13 31,15 48,9 64,11 80,5 100,7" fill="none" stroke={blue} strokeWidth="2" />
+    </svg>
+  );
+}
+
 function DashboardCard() {
   return (
-    <div className="relative mt-8 h-[255px] w-[108%] -translate-x-[2%] [perspective:1000px] sm:h-[330px]">
+    <div className="relative mt-8 h-[252px] w-[108%] -translate-x-[2%] [perspective:1000px] sm:h-[322px]">
       <div className="absolute inset-0 origin-center [transform:rotateY(-7deg)_rotateX(2deg)_rotateZ(-1deg)]">
         <div className="flex h-full overflow-hidden rounded-[14px] border border-[#168dff]/35 bg-[#080d12] shadow-[0_0_26px_rgba(22,141,255,.42),0_22px_55px_rgba(0,0,0,.55)]">
-          <aside className="w-[24%] border-r border-white/[.07] bg-[#070b0f] p-3">
+          <aside className="w-[18.7%] border-r border-white/[.07] bg-[#070b0f] px-2 py-2.5">
             <BrandLogo small />
-            <div className="mt-4 space-y-2 text-[7px] text-slate-400">
-              {["Dashboard", "Jobs", "Leads & CRM", "Quotes", "Invoices", "Calendar", "Staff", "Timesheets", "Documents", "Stock", "Reminders", "Reporting"].map((item, index) => (
-                <div key={item} className={`rounded px-1.5 py-1 ${index === 0 ? "bg-[#0b3763] text-white" : ""}`}>{item}</div>
+            <div className="mt-3 space-y-[3px] text-[5px] leading-none text-slate-400 sm:text-[6px]">
+              {["Dashboard", "Jobs", "Leads & CRM", "Quotes", "Invoices", "Calendar", "Staff", "Timesheets", "Documents", "Stock", "Reminders", "Reporting", "AI & Automation"].map((item, index) => (
+                <div key={item} className={`flex h-[11px] items-center rounded px-1 ${index === 0 ? "bg-[#0b3763] text-white" : ""}`}>{item}</div>
               ))}
             </div>
           </aside>
-          <section className="flex-1 p-3">
-            <div className="flex items-center justify-between"><span className="text-[11px] font-semibold">Dashboard</span><span className="text-[6px] text-slate-500">May 12 – May 18</span></div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
+
+          <section className="flex-1 px-2.5 py-2.5 sm:px-3 sm:py-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-semibold sm:text-[11px]">Dashboard</span>
+              <span className="text-[4.5px] text-slate-500 sm:text-[5.5px]">May 12 – May 18, 2025</span>
+            </div>
+
+            <div className="mt-2 grid grid-cols-4 gap-1.5">
               {[["Total Jobs", "42"], ["Revenue", "$124,580"], ["Quotes Sent", "37"], ["Invoices Paid", "28"]].map(([label, value]) => (
-                <div key={label} className="rounded border border-white/[.08] bg-[#0b1015] p-2">
-                  <div className="text-[6px] text-slate-400">{label}</div>
-                  <div className="mt-1 text-[11px] font-semibold">{value}</div>
-                  <svg viewBox="0 0 100 20" className="mt-1 h-4 w-full"><polyline points="0,16 16,13 31,15 48,9 64,11 80,5 100,7" fill="none" stroke={blue} strokeWidth="2" /></svg>
+                <div key={label} className="h-[47px] rounded border border-white/[.08] bg-[#0b1015] p-1.5 sm:h-[61px] sm:p-2">
+                  <div className="truncate text-[4.5px] text-slate-400 sm:text-[5.5px]">{label}</div>
+                  <div className="mt-0.5 truncate text-[8px] font-semibold sm:text-[10px]">{value}</div>
+                  <div className="mt-1"><MiniLine /></div>
                 </div>
               ))}
             </div>
-            <div className="mt-2 grid grid-cols-[.9fr_1.2fr] gap-2">
-              <div className="h-[73px] rounded border border-white/[.08] bg-[#0b1015] p-2"><div className="text-[7px]">Job Overview</div><div className="mt-2 flex items-center gap-2"><div className="flex h-10 w-10 items-center justify-center rounded-full border-[5px] border-[#168dff] border-r-[#1b2631] border-b-[#1b2631] text-[9px]">42</div><div className="text-[5px] leading-3 text-slate-400">In Progress 18<br/>Completed 16<br/>Scheduled 6</div></div></div>
-              <div className="h-[73px] rounded border border-white/[.08] bg-[#0b1015] p-2"><div className="text-[7px]">Revenue Overview</div><svg viewBox="0 0 150 50" className="mt-1 h-11 w-full"><polyline points="0,42 18,36 35,38 52,29 70,32 88,20 105,24 124,10 142,14 150,8" fill="none" stroke={blue} strokeWidth="2" /></svg></div>
+
+            <div className="mt-1.5 grid grid-cols-[.92fr_1.45fr] gap-1.5">
+              <div className="h-[73px] rounded border border-white/[.08] bg-[#0b1015] p-1.5 sm:h-[94px] sm:p-2">
+                <div className="text-[5px] sm:text-[6px]">Job Overview</div>
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[5px] border-[#168dff] border-r-[#1b2631] border-b-[#1b2631] text-[7px] sm:h-12 sm:w-12 sm:border-[6px] sm:text-[9px]">42</div>
+                  <div className="text-[4px] leading-[1.65] text-slate-400 sm:text-[5px]">In Progress 18<br/>Completed 16<br/>Scheduled 6<br/>Pending 2</div>
+                </div>
+              </div>
+              <div className="h-[73px] rounded border border-white/[.08] bg-[#0b1015] p-1.5 sm:h-[94px] sm:p-2">
+                <div className="text-[5px] sm:text-[6px]">Revenue Overview</div>
+                <svg viewBox="0 0 150 50" className="mt-2 h-11 w-full sm:h-14"><polyline points="0,42 18,36 35,38 52,29 70,32 88,20 105,24 124,10 142,14 150,8" fill="none" stroke={blue} strokeWidth="2" /></svg>
+              </div>
+            </div>
+
+            <div className="mt-1.5 grid grid-cols-[1.18fr_1fr] gap-1.5">
+              <div className="h-[51px] rounded border border-white/[.08] bg-[#0b1015] p-1.5 text-[4.5px] sm:h-[65px] sm:text-[5.5px]">
+                <div className="mb-1 text-[5px] text-white sm:text-[6px]">Upcoming Jobs</div>
+                <div>Kitchen Renovation <span className="float-right rounded bg-[#0c3761] px-1 text-[#65adff]">Today</span></div>
+                <div className="mt-1">Bathroom Fitout <span className="float-right rounded bg-[#0c3761] px-1 text-[#65adff]">Tomorrow</span></div>
+              </div>
+              <div className="h-[51px] rounded border border-white/[.08] bg-[#0b1015] p-1.5 text-[4.5px] text-slate-400 sm:h-[65px] sm:text-[5.5px]">
+                <div className="mb-1 text-[5px] text-white sm:text-[6px]">Recent Activity</div>
+                <div>Invoice paid <span className="float-right">2m</span></div>
+                <div className="mt-1">New quote sent <span className="float-right">15m</span></div>
+              </div>
             </div>
           </section>
         </div>
