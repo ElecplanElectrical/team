@@ -12,5 +12,5 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { themeColor: BRAND.background };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" className="h-full"><body className="min-h-full">{children}<PwaRegister /></body></html>;
+  return <html lang="en" className="h-full"><body className="yourplan-theme min-h-full">{children}<PwaRegister /></body></html>;
 }
