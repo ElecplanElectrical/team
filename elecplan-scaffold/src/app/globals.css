@@ -35,8 +35,18 @@ span[role="img"][aria-label="YourPlan"] { background-image:url('/yourplan-wordma
 .locked-public-content [class*="border-white"] { border-color:rgba(255,255,255,.13); }
 .locked-public-content h1 { text-shadow:0 12px 40px rgba(0,0,0,.25); }
 .locked-public-content h1::first-line { color:inherit; }
+
+/* Desktop public-page scale. The original inner pages were authored around an 1180px canvas and looked shrunken once placed inside the new full-width shell. Scale the page body as one composition so spacing, typography and cards stay in the approved proportions. Mobile remains untouched. */
 @media (min-width:1024px) {
-  .locked-public-content > main > div > section:first-child { padding-top:clamp(42px,4vw,76px) !important; }
+  .locked-public-content > main > div {
+    width:84.75%;
+    margin-left:auto;
+    margin-right:auto;
+    zoom:1.18;
+  }
+  .locked-public-content > main > div > section:first-child {
+    padding-top:clamp(24px,2.1vw,40px) !important;
+  }
 }
 
 .hover-glow { transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease; }
