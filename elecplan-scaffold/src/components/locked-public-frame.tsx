@@ -90,7 +90,7 @@ function PublicFooter() {
 
 export function LockedPublicFrame({ active, children }: { active?: string; children: ReactNode }) {
   return (
-    <div className="locked-public-frame flex min-h-screen flex-col overflow-x-hidden bg-[#05090d] text-white [font-family:Inter,Arial,sans-serif]">
+    <div data-public-page={active?.toLowerCase()} className="locked-public-frame flex min-h-screen flex-col overflow-x-hidden bg-[#05090d] text-white [font-family:Inter,Arial,sans-serif]">
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_10%_8%,rgba(255,255,255,.06),transparent_29%),radial-gradient(ellipse_at_78%_28%,rgba(22,141,255,.08),transparent_34%),linear-gradient(115deg,#252a2f_0%,#171c21_28%,#0c1116_58%,#05090d_100%)]" />
       <div className="pointer-events-none fixed inset-0 z-0 opacity-35 [background-image:repeating-linear-gradient(18deg,rgba(255,255,255,.018)_0px,rgba(255,255,255,.018)_1px,transparent_1px,transparent_4px),repeating-linear-gradient(104deg,rgba(0,0,0,.16)_0px,rgba(0,0,0,.16)_2px,transparent_2px,transparent_8px)]" />
       <div className="relative z-10 flex min-h-screen flex-col">
