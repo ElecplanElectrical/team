@@ -5,6 +5,8 @@ import { getPlatformAdmin } from "@/lib/platform-admin";
 import TopBar from "@/components/TopBar";
 import BusinessPortalForm from "@/components/BusinessPortalForm";
 import BusinessPortalManager from "@/components/BusinessPortalManager";
+import HqPayments from "@/components/HqPayments";
+import HqDocuments from "@/components/HqDocuments";
 
 const UI={panel:"#07192b",border:"rgba(77,150,221,.24)",text:"#f5f9ff",mute:"#93a9c2",faint:"#617993",cyan:"#25c7ff",green:"#18d3a0"};
 function activityLabel(action:string){if(action==="PLATFORM_CUSTOMER_CREATED")return"Customer created";if(action==="PLATFORM_CUSTOMER_UPDATED")return"Customer updated";if(action==="PLATFORM_SUBSCRIPTION_UPDATED")return"Subscription updated";return action.replaceAll("_"," ").toLowerCase()}
@@ -12,13 +14,16 @@ function businessName(details:unknown){if(details&&typeof details==="object"&&!A
 
 export default async function HqPage(){
  const user=await getPlatformAdmin(); if(!user) notFound();
- const [rows,activity,subscriptions]=await Promise.all([
+ const [rows,activity,subscriptions,paymentRows,documentRows]=await Promise.all([
   prisma.businessPortal.findMany({orderBy:{createdAt:"desc"},include:{_count:{select:{users:true,clients:true,jobs:true}}}}),
-  prisma.auditLog.findMany({where:{action:{in:["PLATFORM_CUSTOMER_CREATED","PLATFORM_CUSTOMER_UPDATED","PLATFORM_SUBSCRIPTION_UPDATED"]}},orderBy:{createdAt:"desc"},take:12,select:{id:true,action:true,actorEmail:true,details:true,createdAt:true}}),
+  prisma.auditLog.findMany({where:{action:{in:["PLATFORM_CUSTOMER_CREATED","PLATFORM_CUSTOMER_UPDATED","PLATFORM_SUBSCRIPTION_UPDATED","PLATFORM_PAYMENT_RECORDED","PLATFORM_PAYMENT_UPDATED","PLATFORM_DOCUMENT_UPLOADED","PLATFORM_DOCUMENT_DELETED"]}},orderBy:{createdAt:"desc"},take:12,select:{id:true,action:true,actorEmail:true,details:true,createdAt:true}}),
   prisma.$queryRaw<Array<{businessId:string;status:string;currentPeriodEnd:Date|null;graceEndsAt:Date|null}>>`SELECT "businessId", "status", "currentPeriodEnd", "graceEndsAt" FROM "BusinessSubscription"`,
  ]);
  const active=rows.filter(b=>b.active); const mrr=active.reduce((sum,b)=>sum+Number(b.monthlyPrice??0),0); const seats=rows.reduce((sum,b)=>sum+b._count.users,0);
  const businesses=rows.map(b=>({...b,monthlyPrice:b.monthlyPrice===null?null:Number(b.monthlyPrice)}));
+ const businessOptions=rows.map(b=>({id:b.id,name:b.name}));
+ const payments=paymentRows.map(p=>({...p,amount:Number(p.amount),dueDate:p.dueDate?.toISOString()??null,paymentDate:p.paymentDate?.toISOString()??null,createdAt:p.createdAt.toISOString()}));
+ const documents=documentRows.map(d=>({...d,uploadedAt:d.uploadedAt.toISOString()}));
  const subMap=new Map(subscriptions.map(s=>[s.businessId,s]));
  const qls=rows.find(b=>b.slug==="qls");
  return <><TopBar title="Your Plan HQ" subtitle="Customers, subscriptions, access and portal configuration"/><main className="flex-1 overflow-auto p-4 md:p-6" style={{background:"#03101f"}}><div className="mx-auto max-w-7xl space-y-4">
@@ -29,6 +34,9 @@ export default async function HqPage(){
   <LaunchCard title="QLS · Customer #1" text={qls?`${qls.name} · ${qls._count.users} user${qls._count.users===1?"":"s"} · ${subMap.get(qls.id)?.status??"ACTIVE"}`:"QLS tenant not found"} status={qls?.active?"Tenant active":"Needs attention"} />
  </section>
 
+ <nav className="grid gap-3 sm:grid-cols-2"><a href="#payments" className="rounded-xl px-4 py-3 text-sm font-semibold" style={{background:UI.panel,border:`1px solid ${UI.border}`,color:UI.cyan}}>Manage customer payments</a><a href="#documents" className="rounded-xl px-4 py-3 text-sm font-semibold" style={{background:UI.panel,border:`1px solid ${UI.border}`,color:UI.cyan}}>Manage HQ documents</a></nav>
+ <HqPayments businesses={businessOptions} initialPayments={payments}/>
+ <HqDocuments businesses={businessOptions} initialDocuments={documents}/>
  <BusinessPortalForm/><BusinessPortalManager businesses={businesses}/>
  <section className="overflow-hidden rounded-xl" style={{background:UI.panel,border:`1px solid ${UI.border}`}}><div className="flex items-center justify-between border-b px-5 py-4" style={{borderColor:UI.border}}><div><h2 className="text-sm font-semibold" style={{color:UI.text}}>Recent SaaS activity</h2><p className="mt-1 text-xs" style={{color:UI.faint}}>Customer onboarding, configuration and subscription changes recorded by YourPlan HQ.</p></div><Activity size={18} style={{color:UI.cyan}}/></div>{activity.length===0?<div className="px-5 py-8 text-sm" style={{color:UI.mute}}>No platform activity recorded yet.</div>:<div className="divide-y" style={{borderColor:UI.border}}>{activity.map(item=><div key={item.id} className="flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:justify-between" style={{borderColor:UI.border}}><div><p className="text-sm font-medium" style={{color:UI.text}}>{activityLabel(item.action)}{businessName(item.details)?` · ${businessName(item.details)}`:""}</p><p className="mt-1 text-xs" style={{color:UI.mute}}>{item.actorEmail||"Platform admin"}</p></div><time className="text-xs" style={{color:UI.faint}}>{new Intl.DateTimeFormat("en-AU",{dateStyle:"medium",timeStyle:"short",timeZone:"Australia/Melbourne"}).format(item.createdAt)}</time></div>)}</div>}</section>
  </div></main></>;
