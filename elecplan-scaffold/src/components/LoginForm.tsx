@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
+import YourPlanLogo from "@/components/YourPlanLogo";
 
 export default function LoginForm({callbackUrl}:{callbackUrl:string}){
   const router=useRouter();
@@ -30,7 +31,7 @@ export default function LoginForm({callbackUrl}:{callbackUrl:string}){
       <div className="pointer-events-none absolute right-[-70px] top-[-80px] h-56 w-56 rounded-full bg-[#168dff]/10 blur-[55px]" />
       <div className="relative">
         <div className="flex items-center justify-between gap-4">
-          <img src="/yourplan-wordmark-transparent.webp" alt="YourPlan" className="h-auto w-[150px] object-contain sm:w-[170px]" />
+          <YourPlanLogo width={170} />
           <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#168dff]/25 bg-[#168dff]/10 text-[#54b5ff]"><LockKeyhole size={18}/></span>
         </div>
 
