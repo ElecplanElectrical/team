@@ -104,6 +104,19 @@ span[role="img"][aria-label="YourPlan"] { background-image:url('/yourplan-wordma
 @media (max-width:767px) {
   [class*="h-[252px]"][class*="w-[108%]"] { width:100% !important; height:235px !important; transform:none !important; margin-top:24px !important; }
   [class*="h-[252px]"][class*="w-[108%]"] > div { transform:rotateY(-4deg) rotateX(1deg) rotateZ(-0.6deg) !important; }
+
+  /* Keep the dashboard sidebar wordmark inside its own column. The previous 96px asset overflowed into the Dashboard title. */
+  [class*="h-[252px]"][class*="w-[108%]"] aside span[role="img"][aria-label="YourPlan"] {
+    width:52px !important;
+    height:13px !important;
+    max-width:100% !important;
+    margin:0 auto !important;
+    background-size:contain !important;
+    background-position:left center !important;
+  }
+  [class*="h-[252px]"][class*="w-[108%]"] aside {
+    overflow:hidden !important;
+  }
 }
 
 .hover-glow { transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease; }
