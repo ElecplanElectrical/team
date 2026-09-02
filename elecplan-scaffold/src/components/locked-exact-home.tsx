@@ -45,7 +45,9 @@ function ExactYourPlanLogo({ small = false }: { small?: boolean }) {
   );
 }
 
-function YpMark() {\n  return <YourPlanMark size={69} />;\n}
+function YpMark() {
+  return <YourPlanMark size={69} />;
+}
 
 function MiniLine({ wide = false }: { wide?: boolean }) {
   return <svg viewBox="0 0 160 28" className={wide ? "h-7 w-full" : "h-5 w-full"} aria-hidden="true"><polyline points="0,23 18,20 34,21 48,16 65,18 82,14 100,15 116,9 133,11 150,5 160,7" fill="none" stroke={blue} strokeWidth="2" /></svg>;
