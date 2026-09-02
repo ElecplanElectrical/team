@@ -6,7 +6,7 @@
   },
   "deploy": {
     "preDeployCommand": "pnpm prisma migrate deploy",
-    "startCommand": "pnpm start",
+    "startCommand": "pnpm db:seed:owner && pnpm start",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
