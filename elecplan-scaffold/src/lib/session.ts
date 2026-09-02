@@ -53,7 +53,7 @@ async function currentActiveUser(requiredModule?: YourPlanModule) {
     business: user.business ? {
       name: user.business.name,
       slug: user.business.slug,
-      logoUrl: user.business.logoUrl,
+      logoUrl: user.business.slug === "qls" ? "https://landscaping-melbourne.com.au/wp-content/uploads/2026/03/QLS-Logo.jpg" : user.business.logoUrl,
       primaryColor: user.business.primaryColor,
       accentColor: user.business.accentColor,
       modules,

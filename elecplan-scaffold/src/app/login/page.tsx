@@ -36,7 +36,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         tenantSlug={business.slug}
         businessName={business.name}
         shortName={business.slug.toUpperCase()}
-        logoSrc={`/api/branding/${business.slug}/logo`}
+        logoSrc={business.slug==="qls"?"https://landscaping-melbourne.com.au/wp-content/uploads/2026/03/QLS-Logo.jpg":`/api/branding/${business.slug}/logo`}
         primaryColor={business.primaryColor}
         accentColor={business.accentColor}
       />;
