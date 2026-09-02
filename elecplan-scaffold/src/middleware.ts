@@ -68,6 +68,7 @@ export default auth((req) => {
   const role = req.auth?.user?.role;
   const businessSlug = req.auth?.user?.businessSlug;
   const portalSlug = portalSlugForHost(req.headers.get("host"));
+  const portalOrigin = portalSlug === "qls" ? "https://qls.your-plan.com.au" : nextUrl.origin;
   const portalSession = Boolean(portalSlug && isLoggedIn && role && businessSlug === portalSlug);
 
   if (pathname.startsWith("/api/")) {
@@ -88,9 +89,9 @@ export default auth((req) => {
 
   if (portalSlug) {
     if (pathname === "/login") {
-      if (portalSession) return NextResponse.redirect(new URL("/dashboard", nextUrl));
+      if (portalSession) return NextResponse.redirect(new URL("/dashboard", portalOrigin));
       if (nextUrl.searchParams.get("tenant") !== portalSlug || nextUrl.searchParams.get("callbackUrl") !== "/dashboard") {
-        const login = new URL("/login", nextUrl);
+        const login = new URL("/login", portalOrigin);
         login.searchParams.set("tenant", portalSlug);
         login.searchParams.set("callbackUrl", "/dashboard");
         return NextResponse.redirect(login);
@@ -99,13 +100,13 @@ export default auth((req) => {
     }
     if (pathname === "/set-password") return NextResponse.next();
     if (!portalSession) {
-      const login = new URL("/login", nextUrl);
+      const login = new URL("/login", portalOrigin);
       login.searchParams.set("tenant", portalSlug);
       login.searchParams.set("callbackUrl", "/dashboard");
       return NextResponse.redirect(login);
     }
     if (pathname === "/" || pathname.startsWith(`/b/${portalSlug}`) || PUBLIC_WEBSITE_PATHS.has(pathname)) {
-      return NextResponse.redirect(new URL("/dashboard", nextUrl));
+      return NextResponse.redirect(new URL("/dashboard", portalOrigin));
     }
   }
 
