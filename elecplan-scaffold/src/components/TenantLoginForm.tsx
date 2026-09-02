@@ -14,6 +14,15 @@ type Props = {
   accentColor: string;
 };
 
+function TenantBrandLogo({src,name,shortName,primaryColor,accentColor,compact=false}:{src:string;name:string;shortName:string;primaryColor:string;accentColor:string;compact?:boolean}) {
+  const [failed,setFailed]=useState(false);
+  if(!failed) return <img src={src} alt={name} onError={()=>setFailed(true)} className={compact?"max-h-16 w-auto max-w-[230px] object-contain object-left":"max-h-20 w-auto max-w-[260px] object-contain object-left sm:max-h-24 sm:max-w-[340px]"}/>;
+  return <div className="flex items-center gap-3">
+    <span className={compact?"flex h-12 w-12 items-center justify-center rounded-full border-2":"flex h-14 w-14 items-center justify-center rounded-full border-2 sm:h-16 sm:w-16"} style={{borderColor:primaryColor,color:accentColor,backgroundColor:`${primaryColor}18`}}><Leaf size={compact?25:31}/></span>
+    <span><strong className={compact?"block text-2xl font-black tracking-tight":"block text-3xl font-black tracking-tight sm:text-4xl"} style={{color:accentColor}}>{shortName}</strong><small className="block max-w-[220px] text-[10px] uppercase tracking-[.13em] text-slate-400">{name}</small></span>
+  </div>;
+}
+
 export default function TenantLoginForm({
   callbackUrl,
   businessName,
@@ -54,7 +63,7 @@ export default function TenantLoginForm({
     <div className="relative z-10 mx-auto grid min-h-screen w-[92%] max-w-[1360px] lg:grid-cols-[1.05fr_.95fr]">
       <section className="flex flex-col justify-between py-7 lg:min-h-screen lg:py-10 lg:pr-16">
         <header className="flex items-center justify-between gap-5">
-          <img src={logoSrc} alt={businessName} className="max-h-20 w-auto max-w-[260px] object-contain object-left sm:max-h-24 sm:max-w-[340px]"/>
+          <TenantBrandLogo src={logoSrc} name={businessName} shortName={shortName} primaryColor={primaryColor} accentColor={accentColor}/>
           <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[.025] px-4 py-2 text-[11px] uppercase tracking-[.14em] text-slate-400 sm:flex">
             <ShieldCheck size={14} style={{color:accentColor}}/> Secure team portal
           </div>
@@ -90,7 +99,7 @@ export default function TenantLoginForm({
             <div className="pointer-events-none absolute right-[-70px] top-[-80px] h-56 w-56 rounded-full blur-[55px]" style={{backgroundColor:glow}}/>
             <div className="relative">
               <div className="flex items-center justify-between gap-4">
-                <img src={logoSrc} alt={businessName} className="max-h-16 w-auto max-w-[230px] object-contain object-left"/>
+                <TenantBrandLogo src={logoSrc} name={businessName} shortName={shortName} primaryColor={primaryColor} accentColor={accentColor} compact/>
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" style={{borderColor:border,backgroundColor:`${primaryColor}16`,color:accentColor}}><LockKeyhole size={18}/></span>
               </div>
               <div className="mt-8">
