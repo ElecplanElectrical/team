@@ -15,11 +15,15 @@ type Props = {
 };
 
 function TenantBrandLogo({src,name,shortName,primaryColor,accentColor,compact=false}:{src:string;name:string;shortName:string;primaryColor:string;accentColor:string;compact?:boolean}) {
+  const [loaded,setLoaded]=useState(false);
   const [failed,setFailed]=useState(false);
-  if(!failed) return <img src={src} alt={name} onError={()=>setFailed(true)} className={compact?"max-h-16 w-auto max-w-[230px] object-contain object-left":"max-h-20 w-auto max-w-[260px] object-contain object-left sm:max-h-24 sm:max-w-[340px]"}/>;
-  return <div className="flex items-center gap-3">
+  const fallback=<div className="flex items-center gap-3">
     <span className={compact?"flex h-12 w-12 items-center justify-center rounded-full border-2":"flex h-14 w-14 items-center justify-center rounded-full border-2 sm:h-16 sm:w-16"} style={{borderColor:primaryColor,color:accentColor,backgroundColor:`${primaryColor}18`}}><Leaf size={compact?25:31}/></span>
     <span><strong className={compact?"block text-2xl font-black tracking-tight":"block text-3xl font-black tracking-tight sm:text-4xl"} style={{color:accentColor}}>{shortName}</strong><small className="block max-w-[220px] text-[10px] uppercase tracking-[.13em] text-slate-400">{name}</small></span>
+  </div>;
+  return <div className="relative">
+    {!loaded||failed?fallback:null}
+    {!failed?<img src={src} alt={name} onLoad={()=>setLoaded(true)} onError={()=>setFailed(true)} className={(loaded?(compact?"max-h-16 w-auto max-w-[230px] object-contain object-left":"max-h-20 w-auto max-w-[260px] object-contain object-left sm:max-h-24 sm:max-w-[340px]"):"pointer-events-none absolute h-px w-px opacity-0")}/>:null}
   </div>;
 }
 
