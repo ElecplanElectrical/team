@@ -1,5 +1,4 @@
 import Link from "next/link";
-import YourPlanMark from "@/components/YourPlanMark";
 import {
   Bell,
   BarChart3,
@@ -186,7 +185,7 @@ export function LockedMobileHome() {
       </section>
 
       <footer className="mx-3 mb-5 mt-3 rounded-[8px] border border-white/15 bg-[#0a1015] p-5 sm:mx-5">
-        <div className="flex items-center gap-4"><YourPlanMark size={52} /><div><div className="text-[9px] uppercase tracking-[.08em] text-slate-300">Powered by</div><BrandLogo /></div></div>
+        <img src="/yourplan-powered-footer.webp" alt="Powered by YourPlan" className="h-auto w-[250px] max-w-full object-contain mix-blend-screen"/>
         <p className="mt-4 text-[12px] text-slate-300">One platform. Built for your business.</p>
         <div className="mt-6 grid grid-cols-3 gap-4 text-[11px] text-slate-400"><div><div className="mb-2 text-white">PRODUCT</div><div className="space-y-1.5"><div>Features</div><div>Pricing</div><div>Integrations</div><div>Changelog</div></div></div><div><div className="mb-2 text-white">COMPANY</div><div className="space-y-1.5"><div>About Us</div><div>Careers</div><div>Partners</div><div>Contact Us</div></div></div><div><div className="mb-2 text-white">RESOURCES</div><div className="space-y-1.5"><div>Help Centre</div><div>Community</div><div>Blog</div><div>Guides</div></div></div></div>
         <div className="mt-6 rounded-[7px] border border-white/[.08] bg-[#0d1319] p-4"><div className="text-[15px] font-medium">Ready to transform your business?</div><div className="mt-1 text-[12px] text-slate-400">Book a demo today and see the difference.</div><Link href="/contact" className="mt-3 inline-flex h-10 items-center justify-center rounded-[6px] bg-[#0c84ff] px-5 text-[12px]">Book a Demo &nbsp; →</Link></div>
