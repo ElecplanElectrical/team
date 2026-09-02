@@ -1,4 +1,5 @@
 import Link from "next/link";
+import YourPlanMark from "@/components/YourPlanMark";
 import {
   Bell,
   BarChart3,
@@ -44,9 +45,7 @@ function ExactYourPlanLogo({ small = false }: { small?: boolean }) {
   );
 }
 
-function YpMark() {
-  return <div className="flex h-[clamp(52px,3.6vw,69px)] w-[clamp(52px,3.6vw,69px)] items-center justify-center rounded-full border-2 border-[#168dff] text-[clamp(25px,1.73vw,33px)] font-semibold"><span className="text-[#168dff]">Y</span><span>P</span></div>;
-}
+function YpMark() {\n  return <YourPlanMark size={69} />;\n}
 
 function MiniLine({ wide = false }: { wide?: boolean }) {
   return <svg viewBox="0 0 160 28" className={wide ? "h-7 w-full" : "h-5 w-full"} aria-hidden="true"><polyline points="0,23 18,20 34,21 48,16 65,18 82,14 100,15 116,9 133,11 150,5 160,7" fill="none" stroke={blue} strokeWidth="2" /></svg>;
