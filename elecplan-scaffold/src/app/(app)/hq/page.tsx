@@ -18,6 +18,8 @@ export default async function HqPage(){
   prisma.businessPortal.findMany({orderBy:{createdAt:"desc"},include:{_count:{select:{users:true,clients:true,jobs:true}}}}),
   prisma.auditLog.findMany({where:{action:{in:["PLATFORM_CUSTOMER_CREATED","PLATFORM_CUSTOMER_UPDATED","PLATFORM_SUBSCRIPTION_UPDATED","PLATFORM_PAYMENT_RECORDED","PLATFORM_PAYMENT_UPDATED","PLATFORM_DOCUMENT_UPLOADED","PLATFORM_DOCUMENT_DELETED"]}},orderBy:{createdAt:"desc"},take:12,select:{id:true,action:true,actorEmail:true,details:true,createdAt:true}}),
   prisma.$queryRaw<Array<{businessId:string;status:string;currentPeriodEnd:Date|null;graceEndsAt:Date|null}>>`SELECT "businessId", "status", "currentPeriodEnd", "graceEndsAt" FROM "BusinessSubscription"`,
+  prisma.$queryRawUnsafe<Array<{id:string;businessId:string;businessName:string;amount:unknown;status:string;dueDate:Date|null;paymentDate:Date|null;method:string|null;reference:string|null;notes:string|null;createdAt:Date}>>(`SELECT p.*, b.name AS "businessName" FROM "PlatformPayment" p JOIN "BusinessPortal" b ON b.id=p."businessId" ORDER BY p."createdAt" DESC`),
+  prisma.$queryRawUnsafe<Array<{id:string;businessId:string;businessName:string;name:string;type:string;originalName:string|null;contentType:string|null;sizeBytes:number|null;notes:string|null;uploadedAt:Date}>>(`SELECT d.*, b.name AS "businessName" FROM "PlatformDocument" d JOIN "BusinessPortal" b ON b.id=d."businessId" ORDER BY d."uploadedAt" DESC`),
  ]);
  const active=rows.filter(b=>b.active); const mrr=active.reduce((sum,b)=>sum+Number(b.monthlyPrice??0),0); const seats=rows.reduce((sum,b)=>sum+b._count.users,0);
  const businesses=rows.map(b=>({...b,monthlyPrice:b.monthlyPrice===null?null:Number(b.monthlyPrice)}));
