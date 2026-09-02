@@ -19,8 +19,8 @@ export async function POST(req:Request){
   if(!actor.businessId){
     const platformAdmin=await getPlatformAdmin();
     if(!platformAdmin||kind!=="documents")return NextResponse.json({error:"No active customer business selected."},{status:409});
-    if(!PHOTO_TYPES.has(contentType))return NextResponse.json({error:"Platform branding uploads must be PNG, JPEG or WebP"},{status:400});
-    if(sizeBytes>PHOTO_MAX_BYTES)return NextResponse.json({error:`File is too large. Maximum is ${Math.floor(PHOTO_MAX_BYTES/1024/1024)} MB.`},{status:400});
+    if(!DOCUMENT_TYPES.has(contentType))return NextResponse.json({error:"HQ documents must be PDF, PNG, JPEG, WebP or text"},{status:400});
+    if(sizeBytes>DOCUMENT_MAX_BYTES)return NextResponse.json({error:`File is too large. Maximum is ${Math.floor(DOCUMENT_MAX_BYTES/1024/1024)} MB.`},{status:400});
     if(!storageConfigured())return NextResponse.json({error:"Private storage is not configured yet"},{status:503});
     return NextResponse.json(createUploadTicket({kind,fileName,contentType,sizeBytes}));
   }
