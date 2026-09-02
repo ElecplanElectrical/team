@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Layers3, ShieldCheck, Sparkles } from "lucide-react";
 import LoginForm from "@/components/LoginForm";
 import YourPlanLogo from "@/components/YourPlanLogo";
+import TenantLoginForm from "@/components/TenantLoginForm";
+import { prisma } from "@/lib/prisma";
 
 function safeCallback(value?: string) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
@@ -13,8 +15,31 @@ function safeCallback(value?: string) {
   }
 }
 
+function tenantSlugFromCallback(value:string){
+  const match=value.match(/^\/b\/([a-z0-9-]+)\/dashboard(?:[/?#]|$)/i);
+  return match?.[1]?.toLowerCase()??null;
+}
+
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string }> }) {
   const { callbackUrl } = await searchParams;
+  const destination=safeCallback(callbackUrl);
+  const tenantSlug=tenantSlugFromCallback(destination);
+  if(tenantSlug){
+    const business=await prisma.businessPortal.findFirst({
+      where:{slug:tenantSlug,active:true},
+      select:{name:true,slug:true,primaryColor:true,accentColor:true},
+    });
+    if(business){
+      return <TenantLoginForm
+        callbackUrl={destination}
+        businessName={business.name}
+        shortName={business.slug.toUpperCase()}
+        logoSrc={`/api/branding/${business.slug}/logo`}
+        primaryColor={business.primaryColor}
+        accentColor={business.accentColor}
+      />;
+    }
+  }
   return <main className="relative min-h-screen overflow-hidden bg-[#03070b] text-white [font-family:Inter,Arial,sans-serif]">
     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_14%,rgba(22,141,255,.24),transparent_28%),radial-gradient(circle_at_88%_82%,rgba(37,199,255,.12),transparent_25%),linear-gradient(135deg,#060d14_0%,#03070b_55%,#07111b_100%)]" />
     <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(83,160,235,.055)_1px,transparent_1px),linear-gradient(90deg,rgba(83,160,235,.055)_1px,transparent_1px)] [background-size:48px_48px]" />
@@ -54,7 +79,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       </section>
 
       <section className="flex items-center justify-center border-t border-white/[.07] py-10 lg:min-h-screen lg:border-l lg:border-t-0 lg:border-white/[.07] lg:pl-16">
-        <LoginForm callbackUrl={safeCallback(callbackUrl)} />
+        <LoginForm callbackUrl={destination} />
       </section>
     </div>
   </main>;
