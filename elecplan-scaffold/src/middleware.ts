@@ -93,7 +93,9 @@ export default auth((req) => {
 
   if (pathname === "/login") {
     if (isLoggedIn && role) {
-      return NextResponse.redirect(new URL(portalSlug ? `/b/${portalSlug}/dashboard` : "/", nextUrl));
+      const callbackUrl = nextUrl.searchParams.get("callbackUrl");
+      const safeCallback = callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : null;
+      return NextResponse.redirect(new URL(safeCallback ?? (portalSlug ? `/b/${portalSlug}/dashboard` : "/"), nextUrl));
     }
     return NextResponse.next();
   }
