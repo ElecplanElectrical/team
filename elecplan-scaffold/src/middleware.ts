@@ -53,11 +53,20 @@ function nextWithModule(req: Request, pathname: string) {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
+function portalSlugForHost(hostHeader: string | null): string | null {
+  const host = hostHeader?.split(":")[0]?.toLowerCase();
+  if (host === "qls.your-plan.com.au") return "qls";
+  return null;
+}
+
 export default auth((req) => {
   const { nextUrl } = req;
   const pathname = nextUrl.pathname;
   const method = req.method.toUpperCase();
   const isDemoSession = req.auth?.user?.demo === true;
+  const isLoggedIn = !!req.auth?.user;
+  const role = req.auth?.user?.role;
+  const portalSlug = portalSlugForHost(req.headers.get("host"));
 
   if (pathname.startsWith("/api/")) {
     if (pathname === "/api/sms/inbound") return NextResponse.next();
@@ -70,19 +79,22 @@ export default auth((req) => {
     return nextWithModule(req, pathname);
   }
 
-  // Files in /public are public website assets. They must not be sent to /login.
-  // The locked desktop artwork is one of these assets.
   if (pathname.includes(".")) return NextResponse.next();
 
-  const isLoggedIn = !!req.auth?.user;
-  const role = req.auth?.user?.role;
+  if (portalSlug && pathname === "/") {
+    if (isLoggedIn && role) return NextResponse.redirect(new URL(`/b/${portalSlug}/dashboard`, nextUrl));
+    const login = new URL("/login", nextUrl);
+    login.searchParams.set("callbackUrl", `/b/${portalSlug}/dashboard`);
+    return NextResponse.redirect(login);
+  }
 
-  // Public YourPlan marketing website and sales demo.
   if (PUBLIC_WEBSITE_PATHS.has(pathname)) return NextResponse.next();
   if (pathname === "/demo" || pathname.startsWith("/demo/")) return NextResponse.next();
 
   if (pathname === "/login") {
-    if (isLoggedIn && role) return NextResponse.redirect(new URL("/", nextUrl));
+    if (isLoggedIn && role) {
+      return NextResponse.redirect(new URL(portalSlug ? `/b/${portalSlug}/dashboard` : "/", nextUrl));
+    }
     return NextResponse.next();
   }
 
