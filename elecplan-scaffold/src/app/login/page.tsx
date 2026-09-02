@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Layers3, ShieldCheck, Sparkles } from "lucide-react";
 import LoginForm from "@/components/LoginForm";
+import YourPlanLogo from "@/components/YourPlanLogo";
 
 function safeCallback(value?: string) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
@@ -19,14 +20,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(83,160,235,.055)_1px,transparent_1px),linear-gradient(90deg,rgba(83,160,235,.055)_1px,transparent_1px)] [background-size:48px_48px]" />
     <div className="pointer-events-none absolute -left-28 top-[18%] h-[430px] w-[430px] rounded-full border border-[#168dff]/10" />
     <div className="pointer-events-none absolute -left-12 top-[25%] h-[290px] w-[290px] rounded-full border border-[#25c7ff]/10" />
-    <img aria-hidden="true" src="/yourplan-wordmark-transparent.webp" className="pointer-events-none absolute -left-16 bottom-[7%] hidden w-[620px] -rotate-6 opacity-[.035] blur-[1px] lg:block" alt="" />
-    <img aria-hidden="true" src="/yourplan-wordmark-transparent.webp" className="pointer-events-none absolute -right-20 top-[5%] w-[430px] rotate-6 opacity-[.025] blur-[1px]" alt="" />
+    <YourPlanLogo decorative width={620} className="pointer-events-none absolute -left-16 bottom-[7%] hidden lg:block" style={{opacity:.035,filter:"blur(1px)",transform:"rotate(-6deg)"}} />
+    <YourPlanLogo decorative width={430} className="pointer-events-none absolute -right-20 top-[5%]" style={{opacity:.025,filter:"blur(1px)",transform:"rotate(6deg)"}} />
 
     <div className="relative z-10 mx-auto grid min-h-screen w-[92%] max-w-[1380px] lg:grid-cols-[1.08fr_.92fr]">
       <section className="flex min-h-[310px] flex-col justify-between py-7 lg:min-h-screen lg:py-9 lg:pr-16">
         <header className="flex items-center justify-between">
           <Link href="/" aria-label="YourPlan home" className="inline-flex">
-            <img src="/yourplan-wordmark-transparent.webp" alt="YourPlan" className="h-auto w-[176px] object-contain sm:w-[205px]" />
+            <YourPlanLogo width={205} />
           </Link>
           <Link href="/" className="rounded-full border border-white/10 bg-white/[.025] px-4 py-2 text-[12px] text-slate-400 transition hover:border-white/25 hover:text-white lg:hidden">Back to website</Link>
         </header>
