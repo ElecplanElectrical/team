@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { getPlatformAdmin } from "@/lib/platform-admin";
 import type { YourPlanModule } from "@/lib/brand";
 
 export async function requireBusinessPortal(slug: string) {
@@ -10,9 +9,7 @@ export async function requireBusinessPortal(slug: string) {
   if (!business || !business.active) notFound();
 
   const belongsToBusiness = user.businessId === business.id;
-  const platformAdmin = await getPlatformAdmin();
-  const platformOverride = platformAdmin?.id === user.id;
-  if (!belongsToBusiness && !platformOverride) notFound();
+  if (!belongsToBusiness) notFound();
 
   return { user, business };
 }

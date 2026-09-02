@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Bell, Plus, Search } from "lucide-react";
+import { Bell, CircleUserRound, Plus, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { EVENT_COLOR } from "@/lib/theme";
 
-const UI = { bg: "rgba(3,16,31,.94)", panel: "#081b30", border: "rgba(77,150,221,.23)", text: "#f6f9ff", mute: "#8fa5bf", blue: "#168dff" };
+const UI = { bg: "color-mix(in srgb, var(--brand-panel, #081b30) 88%, #020705)", panel: "var(--brand-panel, #081b30)", border: "var(--brand-border, rgba(77,150,221,.23))", text: "#f6f9ff", mute: "#8fa5bf", blue: "var(--brand-primary, #168dff)" };
 const CALENDAR_KEY = [
   ["job", "Jobs"],
   ["inspection", "Inspections"],
@@ -24,9 +24,9 @@ export default function TopBar({ title, subtitle, rightSlot }: { title: string; 
       <div className="flex shrink-0 items-center gap-2">
         <div className="relative hidden lg:block"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.mute }} /><input aria-label="Search" placeholder="Search jobs, clients, quotes..." className="h-10 w-60 rounded-lg bg-transparent pl-9 pr-3 text-xs outline-none xl:w-72" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text }} /></div>
         {rightSlot}
-        <Link href="/jobs" aria-label="Open jobs" className="hidden h-10 w-10 items-center justify-center rounded-lg sm:flex" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgba(22,141,255,.25)" }}><Plus size={18} /></Link>
+        <Link href="/jobs" aria-label="Open jobs" className="hidden h-10 w-10 items-center justify-center rounded-lg sm:flex" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px var(--brand-glow, rgba(22,141,255,.25))" }}><Plus size={18} /></Link>
         <button type="button" aria-label="Notifications" className="relative flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}><Bell size={17} /><span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-[#081b30]" /></button>
-        <div className="hidden h-10 w-10 items-center justify-center rounded-full text-xs font-semibold sm:flex" style={{ background: "linear-gradient(145deg,#0d3154,#071a2d)", border: `1px solid rgba(37,199,255,.35)`, color: "#d9f5ff" }}>EP</div>
+        <div className="hidden h-10 w-10 items-center justify-center rounded-full sm:flex" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: "var(--brand-accent, #25c7ff)" }}><CircleUserRound size={19}/></div>
       </div>
     </div>
   </header>;

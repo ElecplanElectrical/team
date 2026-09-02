@@ -66,10 +66,15 @@ export default auth((req) => {
   const isDemoSession = req.auth?.user?.demo === true;
   const isLoggedIn = !!req.auth?.user;
   const role = req.auth?.user?.role;
+  const businessSlug = req.auth?.user?.businessSlug;
   const portalSlug = portalSlugForHost(req.headers.get("host"));
+  const portalSession = Boolean(portalSlug && isLoggedIn && role && businessSlug === portalSlug);
 
   if (pathname.startsWith("/api/")) {
     if (pathname === "/api/sms/inbound") return NextResponse.next();
+    if (portalSlug && !portalSession) {
+      return NextResponse.json({ error: "This account is not authorised for this business portal" }, { status: 401 });
+    }
     if (isDemoSession && !SAFE_METHODS.has(method)) {
       return NextResponse.json({ error: "Demo workspace is read only" }, { status: 403 });
     }
@@ -81,11 +86,27 @@ export default auth((req) => {
 
   if (pathname.includes(".")) return NextResponse.next();
 
-  if (portalSlug && pathname === "/") {
-    if (isLoggedIn && role) return NextResponse.redirect(new URL(`/b/${portalSlug}/dashboard`, nextUrl));
-    const login = new URL("/login", nextUrl);
-    login.searchParams.set("callbackUrl", `/b/${portalSlug}/dashboard`);
-    return NextResponse.redirect(login);
+  if (portalSlug) {
+    if (pathname === "/login") {
+      if (portalSession) return NextResponse.redirect(new URL("/dashboard", nextUrl));
+      if (nextUrl.searchParams.get("tenant") !== portalSlug || nextUrl.searchParams.get("callbackUrl") !== "/dashboard") {
+        const login = new URL("/login", nextUrl);
+        login.searchParams.set("tenant", portalSlug);
+        login.searchParams.set("callbackUrl", "/dashboard");
+        return NextResponse.redirect(login);
+      }
+      return NextResponse.next();
+    }
+    if (pathname === "/set-password") return NextResponse.next();
+    if (!portalSession) {
+      const login = new URL("/login", nextUrl);
+      login.searchParams.set("tenant", portalSlug);
+      login.searchParams.set("callbackUrl", "/dashboard");
+      return NextResponse.redirect(login);
+    }
+    if (pathname === "/" || pathname.startsWith(`/b/${portalSlug}`) || PUBLIC_WEBSITE_PATHS.has(pathname)) {
+      return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    }
   }
 
   if (PUBLIC_WEBSITE_PATHS.has(pathname)) return NextResponse.next();

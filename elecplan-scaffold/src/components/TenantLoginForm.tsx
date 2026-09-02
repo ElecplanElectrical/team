@@ -7,6 +7,7 @@ import { ArrowRight, Eye, EyeOff, Leaf, LockKeyhole, ShieldCheck } from "lucide-
 
 type Props = {
   callbackUrl: string;
+  tenantSlug: string;
   businessName: string;
   shortName: string;
   logoSrc: string;
@@ -23,12 +24,13 @@ function TenantBrandLogo({src,name,shortName,primaryColor,accentColor,compact=fa
   </div>;
   return <div className="relative">
     {!loaded||failed?fallback:null}
-    {!failed?<img src={src} alt={name} onLoad={()=>setLoaded(true)} onError={()=>setFailed(true)} className={(loaded?(compact?"max-h-16 w-auto max-w-[230px] object-contain object-left":"max-h-20 w-auto max-w-[260px] object-contain object-left sm:max-h-24 sm:max-w-[340px]"):"pointer-events-none absolute h-px w-px opacity-0")}/>:null}
+    {!failed?<img src={src} alt={name} onLoad={()=>setLoaded(true)} onError={()=>setFailed(true)} className={(loaded?(compact?"max-h-24 w-auto max-w-[190px] object-contain object-left":"max-h-32 w-auto max-w-[260px] object-contain object-left sm:max-h-40 sm:max-w-[340px]"):"pointer-events-none absolute h-px w-px opacity-0")}/>:null}
   </div>;
 }
 
 export default function TenantLoginForm({
   callbackUrl,
+  tenantSlug,
   businessName,
   shortName,
   logoSrc,
@@ -46,7 +48,7 @@ export default function TenantLoginForm({
     event.preventDefault();
     setError(null);
     setLoading(true);
-    const result=await signIn("credentials",{email,password,redirect:false});
+    const result=await signIn("credentials",{email,password,tenantSlug,redirect:false});
     setLoading(false);
     if(!result||result.error){
       setError("That email or password isn’t right. Try again or request a reset.");
@@ -125,7 +127,7 @@ export default function TenantLoginForm({
                 </label>
                 <div className="flex items-center justify-between gap-3 text-[12px]">
                   <label className="flex items-center gap-2 text-slate-400"><input type="checkbox" defaultChecked className="h-4 w-4" style={{accentColor:primaryColor}}/> Keep me signed in</label>
-                  <a href="/contact" className="font-medium" style={{color:accentColor}}>Reset password</a>
+                  <span className="font-medium" style={{color:accentColor}}>QLS team access only</span>
                 </div>
                 {error?<div className="rounded-[9px] border border-red-400/20 bg-red-400/[.07] px-3 py-3 text-[12px] leading-5 text-red-300">{error}</div>:null}
                 <button disabled={loading} className="flex h-12 w-full items-center justify-center gap-3 rounded-[10px] text-[14px] font-semibold text-white shadow-lg transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60" style={{background:`linear-gradient(180deg,${accentColor},${primaryColor})`,boxShadow:`0 13px 34px ${glow}`}}>{loading?"Signing in…":<>Sign in to {shortName} <ArrowRight size={17}/></>}</button>

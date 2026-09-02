@@ -14,6 +14,7 @@ import {
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  tenantSlug: z.string().regex(/^[a-z0-9-]+$/).optional(),
 });
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -39,6 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        tenantSlug: { label: "Business portal", type: "text" },
       },
       authorize: async (raw, request) => {
         const parsed = credentialsSchema.safeParse(raw);
@@ -69,12 +71,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+          where: { email },
+          include: { business: { select: { slug: true } } },
+        });
         const passwordHash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
         const valid = await bcrypt.compare(parsed.data.password, passwordHash);
 
         // Keep all invalid-account states on the same outward failure path.
         if (!user?.passwordHash || !user.active || !valid) return null;
+        if (parsed.data.tenantSlug && user.business?.slug !== parsed.data.tenantSlug) return null;
 
         await clearRateLimits([emailKey, ipKey]);
 
@@ -84,6 +90,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role,
           demo: email === DEMO_EMAIL,
+          businessSlug: user.business?.slug ?? null,
         };
       },
     }),

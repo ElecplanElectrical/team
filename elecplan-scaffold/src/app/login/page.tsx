@@ -20,10 +20,11 @@ function tenantSlugFromCallback(value:string){
   return match?.[1]?.toLowerCase()??null;
 }
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string }> }) {
-  const { callbackUrl } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string; tenant?: string }> }) {
+  const { callbackUrl, tenant } = await searchParams;
   const destination=safeCallback(callbackUrl);
-  const tenantSlug=tenantSlugFromCallback(destination);
+  const requestedTenant=/^[a-z0-9-]+$/.test(tenant??"")?tenant!.toLowerCase():null;
+  const tenantSlug=requestedTenant??tenantSlugFromCallback(destination);
   if(tenantSlug){
     const business=await prisma.businessPortal.findFirst({
       where:{slug:tenantSlug,active:true},
@@ -32,6 +33,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     if(business){
       return <TenantLoginForm
         callbackUrl={destination}
+        tenantSlug={business.slug}
         businessName={business.name}
         shortName={business.slug.toUpperCase()}
         logoSrc={`/api/branding/${business.slug}/logo`}

@@ -26,7 +26,7 @@ async function currentActiveUser(requiredModule?: YourPlanModule) {
     where: { id: sessionUser.id },
     select: {
       id: true, name: true, email: true, role: true, active: true, businessId: true,
-      business: { select: { active: true, name: true, logoUrl: true, primaryColor: true, accentColor: true, modules: true } },
+      business: { select: { active: true, name: true, slug: true, logoUrl: true, primaryColor: true, accentColor: true, modules: true } },
     },
   });
 
@@ -52,6 +52,7 @@ async function currentActiveUser(requiredModule?: YourPlanModule) {
     businessId: user.businessId,
     business: user.business ? {
       name: user.business.name,
+      slug: user.business.slug,
       logoUrl: user.business.logoUrl,
       primaryColor: user.business.primaryColor,
       accentColor: user.business.accentColor,

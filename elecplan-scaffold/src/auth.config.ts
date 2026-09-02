@@ -21,6 +21,7 @@ export const authConfig = {
         token.id = user.id as string;
         token.role = user.role;
         token.demo = !!user.demo;
+        token.businessSlug = user.businessSlug ?? null;
       }
       return token;
     },
@@ -29,6 +30,7 @@ export const authConfig = {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
         session.user.demo = token.demo === true;
+        session.user.businessSlug = typeof token.businessSlug === "string" ? token.businessSlug : null;
       }
       return session;
     },

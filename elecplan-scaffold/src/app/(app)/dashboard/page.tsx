@@ -70,5 +70,6 @@ export default async function DashboardPage() {
     reminders={reminders.map((r) => ({ ...r, dueDate: r.dueDate?.toISOString() ?? null }))}
     weeklyGoal={weeklyGoal?.text ?? ""}
     cashSeries={cashSeries}
+    businessName={user.business?.name}
   />;
 }
