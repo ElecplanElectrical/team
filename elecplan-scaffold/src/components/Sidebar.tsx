@@ -25,13 +25,13 @@ function BrandMark({brand,compact=false}:{brand?:Brand;compact?:boolean}) {
 export default function Sidebar({role,name,brand}:{role:Role;name:string;brand?:Brand}) {
   const pathname=usePathname();
   const groups=navGroupsFor(role,brand?.modules);
-  const accent=brand?.accentColor||"#25c7ff";
-  const primary=brand?.primaryColor||"#168dff";
   const isQls=brand?.slug==="qls";
-  const border=brand?`${accent}36`:"rgba(73,145,214,.22)";
+  const accent=isQls?"#82eca0":brand?.accentColor||"#25c7ff";
+  const primary=isQls?"#50d878":brand?.primaryColor||"#168dff";
+  const border=isQls?"rgba(130,236,160,.18)":brand?`${accent}36`:"rgba(73,145,214,.22)";
   const homeHref="/dashboard";
   const logoutUrl=isQls?"/login?tenant=qls&callbackUrl=%2Fdashboard":"/login";
-  return <aside className="hidden shrink-0 flex-col px-2.5 py-5 md:flex md:w-[74px] xl:w-[230px] xl:px-3" style={{background:isQls?`linear-gradient(180deg,#07130b 0%,${primary}12 48%,#050d08 100%)`:"linear-gradient(180deg,#02101f 0%,#031321 100%)",borderRight:`1px solid ${border}`}}>
+  return <aside className="hidden shrink-0 flex-col px-2.5 py-5 md:flex md:w-[74px] xl:w-[230px] xl:px-3" style={{background:isQls?`linear-gradient(180deg,#050806 0%,${primary}07 48%,#030504 100%)`:"linear-gradient(180deg,#02101f 0%,#031321 100%)",borderRight:`1px solid ${border}`}}>
     <Link href={homeHref} className={`mb-5 flex items-center px-2 xl:px-1 ${brand?"min-h-[94px] justify-center xl:justify-start":"min-h-9"}`} aria-label={`${brand?.name||"Your Plan"} dashboard`}>
       <BrandMark brand={brand} compact={!brand}/>
     </Link>
@@ -42,7 +42,7 @@ export default function Sidebar({role,name,brand}:{role:Role;name:string;brand?:
       </div>)}
     </nav>
     <div className="mt-4 border-t pt-3" style={{borderColor:border}}>
-      <div className="flex items-center justify-center gap-2 rounded-xl px-1 py-2 xl:justify-start xl:px-2" style={{background:isQls?"rgba(20,52,30,.72)":"rgba(8,28,48,.72)"}}>
+      <div className="flex items-center justify-center gap-2 rounded-xl px-1 py-2 xl:justify-start xl:px-2" style={{background:isQls?"rgba(17,22,19,.90)":"rgba(8,28,48,.72)"}}>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold" style={{background:`${primary}36`,color:"#e8fff0"}}>{initialsOf(name)}</div>
         <div className="hidden min-w-0 flex-1 xl:block"><p className="truncate text-xs font-semibold" style={{color:UI.text}}>{name}</p><p className="truncate text-[10px]" style={{color:UI.faint}}>{ROLE_TITLE[role]}</p></div><ChevronDown size={13} className="hidden xl:block"/>
       </div>

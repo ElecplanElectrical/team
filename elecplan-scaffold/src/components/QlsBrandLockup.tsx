@@ -50,7 +50,7 @@ export default function QlsBrandLockup({
           Quality Landscape
         </div>
         <div
-          className={`mt-1 flex items-center text-[#58c875] ${
+          className={`mt-1 flex items-center text-[var(--brand-accent,#82eca0)] ${
             isDrawer ? "gap-2" : "gap-1.5"
           }`}
         >

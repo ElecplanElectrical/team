@@ -27,22 +27,22 @@ export default function MobileNav({role,brand}:{role:Role;brand?:Brand}) {
   const pathname=usePathname();
   const groups=navGroupsFor(role,brand?.modules);
   const[open,setOpen]=useState(false);
-  const primary=brand?.primaryColor||"#168dff";
-  const accent=brand?.accentColor||"#25c7ff";
   const isQls=brand?.slug==="qls";
-  const border=brand?`${accent}36`:"rgba(73,145,214,.22)";
-  const panel=brand?"#10261a":"var(--brand-panel, #07192b)";
+  const primary=isQls?"#50d878":brand?.primaryColor||"#168dff";
+  const accent=isQls?"#82eca0":brand?.accentColor||"#25c7ff";
+  const border=isQls?"rgba(130,236,160,.20)":brand?`${accent}36`:"rgba(73,145,214,.22)";
+  const panel=isQls?"#111613":brand?"#10261a":"var(--brand-panel, #07192b)";
   const label=brand?.name||"Your Plan";
   const logoutUrl=isQls?"/login?tenant=qls&callbackUrl=%2Fdashboard":"/login";
   return <>
-    <div className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between px-4 md:hidden" style={{background:isQls?"rgba(5,15,8,.97)":"rgba(2,14,27,.97)",borderBottom:`1px solid ${border}`,backdropFilter:"blur(16px)"}}>
+    <div className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between px-4 md:hidden" style={{background:isQls?"rgba(3,6,5,.98)":"rgba(2,14,27,.97)",borderBottom:`1px solid ${border}`,backdropFilter:"blur(16px)"}}>
       <button type="button" onClick={()=>setOpen(true)} aria-label="Open navigation" className="flex h-10 w-10 items-center justify-center rounded-lg" style={{background:panel,border:`1px solid ${border}`,color:UI.mute}}><Menu size={19}/></button>
       <Link href="/dashboard" aria-label={`${label} dashboard`} className="flex h-14 min-w-0 max-w-[230px] items-center justify-center"><MobileBrand brand={brand}/></Link>
       <button type="button" aria-label="Notifications" className="relative flex h-10 w-10 items-center justify-center rounded-lg" style={{background:panel,border:`1px solid ${border}`,color:UI.mute}}><Bell size={17}/><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500"/></button>
     </div>
     {open&&<div className="fixed inset-0 z-[60] md:hidden">
       <button type="button" aria-label="Close navigation overlay" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=>setOpen(false)}/>
-      <aside className="absolute inset-y-0 left-0 flex w-[84%] max-w-[340px] flex-col overflow-y-auto p-4 shadow-2xl" style={{background:isQls?`linear-gradient(180deg,#07130b,${primary}12,#050d08)`:"linear-gradient(180deg,#02101f,#031321)",borderRight:`1px solid ${border}`}}>
+      <aside className="absolute inset-y-0 left-0 flex w-[84%] max-w-[340px] flex-col overflow-y-auto p-4 shadow-2xl" style={{background:isQls?`linear-gradient(180deg,#050806,${primary}08,#030504)`:"linear-gradient(180deg,#02101f,#031321)",borderRight:`1px solid ${border}`}}>
         <div className="mb-5 flex items-center justify-between"><MobileBrand brand={brand} drawer/><button type="button" onClick={()=>setOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-lg" style={{background:panel,border:`1px solid ${border}`,color:UI.mute}}><X size={18}/></button></div>
         <nav className="space-y-5">{groups.map((group,gi)=><div key={group.heading??gi}>{group.heading&&<p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.13em]" style={{color:UI.faint}}>{group.heading}</p>}<div className="space-y-1">{group.items.map(item=>{const href=SCREEN_PATH[item.screen];const active=pathname===href||pathname.startsWith(href+"/");const Icon=item.icon;return <Link key={item.screen} href={href} onClick={()=>setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" style={{background:active?`linear-gradient(90deg,${primary}b8,${primary}35)`:"transparent",color:active?"#f4f8ff":UI.mute}}><Icon size={17} style={{color:active?accent:undefined}}/>{item.label}</Link>})}</div></div>)}</nav>
         <button type="button" onClick={()=>signOut({callbackUrl:logoutUrl})} className="mt-auto flex items-center gap-3 border-t px-3 pt-5 text-sm font-medium" style={{borderColor:border,color:UI.mute}}><LogOut size={17}/> Sign out{isQls?" of QLS":""}</button>
