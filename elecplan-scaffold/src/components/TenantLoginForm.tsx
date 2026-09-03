@@ -22,7 +22,7 @@ function QlsBrand({ businessName }: { businessName: string }) {
       <img
         src="/qls-logo-transparent.svg"
         alt={businessName}
-        className="h-auto w-full max-w-[235px] sm:max-w-[260px] lg:max-w-[275px]"
+        className="h-auto w-full max-w-[190px] sm:max-w-[215px] lg:max-w-[235px]"
       />
     </div>
   );
