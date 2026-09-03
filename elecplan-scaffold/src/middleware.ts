@@ -67,9 +67,10 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth?.user;
   const role = req.auth?.user?.role;
   const businessSlug = req.auth?.user?.businessSlug;
+  const isPlatformAdmin = req.auth?.user?.platformAdmin === true;
   const portalSlug = portalSlugForHost(req.headers.get("host"));
   const portalOrigin = portalSlug === "qls" ? "https://qls.your-plan.com.au" : nextUrl.origin;
-  const portalSession = Boolean(portalSlug && isLoggedIn && role && businessSlug === portalSlug);
+  const portalSession = Boolean(portalSlug && isLoggedIn && role && (businessSlug === portalSlug || isPlatformAdmin));
 
   if (pathname.startsWith("/api/")) {
     if (pathname === "/api/sms/inbound") return NextResponse.next();

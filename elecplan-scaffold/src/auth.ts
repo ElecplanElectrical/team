@@ -23,6 +23,15 @@ const LOGIN_IP_LIMIT = 40;
 const DEMO_EMAIL = "demo@your-plan.com.au";
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync("elecplan-invalid-login-sentinel", 10);
 
+function isPlatformAdminIdentity(user: { role: string; businessId: string | null; email: string }) {
+  if (user.role !== "ADMIN" || user.businessId) return false;
+  const allowed = (process.env.YOURPLAN_ADMIN_EMAILS || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return allowed.length === 0 || allowed.includes(user.email.toLowerCase());
+}
+
 function requestIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return (
@@ -80,7 +89,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Keep all invalid-account states on the same outward failure path.
         if (!user?.passwordHash || !user.active || !valid) return null;
-        if (parsed.data.tenantSlug && user.business?.slug !== parsed.data.tenantSlug) return null;
+        const platformAdmin = isPlatformAdminIdentity(user);
+        if (parsed.data.tenantSlug && user.business?.slug !== parsed.data.tenantSlug && !platformAdmin) return null;
+        if (parsed.data.tenantSlug && platformAdmin) {
+          const portal = await prisma.businessPortal.findUnique({
+            where: { slug: parsed.data.tenantSlug },
+            select: { active: true },
+          });
+          if (!portal?.active) return null;
+        }
 
         await clearRateLimits([emailKey, ipKey]);
 
@@ -91,6 +108,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role: user.role,
           demo: email === DEMO_EMAIL,
           businessSlug: user.business?.slug ?? null,
+          platformAdmin,
         };
       },
     }),

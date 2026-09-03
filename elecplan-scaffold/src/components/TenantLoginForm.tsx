@@ -16,19 +16,14 @@ type Props = {
   accentColor: string;
 };
 
-function QlsBrand({ logoSrc, businessName }: { logoSrc: string; businessName: string }) {
+function QlsBrand({ businessName }: { businessName: string }) {
   return (
-    <div className="flex items-center gap-5">
-      <div className="relative h-[94px] w-[94px] shrink-0 overflow-hidden" aria-hidden="true">
-        <img src={logoSrc} alt="" className="absolute left-0 top-0 h-auto w-full object-contain mix-blend-screen" />
-      </div>
-      <div className="min-w-0 uppercase text-white">
-        <div className="whitespace-nowrap text-[13px] font-medium tracking-[.23em] sm:text-[15px]">Quality Landscape</div>
-        <div className="mt-2 flex items-center gap-3 text-[12px] font-semibold tracking-[.42em] text-[#69bf45] sm:text-[14px]">
-          <span className="h-px w-8 bg-[#69bf45]" />Solutions<span className="h-px w-8 bg-[#69bf45]" />
-        </div>
-      </div>
-      <span className="sr-only">{businessName}</span>
+    <div className="flex justify-center sm:justify-start">
+      <img
+        src="/qls-logo-transparent.svg"
+        alt={businessName}
+        className="h-auto w-full max-w-[235px] sm:max-w-[260px] lg:max-w-[275px]"
+      />
     </div>
   );
 }
@@ -60,17 +55,22 @@ export default function TenantLoginForm({ callbackUrl, tenantSlug, businessName,
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_42%,rgba(43,89,36,.13),transparent_35%),linear-gradient(135deg,#111713_0%,#090d0b_58%,#0c120e_100%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-[.18] [background-image:linear-gradient(rgba(113,191,73,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(113,191,73,.045)_1px,transparent_1px)] [background-size:54px_54px]" />
 
-      <div className="pointer-events-none absolute inset-y-0 right-[-7%] hidden w-[62%] items-center justify-center lg:flex">
-        <img src="/qls-tree-portal.webp" alt="" className="w-full max-w-[900px] opacity-[.72] drop-shadow-[0_0_42px_rgba(105,191,69,.08)]" />
+      <div className="pointer-events-none absolute inset-y-0 right-[-4%] hidden w-[59%] items-center justify-center lg:flex">
+        <div className="absolute left-0 top-[12%] h-[76%] w-px bg-gradient-to-b from-transparent via-[#69bf45]/25 to-transparent" />
+        <img src="/qls-tree-portal.webp" alt="" className="w-full max-w-[940px] opacity-[.78] drop-shadow-[0_0_58px_rgba(105,191,69,.10)]" />
         <div className="absolute inset-x-0 bottom-0 h-[20%] bg-gradient-to-t from-[#0b100d] to-transparent" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] w-[92%] max-w-[1250px] flex-col items-center justify-center py-7 lg:items-start lg:py-12">
-        <section className="w-full max-w-[526px] rounded-[20px] border bg-[linear-gradient(145deg,rgba(16,23,18,.97),rgba(8,13,10,.98))] p-6 shadow-[0_32px_100px_rgba(0,0,0,.48)] sm:p-10 lg:ml-1" style={{ borderColor: `${primaryColor}90` }}>
-          <QlsBrand logoSrc={logoSrc} businessName={businessName} />
+      <div className="relative z-10 mx-auto flex min-h-[100svh] w-[92%] max-w-[1320px] flex-col items-center justify-center py-6 lg:items-start lg:py-10">
+        <section className="relative w-full max-w-[526px] overflow-hidden rounded-[22px] border bg-[linear-gradient(145deg,rgba(16,23,18,.98),rgba(8,13,10,.985))] p-6 shadow-[0_34px_110px_rgba(0,0,0,.56)] sm:p-10 lg:ml-1 lg:max-w-[548px] lg:p-11" style={{ borderColor: `${primaryColor}90` }}>
+          <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-[#78c850]/80 to-transparent" />
+          <QlsBrand businessName={businessName} />
 
-          <div className="mt-8">
-            <h1 className="text-[31px] font-bold tracking-[-.035em] sm:text-[35px]">Sign in to {shortName}</h1>
+          <div className="mt-7 border-t border-white/[.07] pt-7 sm:mt-8 sm:pt-8">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#69bf45]/25 bg-[#69bf45]/[.06] px-3 py-1 text-[10px] font-semibold uppercase tracking-[.18em] text-[#85cf60]">
+              <LockKeyhole size={12} /> Private team portal
+            </div>
+            <h1 className="text-[31px] font-bold tracking-[-.035em] sm:text-[36px]">Sign in to {shortName}</h1>
             <p className="mt-2 text-[15px] text-slate-400">Access your account to continue.</p>
           </div>
 
@@ -107,7 +107,7 @@ export default function TenantLoginForm({ callbackUrl, tenantSlug, businessName,
           <p className="mt-7 text-center text-[12px] leading-5 text-slate-500">Authorised {businessName} team members only.</p>
         </section>
 
-        <div className="mt-6 flex w-full max-w-[526px] items-center justify-center gap-3 text-[12px] uppercase tracking-[.18em] text-slate-500 lg:ml-1">
+        <div className="mt-6 flex w-full max-w-[548px] items-center justify-center gap-3 text-[12px] uppercase tracking-[.18em] text-slate-500 lg:ml-1">
           <span>Powered by</span><YourPlanLogo width={124} />
         </div>
       </div>

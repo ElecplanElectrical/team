@@ -22,6 +22,7 @@ export const authConfig = {
         token.role = user.role;
         token.demo = !!user.demo;
         token.businessSlug = user.businessSlug ?? null;
+        token.platformAdmin = user.platformAdmin === true;
       }
       return token;
     },
@@ -31,6 +32,7 @@ export const authConfig = {
         session.user.role = token.role as Role;
         session.user.demo = token.demo === true;
         session.user.businessSlug = typeof token.businessSlug === "string" ? token.businessSlug : null;
+        session.user.platformAdmin = token.platformAdmin === true;
       }
       return session;
     },

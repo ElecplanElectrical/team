@@ -17,6 +17,12 @@ async function inferredModule(): Promise<YourPlanModule | undefined> {
   }
 }
 
+function portalSlugForHost(hostHeader: string | null): string | null {
+  const host = hostHeader?.split(":")[0]?.toLowerCase();
+  if (host === "qls.your-plan.com.au") return "qls";
+  return null;
+}
+
 async function currentActiveUser(requiredModule?: YourPlanModule) {
   const session = await auth();
   const sessionUser = session?.user;
@@ -32,30 +38,46 @@ async function currentActiveUser(requiredModule?: YourPlanModule) {
 
   if (!user?.active || (user.businessId && !user.business?.active)) return null;
 
-  if (user.businessId) {
-    const subscription = await getBusinessSubscription(user.businessId);
+  let effectiveBusinessId = user.businessId;
+  let effectiveBusiness = user.business;
+  if (!effectiveBusinessId && sessionUser.platformAdmin === true) {
+    const requestHeaders = await headers();
+    const portalSlug = portalSlugForHost(requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host"));
+    if (portalSlug) {
+      const portal = await prisma.businessPortal.findUnique({
+        where: { slug: portalSlug },
+        select: { id: true, active: true, name: true, slug: true, logoUrl: true, primaryColor: true, accentColor: true, modules: true },
+      });
+      if (!portal?.active) return null;
+      effectiveBusinessId = portal.id;
+      effectiveBusiness = portal;
+    }
+  }
+
+  if (effectiveBusinessId) {
+    const subscription = await getBusinessSubscription(effectiveBusinessId);
     if (!subscriptionAllowsAccess(subscription)) return null;
   }
 
-  const modules = Array.isArray(user.business?.modules)
-    ? user.business.modules.filter((value): value is YourPlanModule => typeof value === "string" && MODULES.has(value as YourPlanModule))
+  const modules = Array.isArray(effectiveBusiness?.modules)
+    ? effectiveBusiness.modules.filter((value): value is YourPlanModule => typeof value === "string" && MODULES.has(value as YourPlanModule))
     : [...DEFAULT_MODULES];
 
   const module = requiredModule ?? await inferredModule();
-  if (module && user.businessId && !modules.includes(module)) return null;
+  if (module && effectiveBusinessId && !modules.includes(module)) return null;
 
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
-    businessId: user.businessId,
-    business: user.business ? {
-      name: user.business.name,
-      slug: user.business.slug,
-      logoUrl: user.business.slug === "qls" ? "https://landscaping-melbourne.com.au/wp-content/uploads/2026/03/QLS-Logo.jpg" : user.business.logoUrl,
-      primaryColor: user.business.primaryColor,
-      accentColor: user.business.accentColor,
+    businessId: effectiveBusinessId,
+    business: effectiveBusiness ? {
+      name: effectiveBusiness.name,
+      slug: effectiveBusiness.slug,
+      logoUrl: effectiveBusiness.slug === "qls" ? "/qls-logo-transparent.svg" : effectiveBusiness.logoUrl,
+      primaryColor: effectiveBusiness.primaryColor,
+      accentColor: effectiveBusiness.accentColor,
       modules,
     } : null,
   };

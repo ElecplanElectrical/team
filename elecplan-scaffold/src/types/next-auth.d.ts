@@ -8,6 +8,7 @@ declare module "next-auth" {
       role: Role;
       demo?: boolean;
       businessSlug?: string | null;
+      platformAdmin?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -15,6 +16,7 @@ declare module "next-auth" {
     role: Role;
     demo?: boolean;
     businessSlug?: string | null;
+    platformAdmin?: boolean;
   }
 }
 
