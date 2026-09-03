@@ -18,14 +18,24 @@ type Props = {
 
 function QlsBrand({ businessName }: { businessName: string }) {
   return (
-    <div className="flex justify-center sm:justify-start">
+    <div className="flex items-center justify-center gap-4 sm:justify-start sm:gap-5">
       <Image
         src="/qls-logo-transparent.svg"
-        alt={businessName}
+        alt=""
+        aria-hidden="true"
         width={241}
         height={282}
-        className="h-auto w-full max-w-[158px] sm:max-w-[185px] lg:max-w-[205px]"
+        className="h-[78px] w-[67px] shrink-0 object-contain sm:h-[90px] sm:w-[77px]"
       />
+      <div className="min-w-0 [font-family:Inter,Arial,sans-serif]">
+        <div className="whitespace-nowrap text-[13px] font-semibold uppercase tracking-[.15em] text-[#f3f6f3] sm:text-[15px] sm:tracking-[.17em]">Quality Landscape</div>
+        <div className="mt-2 flex items-center gap-2 text-[#82eca0]">
+          <span className="h-px min-w-4 flex-1 bg-current" />
+          <span className="text-[12px] font-semibold uppercase tracking-[.34em] sm:text-[13px] sm:tracking-[.4em]">Solutions</span>
+          <span className="h-px min-w-4 flex-1 bg-current" />
+        </div>
+      </div>
+      <span className="sr-only">{businessName}</span>
     </div>
   );
 }
@@ -60,10 +70,10 @@ export default function TenantLoginForm({ callbackUrl, tenantSlug, businessName,
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_42%,rgba(80,216,120,.07),transparent_35%),linear-gradient(135deg,#0b0e0c_0%,#040605_58%,#080b09_100%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-[.18] [background-image:linear-gradient(rgba(113,191,73,.045)_1px,transparent_1px),linear-gradient(90deg,rgba(113,191,73,.045)_1px,transparent_1px)] [background-size:54px_54px]" />
 
-      <div className="pointer-events-none absolute inset-y-0 right-[-4%] hidden w-[59%] items-center justify-center lg:flex">
-        <div className="absolute left-0 top-[12%] h-[76%] w-px bg-gradient-to-b from-transparent via-[#69bf45]/25 to-transparent" />
-        <Image src="/qls-tree-portal.webp" alt="" width={1491} height={1055} priority className="h-auto w-full max-w-[940px] opacity-[.78] drop-shadow-[0_0_58px_rgba(105,191,69,.10)]" />
-        <div className="absolute inset-x-0 bottom-0 h-[20%] bg-gradient-to-t from-[#040605] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-[-24%] hidden w-[82%] items-center justify-center overflow-hidden lg:flex">
+        <div className="absolute left-[8%] top-[8%] h-[84%] w-px bg-gradient-to-b from-transparent via-[#69bf45]/25 to-transparent" />
+        <Image src="/qls-tree-portal.webp" alt="" width={1491} height={1055} priority className="h-auto w-[128%] max-w-none translate-x-[8%] scale-[1.18] opacity-[.8] drop-shadow-[0_0_58px_rgba(105,191,69,.10)]" />
+        <div className="absolute inset-x-0 bottom-0 h-[16%] bg-gradient-to-t from-[#040605] to-transparent" />
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-[92%] max-w-[1320px] flex-col items-center justify-center py-5 lg:items-start lg:py-7">
