@@ -17,16 +17,16 @@ type Preview = {
 };
 
 const UI = {
-  bg: "#061525",
-  panel: "#0a2038",
-  panelAlt: "#07192b",
+  bg: "var(--app-bg, #061525)",
+  panel: "var(--brand-panel-alt, #0a2038)",
+  panelAlt: "var(--brand-panel, #07192b)",
   border: "rgba(77,150,221,.25)",
-  borderSoft: "rgba(77,150,221,.13)",
+  borderSoft: "var(--brand-border-soft, rgba(77,150,221,.13))",
   text: "#f5f9ff",
   mute: "#91a8c1",
   faint: "#607892",
-  blue: "#168dff",
-  cyan: "#25c7ff",
+  blue: "var(--brand-primary, #168dff)",
+  cyan: "var(--brand-accent, #25c7ff)",
   green: "#19d3a2",
   red: "#ff5e72",
   orange: "#ff9f1c",
@@ -125,7 +125,7 @@ function ClientSmsPanelBody({ jobId, onClose }: { jobId: string; onClose: () => 
         <div className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}>
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-            style={{ background: "rgba(22,141,255,.14)", color: UI.cyan, border: "1px solid rgba(37,199,255,.22)" }}
+            style={{ background: "rgb(var(--brand-primary-rgb, 22 141 255) / .14)", color: UI.cyan, border: "1px solid rgb(var(--brand-accent-rgb, 37 199 255) / .22)" }}
           >
             <MessageSquareText size={21} />
           </div>
@@ -199,7 +199,7 @@ function ClientSmsPanelBody({ jobId, onClose }: { jobId: string; onClose: () => 
                   disabled={sending || sent || !preview.configured}
                   onClick={() => void send()}
                   className="flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45"
-                  style={{ background: UI.blue, color: "white", boxShadow: "0 10px 28px rgba(22,141,255,.24)" }}
+                  style={{ background: UI.blue, color: "white", boxShadow: "0 10px 28px rgb(var(--brand-primary-rgb, 22 141 255) / .24)" }}
                 >
                   <Send size={15} /> {sending ? "Sending…" : sent ? "Sent" : "Send SMS"}
                 </button>

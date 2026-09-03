@@ -16,7 +16,7 @@ export type DocumentRow = {
 
 type UploadTicket = { uploadUrl: string; uploadHeaders: Record<string, string>; commitToken: string };
 
-const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72", orange: "#ff9f1c" };
+const UI = { panel: "var(--brand-panel, #07192b)", panelAlt: "var(--brand-panel-alt, #09213a)", border: "var(--brand-border, rgba(77,150,221,.24))", borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))", text: "#f5f9ff", mute: "var(--brand-muted, #93a9c2)", faint: "var(--brand-faint, #617993)", blue: "var(--brand-primary, #168dff)", cyan: "var(--brand-accent, #25c7ff)", red: "#ff5e72", orange: "#ff9f1c" };
 
 export default function DocumentsView({
   documents,
@@ -82,7 +82,7 @@ export default function DocumentsView({
     router.refresh();
   }
 
-  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
+  const field = { background: "var(--brand-panel-deep, #041323)", border: `1px solid ${UI.border}`, color: UI.text } as const;
   const uploadButton = storageReady ? (
     <button type="button" onClick={() => setShowForm((value) => !value)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={16} /> Upload document</button>
   ) : (
@@ -91,7 +91,7 @@ export default function DocumentsView({
 
   return <>
     <TopBar title="Documents" subtitle="Securely manage company and job files" rightSlot={uploadButton} />
-    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,var(--brand-glow, rgba(20,91,160,.12)),transparent 35%),var(--app-bg, #03101f)" }}>
       <div className="mx-auto w-full max-w-[1700px] space-y-3">
         <div className="grid gap-3 sm:grid-cols-3"><Metric label="Documents" value={String(documents.length)} /><Metric label="Job linked" value={String(documents.filter((doc) => doc.job).length)} /><Metric label="Global files" value={String(documents.filter((doc) => !doc.job).length)} /></div>
 
@@ -118,7 +118,7 @@ export default function DocumentsView({
         <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
           <div className="border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search documents…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={field} /></div></div>
           <div className="hidden grid-cols-[minmax(220px,1.4fr)_150px_minmax(180px,1fr)_120px_120px] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Document</span><span>Type</span><span>Linked job</span><span>Uploaded</span><span>Actions</span></div>
-          {filtered.map((doc) => <div key={doc.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[minmax(220px,1.4fr)_150px_minmax(180px,1fr)_120px_120px] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><FileText size={16} /></span><span className="truncate text-sm font-semibold" style={{ color: UI.text }}>{doc.name}</span></div><span className="text-xs" style={{ color: UI.mute }}>{doc.type}</span><span className="truncate text-xs" style={{ color: UI.mute }}>{doc.job ?? "Global document"}</span><span className="text-xs" style={{ color: UI.faint }}>{new Date(doc.uploadedAt).toLocaleDateString("en-AU")}</span><div className="flex items-center gap-3"><a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: UI.cyan }}>Open <ExternalLink size={12} /></a>{canDelete && <button type="button" disabled={deletingId === doc.id} onClick={() => void deleteDocument(doc)} className="inline-flex items-center gap-1 text-xs font-semibold disabled:opacity-50" style={{ color: UI.red }}><Trash2 size={12} /> Delete</button>}</div></div>)}
+          {filtered.map((doc) => <div key={doc.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[minmax(220px,1.4fr)_150px_minmax(180px,1fr)_120px_120px] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgb(var(--brand-primary-rgb, 22 141 255) / .11)", color: UI.cyan }}><FileText size={16} /></span><span className="truncate text-sm font-semibold" style={{ color: UI.text }}>{doc.name}</span></div><span className="text-xs" style={{ color: UI.mute }}>{doc.type}</span><span className="truncate text-xs" style={{ color: UI.mute }}>{doc.job ?? "Global document"}</span><span className="text-xs" style={{ color: UI.faint }}>{new Date(doc.uploadedAt).toLocaleDateString("en-AU")}</span><div className="flex items-center gap-3"><a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: UI.cyan }}>Open <ExternalLink size={12} /></a>{canDelete && <button type="button" disabled={deletingId === doc.id} onClick={() => void deleteDocument(doc)} className="inline-flex items-center gap-1 text-xs font-semibold disabled:opacity-50" style={{ color: UI.red }}><Trash2 size={12} /> Delete</button>}</div></div>)}
           {filtered.length === 0 && <div className="px-5 py-14 text-center text-sm" style={{ color: UI.faint }}>No documents match your search.</div>}
           <div className="px-4 py-3 text-[11px]" style={{ color: UI.faint }}>Showing {filtered.length} of {documents.length} documents</div>
         </section>

@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/session";
 import { recentAuditRowsForBusiness } from "@/lib/audit";
 import TopBar from "@/components/TopBar";
 
-const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", cyan: "#25c7ff" };
+const UI = { panel: "var(--brand-panel, #07192b)", panelAlt: "var(--brand-panel-alt, #09213a)", border: "var(--brand-border, rgba(77,150,221,.24))", borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))", text: "#f5f9ff", mute: "var(--brand-muted, #93a9c2)", faint: "var(--brand-faint, #617993)", cyan: "var(--brand-accent, #25c7ff)" };
 
 function detailSummary(value: unknown): string {
   if (!value || typeof value !== "object") return "";
@@ -25,7 +25,7 @@ export default async function AuditPage() {
 
   return <>
     <TopBar title="Security audit" subtitle="Recent sensitive portal activity · admin only" />
-    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,var(--brand-glow, rgba(20,91,160,.12)),transparent 35%),var(--app-bg, #03101f)" }}>
       <div className="mx-auto w-full max-w-[1700px] space-y-3">
         <Link href="/settings" className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: UI.cyan }}><ArrowLeft size={13} /> Back to Settings</Link>
         <div className="grid gap-3 sm:grid-cols-3"><Metric label="Recent events" value={String(rows.length)} /><Metric label="Actors" value={String(actors)} /><Metric label="Action types" value={String(actions)} /></div>

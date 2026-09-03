@@ -3,15 +3,15 @@ import Link from "next/link";
 import TopBar from "@/components/TopBar";
 
 const UI = {
-  panel: "#07192b",
-  panelAlt: "#09213a",
-  border: "rgba(77,150,221,.24)",
-  borderSoft: "rgba(77,150,221,.12)",
+  panel: "var(--brand-panel, #07192b)",
+  panelAlt: "var(--brand-panel-alt, #09213a)",
+  border: "var(--brand-border, rgba(77,150,221,.24))",
+  borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))",
   text: "#f5f9ff",
-  mute: "#93a9c2",
-  faint: "#617993",
-  blue: "#168dff",
-  cyan: "#25c7ff",
+  mute: "var(--brand-muted, #93a9c2)",
+  faint: "var(--brand-faint, #617993)",
+  blue: "var(--brand-primary, #168dff)",
+  cyan: "var(--brand-accent, #25c7ff)",
 };
 
 export default function ComingSoon({
@@ -24,9 +24,9 @@ export default function ComingSoon({
   return (
     <>
       <TopBar title={title} subtitle="This area is not available yet" />
-      <div className="flex flex-1 items-center justify-center overflow-auto p-4 md:p-8" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+      <div className="flex flex-1 items-center justify-center overflow-auto p-4 md:p-8" style={{ background: "radial-gradient(circle at 55% 0%,var(--brand-glow, rgba(20,91,160,.12)),transparent 35%),var(--app-bg, #03101f)" }}>
         <section className="w-full max-w-lg rounded-2xl p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,.22)] md:p-8" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan, border: "1px solid rgba(37,199,255,.20)" }}>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "rgb(var(--brand-primary-rgb, 22 141 255) / .11)", color: UI.cyan, border: "1px solid rgb(var(--brand-accent-rgb, 37 199 255) / .20)" }}>
             <Wrench size={21} />
           </div>
           <p className="mt-4 text-[10px] font-semibold uppercase tracking-[.14em]" style={{ color: UI.cyan }}>Elecplan workspace</p>

@@ -8,7 +8,7 @@ import TopBar from "@/components/TopBar";
 type UploadTicket = { uploadUrl: string; uploadHeaders: Record<string, string>; commitToken: string };
 type ProjectPhoto = { id: string; fileUrl: string; uploadedAt: string; job: string; address: string; client: string };
 
-const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72", orange: "#ff9f1c" };
+const UI = { panel: "var(--brand-panel, #07192b)", panelAlt: "var(--brand-panel-alt, #09213a)", border: "var(--brand-border, rgba(77,150,221,.24))", borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))", text: "#f5f9ff", mute: "var(--brand-muted, #93a9c2)", faint: "var(--brand-faint, #617993)", blue: "var(--brand-primary, #168dff)", cyan: "var(--brand-accent, #25c7ff)", red: "#ff5e72", orange: "#ff9f1c" };
 
 export default function ProjectsView({
   photos,
@@ -64,7 +64,7 @@ export default function ProjectsView({
     router.refresh();
   }
 
-  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
+  const field = { background: "var(--brand-panel-deep, #041323)", border: `1px solid ${UI.border}`, color: UI.text } as const;
   const uploadButton = storageReady ? (
     <button type="button" onClick={() => setShowForm((value) => !value)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={16} /> Upload photo</button>
   ) : (
@@ -73,7 +73,7 @@ export default function ProjectsView({
 
   return <>
     <TopBar title="Past Projects" subtitle="Completed work and project photo archive" rightSlot={uploadButton} />
-    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,var(--brand-glow, rgba(20,91,160,.12)),transparent 35%),var(--app-bg, #03101f)" }}>
       <div className="mx-auto w-full max-w-[1700px] space-y-3">
         <div className="grid gap-3 sm:grid-cols-3"><Metric label="Project photos" value={String(photos.length)} /><Metric label="Jobs represented" value={String(new Set(photos.map((photo) => photo.job)).size)} /><Metric label="Clients represented" value={String(new Set(photos.map((photo) => photo.client)).size)} /></div>
 
@@ -96,7 +96,7 @@ export default function ProjectsView({
         {error && !showForm && <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{error}</div>}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {photos.map((photo) => <article key={photo.id} className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo.fileUrl} alt={`${photo.job} project`} className="aspect-[4/3] w-full object-cover" loading="lazy" /><div className="p-4"><div className="flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><ImageIcon size={16} /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold" style={{ color: UI.text }}>{photo.job}</p><p className="mt-1 text-xs" style={{ color: UI.mute }}>{photo.client}</p></div></div><p className="mt-3 flex items-center gap-1.5 truncate text-xs" style={{ color: UI.faint }}><MapPin size={12} className="shrink-0" /> {photo.address}</p><div className="mt-4 flex items-center gap-3"><span className="mr-auto text-[11px]" style={{ color: UI.faint }}>{new Date(photo.uploadedAt).toLocaleDateString("en-AU")}</span><a href={photo.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: UI.cyan }}>Open <ExternalLink size={12} /></a>{canDelete && <button type="button" disabled={deletingId === photo.id} onClick={() => void deletePhoto(photo)} className="inline-flex items-center gap-1 text-xs font-semibold disabled:opacity-50" style={{ color: UI.red }}><Trash2 size={12} /> Delete</button>}</div></div></article>)}
+          {photos.map((photo) => <article key={photo.id} className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo.fileUrl} alt={`${photo.job} project`} className="aspect-[4/3] w-full object-cover" loading="lazy" /><div className="p-4"><div className="flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgb(var(--brand-primary-rgb, 22 141 255) / .11)", color: UI.cyan }}><ImageIcon size={16} /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold" style={{ color: UI.text }}>{photo.job}</p><p className="mt-1 text-xs" style={{ color: UI.mute }}>{photo.client}</p></div></div><p className="mt-3 flex items-center gap-1.5 truncate text-xs" style={{ color: UI.faint }}><MapPin size={12} className="shrink-0" /> {photo.address}</p><div className="mt-4 flex items-center gap-3"><span className="mr-auto text-[11px]" style={{ color: UI.faint }}>{new Date(photo.uploadedAt).toLocaleDateString("en-AU")}</span><a href={photo.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: UI.cyan }}>Open <ExternalLink size={12} /></a>{canDelete && <button type="button" disabled={deletingId === photo.id} onClick={() => void deletePhoto(photo)} className="inline-flex items-center gap-1 text-xs font-semibold disabled:opacity-50" style={{ color: UI.red }}><Trash2 size={12} /> Delete</button>}</div></div></article>)}
           {photos.length === 0 && <div className="rounded-xl px-5 py-14 text-center text-sm sm:col-span-2 xl:col-span-3" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.faint }}>No project photos archived yet.</div>}
         </div>
       </div>

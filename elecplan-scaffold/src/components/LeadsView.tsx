@@ -19,15 +19,15 @@ type LeadRow = {
 };
 
 const UI = {
-  panel: "#07192b",
-  panelAlt: "#09213a",
-  border: "rgba(77,150,221,.24)",
-  borderSoft: "rgba(77,150,221,.12)",
+  panel: "var(--brand-panel, #07192b)",
+  panelAlt: "var(--brand-panel-alt, #09213a)",
+  border: "var(--brand-border, rgba(77,150,221,.24))",
+  borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))",
   text: "#f5f9ff",
-  mute: "#93a9c2",
-  faint: "#617993",
-  blue: "#168dff",
-  cyan: "#25c7ff",
+  mute: "var(--brand-muted, #93a9c2)",
+  faint: "var(--brand-faint, #617993)",
+  blue: "var(--brand-primary, #168dff)",
+  cyan: "var(--brand-accent, #25c7ff)",
   green: "#18d3a0",
   purple: "#8a5cf6",
   orange: "#ff9f1c",
@@ -35,7 +35,7 @@ const UI = {
 };
 
 const STAGE_STYLE: Record<LeadStage, { bg: string; fg: string; border: string }> = {
-  NEW: { bg: "rgba(22,141,255,.12)", fg: "#62b6ff", border: "rgba(22,141,255,.30)" },
+  NEW: { bg: "rgb(var(--brand-primary-rgb, 22 141 255) / .12)", fg: "#62b6ff", border: "rgb(var(--brand-primary-rgb, 22 141 255) / .30)" },
   QUOTED: { bg: "rgba(138,92,246,.12)", fg: "#b99cff", border: "rgba(138,92,246,.30)" },
   WON: { bg: "rgba(25,211,162,.11)", fg: "#4de2bb", border: "rgba(25,211,162,.28)" },
   LOST: { bg: "rgba(255,94,114,.10)", fg: "#ff8292", border: "rgba(255,94,114,.25)" },
@@ -107,12 +107,12 @@ export default function LeadsView({ leads, clients }: { leads: LeadRow[]; client
     router.refresh();
   }
 
-  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
+  const field = { background: "var(--brand-panel-deep, #041323)", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
   return (
     <>
-      <TopBar title="Leads" subtitle="Manage and follow up on new leads" rightSlot={<button type="button" onClick={() => setShowForm((current) => !current)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgba(22,141,255,.25)" }}><Plus size={16} /> New lead</button>} />
-      <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+      <TopBar title="Leads" subtitle="Manage and follow up on new leads" rightSlot={<button type="button" onClick={() => setShowForm((current) => !current)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgb(var(--brand-primary-rgb, 22 141 255) / .25)" }}><Plus size={16} /> New lead</button>} />
+      <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,var(--brand-glow, rgba(20,91,160,.12)),transparent 35%),var(--app-bg, #03101f)" }}>
         <div className="mx-auto w-full max-w-[1700px] space-y-3">
           {showForm && (
             <form onSubmit={submit} className="grid grid-cols-1 gap-3 rounded-xl p-4 md:grid-cols-2" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
@@ -135,7 +135,7 @@ export default function LeadsView({ leads, clients }: { leads: LeadRow[]; client
           <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
             <div className="flex flex-col gap-3 border-b p-3 md:flex-row md:items-center md:justify-between" style={{ borderColor: UI.borderSoft }}>
               <div className="relative min-w-0 flex-1 md:max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search leads…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={field} /></div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0"><span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: UI.faint }}><Filter size={13} /> Filters</span>{(["ALL", ...STAGES] as const).map((stage) => <button key={stage} type="button" onClick={() => setStageFilter(stage)} className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: stageFilter === stage ? "rgba(22,141,255,.16)" : "#041323", color: stageFilter === stage ? UI.cyan : UI.mute, border: `1px solid ${stageFilter === stage ? "rgba(37,199,255,.30)" : UI.borderSoft}` }}>{stage === "ALL" ? "All leads" : stage.charAt(0) + stage.slice(1).toLowerCase()}</button>)}</div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0"><span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: UI.faint }}><Filter size={13} /> Filters</span>{(["ALL", ...STAGES] as const).map((stage) => <button key={stage} type="button" onClick={() => setStageFilter(stage)} className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: stageFilter === stage ? "rgb(var(--brand-primary-rgb, 22 141 255) / .16)" : "var(--brand-panel-deep, #041323)", color: stageFilter === stage ? UI.cyan : UI.mute, border: `1px solid ${stageFilter === stage ? "rgb(var(--brand-accent-rgb, 37 199 255) / .30)" : UI.borderSoft}` }}>{stage === "ALL" ? "All leads" : stage.charAt(0) + stage.slice(1).toLowerCase()}</button>)}</div>
             </div>
 
             <div className="hidden grid-cols-[minmax(180px,1.1fr)_minmax(260px,1.5fr)_120px_130px_150px] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Lead</span><span>Description</span><span>Value</span><span>Created</span><span>Status</span></div>

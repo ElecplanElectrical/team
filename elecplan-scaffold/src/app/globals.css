@@ -16,6 +16,40 @@
 html,body { height:100%; }
 body { background:var(--bg); color:var(--text); font-family:"Inter",sans-serif; -webkit-font-smoothing:antialiased; }
 
+/* QLS TENANT THEME
+   Green, charcoal and warm grey are scoped to the private QLS portal only. */
+.qls-theme {
+  color:#f2f7f3;
+  background:#050a07;
+  color-scheme:dark;
+}
+.qls-theme ::selection { background:rgba(60,186,96,.34); color:#fff; }
+.qls-theme :is(input,textarea,select) { caret-color:var(--brand-accent); }
+.qls-theme [class*="bg-[#168dff"],
+.qls-theme [class*="bg-[#1592ff"],
+.qls-theme [class*="bg-[#0b86ff"],
+.qls-theme [class*="bg-[#0c84ff"],
+.qls-theme [class*="bg-[#0d78ff"] {
+  background-color:var(--brand-primary) !important;
+}
+.qls-theme [class*="text-[#168dff"],
+.qls-theme [class*="text-[#1592ff"],
+.qls-theme [class*="text-[#25c7ff"] { color:var(--brand-accent) !important; }
+.qls-theme [class*="text-[#93a9c2"] { color:var(--brand-muted) !important; }
+.qls-theme [class*="border-[#168dff"],
+.qls-theme [class*="border-[#25c7ff"] { border-color:var(--brand-border) !important; }
+.qls-theme [class*="bg-[#03101f]"] { background-color:var(--app-bg) !important; }
+.qls-theme [class*="bg-[#07192b]"],
+.qls-theme [class*="bg-[#07182b]"] { background-color:var(--brand-panel) !important; }
+.qls-theme [class*="bg-[#09213a]"],
+.qls-theme [class*="bg-[#041323]"],
+.qls-theme [class*="bg-[#041525]"] { background-color:var(--brand-panel-alt) !important; }
+.qls-theme [class*="ring-[#081b30"] { --tw-ring-color:var(--brand-panel) !important; }
+.qls-theme :is(button,a):focus-visible {
+  outline:2px solid var(--brand-accent);
+  outline-offset:2px;
+}
+
 /* YOURPLAN MASTER THEME
    The approved homepage is the visual source of truth for the whole site. */
 .yourplan-theme {

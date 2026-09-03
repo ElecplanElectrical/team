@@ -10,16 +10,16 @@ import type { YourPlanModule } from "@/lib/brand";
 import { SCREEN_PATH } from "@/lib/access";
 import { navGroupsFor } from "@/lib/nav";
 import YourPlanLogo from "@/components/YourPlanLogo";
+import QlsBrandLockup from "@/components/QlsBrandLockup";
 
-const UI={mute:"#9aaeaa",faint:"#647a6d"};
+const UI={mute:"#9aaeaa",faint:"var(--brand-faint, #647a6d)"};
 type Brand={name:string;slug:string;logoUrl:string|null;primaryColor:string;accentColor:string;modules:YourPlanModule[]}|null;
 
 function MobileBrand({brand,drawer=false}:{brand?:Brand;drawer?:boolean}) {
+  if (brand?.slug === "qls") return <QlsBrandLockup variant={drawer ? "drawer" : "mobile"} />;
   if (!brand?.logoUrl) return <YourPlanLogo width={drawer?144:112}/>;
-  const isQls=brand.slug==="qls";
   return <div className="flex items-center gap-2.5">
     <img src={brand.logoUrl} alt={brand.name} className={drawer?"h-28 w-auto max-w-[150px] object-contain object-left":"h-11 w-11 object-contain"}/>
-    {isQls?<div><strong className={drawer?"block text-xl font-black tracking-[.15em] text-white":"block text-base font-black tracking-[.16em] text-white"}>QLS</strong>{drawer?<span className="mt-1 block text-[9px] uppercase tracking-[.12em] text-slate-400">Team portal</span>:null}</div>:null}
   </div>;
 }
 
@@ -31,13 +31,13 @@ export default function MobileNav({role,brand}:{role:Role;brand?:Brand}) {
   const accent=brand?.accentColor||"#25c7ff";
   const isQls=brand?.slug==="qls";
   const border=brand?`${accent}36`:"rgba(73,145,214,.22)";
-  const panel=brand?"#10261a":"#07192b";
+  const panel=brand?"#10261a":"var(--brand-panel, #07192b)";
   const label=brand?.name||"Your Plan";
   const logoutUrl=isQls?"/login?tenant=qls&callbackUrl=%2Fdashboard":"/login";
   return <>
     <div className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between px-4 md:hidden" style={{background:isQls?"rgba(5,15,8,.97)":"rgba(2,14,27,.97)",borderBottom:`1px solid ${border}`,backdropFilter:"blur(16px)"}}>
       <button type="button" onClick={()=>setOpen(true)} aria-label="Open navigation" className="flex h-10 w-10 items-center justify-center rounded-lg" style={{background:panel,border:`1px solid ${border}`,color:UI.mute}}><Menu size={19}/></button>
-      <Link href="/dashboard" aria-label={`${label} dashboard`} className="flex h-12 items-center justify-center"><MobileBrand brand={brand}/></Link>
+      <Link href="/dashboard" aria-label={`${label} dashboard`} className="flex h-14 min-w-0 max-w-[230px] items-center justify-center"><MobileBrand brand={brand}/></Link>
       <button type="button" aria-label="Notifications" className="relative flex h-10 w-10 items-center justify-center rounded-lg" style={{background:panel,border:`1px solid ${border}`,color:UI.mute}}><Bell size={17}/><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500"/></button>
     </div>
     {open&&<div className="fixed inset-0 z-[60] md:hidden">

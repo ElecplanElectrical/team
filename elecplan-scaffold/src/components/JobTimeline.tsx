@@ -18,15 +18,15 @@ export type TimelineJob = {
 };
 
 const UI = {
-  panel: "#07192b",
-  panelAlt: "#09213a",
-  border: "rgba(77,150,221,.24)",
-  borderSoft: "rgba(77,150,221,.12)",
+  panel: "var(--brand-panel, #07192b)",
+  panelAlt: "var(--brand-panel-alt, #09213a)",
+  border: "var(--brand-border, rgba(77,150,221,.24))",
+  borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))",
   text: "#f5f9ff",
-  mute: "#93a9c2",
-  faint: "#617993",
-  blue: "#168dff",
-  cyan: "#25c7ff",
+  mute: "var(--brand-muted, #93a9c2)",
+  faint: "var(--brand-faint, #617993)",
+  blue: "var(--brand-primary, #168dff)",
+  cyan: "var(--brand-accent, #25c7ff)",
   green: "#18d3a0",
 };
 
@@ -85,8 +85,8 @@ export default function JobTimeline({
                   <div
                     className="flex h-7 w-7 items-center justify-center rounded-full"
                     style={{
-                      background: done ? "rgba(25,211,160,.16)" : isCurrent ? "rgba(22,141,255,.18)" : UI.panelAlt,
-                      border: `1px solid ${done ? "rgba(25,211,160,.38)" : isCurrent ? "rgba(37,199,255,.38)" : UI.borderSoft}`,
+                      background: done ? "rgba(25,211,160,.16)" : isCurrent ? "rgb(var(--brand-primary-rgb, 22 141 255) / .18)" : UI.panelAlt,
+                      border: `1px solid ${done ? "rgba(25,211,160,.38)" : isCurrent ? "rgb(var(--brand-accent-rgb, 37 199 255) / .38)" : UI.borderSoft}`,
                       color: done ? UI.green : isCurrent ? UI.cyan : UI.faint,
                     }}
                   >

@@ -8,7 +8,7 @@ import BusinessPortalManager from "@/components/BusinessPortalManager";
 import HqPayments from "@/components/HqPayments";
 import HqDocuments from "@/components/HqDocuments";
 
-const UI={panel:"#07192b",border:"rgba(77,150,221,.24)",text:"#f5f9ff",mute:"#93a9c2",faint:"#617993",cyan:"#25c7ff",green:"#18d3a0"};
+const UI={panel:"var(--brand-panel, #07192b)",border:"var(--brand-border, rgba(77,150,221,.24))",text:"#f5f9ff",mute:"var(--brand-muted, #93a9c2)",faint:"var(--brand-faint, #617993)",cyan:"var(--brand-accent, #25c7ff)",green:"#18d3a0"};
 function activityLabel(action:string){if(action==="PLATFORM_CUSTOMER_CREATED")return"Customer created";if(action==="PLATFORM_CUSTOMER_UPDATED")return"Customer updated";if(action==="PLATFORM_SUBSCRIPTION_UPDATED")return"Subscription updated";return action.replaceAll("_"," ").toLowerCase()}
 function businessName(details:unknown){if(details&&typeof details==="object"&&!Array.isArray(details)&&"businessName" in details){const name=(details as {businessName?:unknown}).businessName;return typeof name==="string"?name:null}return null}
 
@@ -28,7 +28,7 @@ export default async function HqPage(){
  const documents=documentRows.map(d=>({...d,uploadedAt:d.uploadedAt.toISOString()}));
  const subMap=new Map(subscriptions.map(s=>[s.businessId,s]));
  const qls=rows.find(b=>b.slug==="qls");
- return <><TopBar title="Your Plan HQ" subtitle="Customers, subscriptions, access and portal configuration"/><main className="flex-1 overflow-auto p-4 md:p-6" style={{background:"#03101f"}}><div className="mx-auto max-w-7xl space-y-4">
+ return <><TopBar title="Your Plan HQ" subtitle="Customers, subscriptions, access and portal configuration"/><main className="flex-1 overflow-auto p-4 md:p-6" style={{background:"var(--app-bg, #03101f)"}}><div className="mx-auto max-w-7xl space-y-4">
  <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric icon={<Building2 size={17}/>} label="Customer businesses" value={String(rows.length)}/><Metric icon={<Power size={17}/>} label="Active subscriptions" value={String(active.length)}/><Metric icon={<CircleDollarSign size={17}/>} label="Monthly recurring" value={new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD",maximumFractionDigits:0}).format(mrr)}/><Metric icon={<Users size={17}/>} label="Customer users" value={String(seats)}/></section>
 
  <section className="grid gap-3 lg:grid-cols-2">

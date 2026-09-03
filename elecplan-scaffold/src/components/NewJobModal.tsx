@@ -6,7 +6,7 @@ import { BriefcaseBusiness, CalendarDays, MapPin, X } from "lucide-react";
 export type JobClientOption = { id: string; name: string; address: string | null };
 export type JobCrewOption = { id: string; name: string; role: string };
 
-const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72" };
+const UI = { panel: "var(--brand-panel, #07192b)", panelAlt: "var(--brand-panel-alt, #09213a)", border: "var(--brand-border, rgba(77,150,221,.24))", borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))", text: "#f5f9ff", mute: "var(--brand-muted, #93a9c2)", faint: "var(--brand-faint, #617993)", blue: "var(--brand-primary, #168dff)", cyan: "var(--brand-accent, #25c7ff)", red: "#ff5e72" };
 
 export default function NewJobModal({ clients, crew, onClose, onDone, initialClientId, initialAddress }: { clients: JobClientOption[]; crew: JobCrewOption[]; onClose: () => void; onDone: () => void; initialClientId?: string; initialAddress?: string }) {
   const firstClientId = initialClientId && clients.some((client) => client.id === initialClientId) ? initialClientId : (clients[0]?.id ?? "");
@@ -61,12 +61,12 @@ export default function NewJobModal({ clients, crew, onClose, onDone, initialCli
     onDone();
   }
 
-  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
+  const field = { background: "var(--brand-panel-deep, #041323)", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
   return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
     <section className="flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden md:h-auto md:max-h-[92vh] md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
       <header className="flex shrink-0 items-start gap-3 border-b px-4 py-3 md:px-5 md:py-4" style={{ borderColor: UI.borderSoft }}>
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><BriefcaseBusiness size={18} /></span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgb(var(--brand-primary-rgb, 22 141 255) / .11)", color: UI.cyan }}><BriefcaseBusiness size={18} /></span>
         <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>New job</h2><p className="mt-1 text-xs" style={{ color: UI.faint }}>{initialAddress ? `Create new work at ${initialAddress}.` : "Choose the client, then enter the actual address where this job is being done."}</p></div>
         <button type="button" aria-label="Close" onClick={onClose} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" style={{ color: UI.mute, background: UI.panelAlt }}><X size={18} /></button>
       </header>

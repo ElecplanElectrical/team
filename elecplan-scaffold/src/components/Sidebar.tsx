@@ -9,15 +9,16 @@ import type { YourPlanModule } from "@/lib/brand";
 import { SCREEN_PATH } from "@/lib/access";
 import { navGroupsFor, ROLE_TITLE, initialsOf } from "@/lib/nav";
 import YourPlanLogo from "@/components/YourPlanLogo";
+import QlsBrandLockup from "@/components/QlsBrandLockup";
 
-const UI={text:"#f4f8ff",mute:"#9aacc2",faint:"#647a6d"};
+const UI={text:"#f4f8ff",mute:"var(--brand-muted, #9aacc2)",faint:"var(--brand-faint, #647a6d)"};
 type Brand={name:string;slug:string;logoUrl:string|null;primaryColor:string;accentColor:string;modules:YourPlanModule[]}|null;
 
 function BrandMark({brand,compact=false}:{brand?:Brand;compact?:boolean}) {
+  if (brand?.slug === "qls") return <QlsBrandLockup variant="sidebar" />;
   if (!brand?.logoUrl) return <><YourPlanLogo width={52} className="xl:hidden"/><YourPlanLogo width={176} className="hidden xl:block"/></>;
   return <div className="flex items-center gap-2">
     <img src={brand.logoUrl} alt={brand.name} className={compact?"h-12 w-12 object-contain":"h-12 w-12 object-contain xl:h-[92px] xl:w-auto xl:max-w-[174px]"}/>
-    {compact?<span className="hidden text-sm font-black tracking-[.14em] text-white xl:inline">QLS</span>:null}
   </div>;
 }
 
@@ -31,7 +32,7 @@ export default function Sidebar({role,name,brand}:{role:Role;name:string;brand?:
   const homeHref="/dashboard";
   const logoutUrl=isQls?"/login?tenant=qls&callbackUrl=%2Fdashboard":"/login";
   return <aside className="hidden shrink-0 flex-col px-2.5 py-5 md:flex md:w-[74px] xl:w-[230px] xl:px-3" style={{background:isQls?`linear-gradient(180deg,#07130b 0%,${primary}12 48%,#050d08 100%)`:"linear-gradient(180deg,#02101f 0%,#031321 100%)",borderRight:`1px solid ${border}`}}>
-    <Link href={homeHref} className={`mb-5 flex items-center px-2 xl:px-3 ${brand?"min-h-[94px] justify-center xl:justify-start":"min-h-9"}`} aria-label={`${brand?.name||"Your Plan"} dashboard`}>
+    <Link href={homeHref} className={`mb-5 flex items-center px-2 xl:px-1 ${brand?"min-h-[94px] justify-center xl:justify-start":"min-h-9"}`} aria-label={`${brand?.name||"Your Plan"} dashboard`}>
       <BrandMark brand={brand} compact={!brand}/>
     </Link>
     <nav className="flex-1 overflow-y-auto pr-0.5">

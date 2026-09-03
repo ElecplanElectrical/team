@@ -24,15 +24,15 @@ export type QuoteRow = {
 };
 
 const UI = {
-  panel: "#07192b",
-  panelAlt: "#09213a",
-  border: "rgba(77,150,221,.24)",
-  borderSoft: "rgba(77,150,221,.12)",
+  panel: "var(--brand-panel, #07192b)",
+  panelAlt: "var(--brand-panel-alt, #09213a)",
+  border: "var(--brand-border, rgba(77,150,221,.24))",
+  borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))",
   text: "#f5f9ff",
-  mute: "#93a9c2",
-  faint: "#617993",
-  blue: "#168dff",
-  cyan: "#25c7ff",
+  mute: "var(--brand-muted, #93a9c2)",
+  faint: "var(--brand-faint, #617993)",
+  blue: "var(--brand-primary, #168dff)",
+  cyan: "var(--brand-accent, #25c7ff)",
   green: "#18d3a0",
   purple: "#8a5cf6",
   red: "#ff5e72",
@@ -41,7 +41,7 @@ const UI = {
 
 const STATUS_STYLE: Record<QuoteStatus, { bg: string; fg: string; border: string }> = {
   DRAFT: { bg: "rgba(147,169,194,.10)", fg: "#a9bbcf", border: "rgba(147,169,194,.22)" },
-  SENT: { bg: "rgba(22,141,255,.12)", fg: "#62b6ff", border: "rgba(22,141,255,.30)" },
+  SENT: { bg: "rgb(var(--brand-primary-rgb, 22 141 255) / .12)", fg: "#62b6ff", border: "rgb(var(--brand-primary-rgb, 22 141 255) / .30)" },
   ACCEPTED: { bg: "rgba(25,211,162,.11)", fg: "#4de2bb", border: "rgba(25,211,162,.28)" },
   DECLINED: { bg: "rgba(255,94,114,.10)", fg: "#ff8292", border: "rgba(255,94,114,.25)" },
 };
@@ -106,12 +106,12 @@ export default function QuotesView({ quotes, clients, jobs }: { quotes: QuoteRow
     router.refresh();
   }
 
-  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
+  const field = { background: "var(--brand-panel-deep, #041323)", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
   return (
     <>
-      <TopBar title="Quotes" subtitle="Create and manage quotes" rightSlot={<button type="button" onClick={() => setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgba(22,141,255,.25)" }}><Plus size={16} /> New quote</button>} />
-      <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+      <TopBar title="Quotes" subtitle="Create and manage quotes" rightSlot={<button type="button" onClick={() => setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgb(var(--brand-primary-rgb, 22 141 255) / .25)" }}><Plus size={16} /> New quote</button>} />
+      <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,var(--brand-glow, rgba(20,91,160,.12)),transparent 35%),var(--app-bg, #03101f)" }}>
         <div className="mx-auto w-full max-w-[1700px] space-y-3">
           <div className="grid gap-3 sm:grid-cols-3"><Metric label="Open pipeline" value={money(pipeline)} /><Metric label="Accepted" value={money(accepted)} /><Metric label="Quotes" value={String(quotes.length)} /></div>
           {error && <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{error}</div>}
@@ -119,7 +119,7 @@ export default function QuotesView({ quotes, clients, jobs }: { quotes: QuoteRow
           <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
             <div className="flex flex-col gap-3 border-b p-3 md:flex-row md:items-center md:justify-between" style={{ borderColor: UI.borderSoft }}>
               <div className="relative min-w-0 flex-1 md:max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search quotes…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={field} /></div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0"><span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: UI.faint }}><Filter size={13} /> Filters</span>{(["ALL", ...STATUSES] as const).map((status) => <button key={status} type="button" onClick={() => setStatusFilter(status)} className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: statusFilter === status ? "rgba(22,141,255,.16)" : "#041323", color: statusFilter === status ? UI.cyan : UI.mute, border: `1px solid ${statusFilter === status ? "rgba(37,199,255,.30)" : UI.borderSoft}` }}>{status === "ALL" ? "All quotes" : statusLabel(status)}</button>)}</div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0"><span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: UI.faint }}><Filter size={13} /> Filters</span>{(["ALL", ...STATUSES] as const).map((status) => <button key={status} type="button" onClick={() => setStatusFilter(status)} className="shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold" style={{ background: statusFilter === status ? "rgb(var(--brand-primary-rgb, 22 141 255) / .16)" : "var(--brand-panel-deep, #041323)", color: statusFilter === status ? UI.cyan : UI.mute, border: `1px solid ${statusFilter === status ? "rgb(var(--brand-accent-rgb, 37 199 255) / .30)" : UI.borderSoft}` }}>{status === "ALL" ? "All quotes" : statusLabel(status)}</button>)}</div>
             </div>
 
             <div className="hidden grid-cols-[150px_minmax(180px,1fr)_minmax(180px,1fr)_120px_130px_190px] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] lg:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Quote</span><span>Client</span><span>Job</span><span>Total</span><span>Status</span><span>Invoice</span></div>
@@ -130,7 +130,7 @@ export default function QuotesView({ quotes, clients, jobs }: { quotes: QuoteRow
               <span className="text-xs" style={{ color: UI.mute }}>{quote.job ?? "No linked job"}</span>
               <div><span className="text-sm font-semibold" style={{ color: UI.text }}>{money(quote.amount)}</span>{quote.gstAmount != null && <div className="text-[11px]" style={{ color: UI.faint }}>{money(quote.gstAmount)} GST</div>}</div>
               <div className="flex items-center gap-2"><StatusPill status={quote.status} /><select aria-label={`Update ${quote.ref} status`} value={quote.status} disabled={updatingId === quote.id || Boolean(quote.invoiceRef)} onChange={(e) => void updateStatus(quote.id, e.target.value as QuoteStatus)} className="min-w-0 rounded-lg px-2 py-1.5 text-[11px] outline-none disabled:opacity-60" style={field}>{STATUSES.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></div>
-              {quote.invoiceRef ? <span className="text-xs font-semibold" style={{ color: UI.cyan }}>{quote.invoiceRef}</span> : quote.status === "ACCEPTED" ? <button type="button" disabled={convertingId === quote.id} onClick={() => void convert(quote.id)} className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-60" style={{ background: "rgba(22,141,255,.13)", color: UI.cyan, border: "1px solid rgba(37,199,255,.28)" }}><FileDown size={14} />{convertingId === quote.id ? "Creating…" : "Create invoice"}</button> : <span className="text-xs" style={{ color: UI.faint }}>Accept quote first</span>}
+              {quote.invoiceRef ? <span className="text-xs font-semibold" style={{ color: UI.cyan }}>{quote.invoiceRef}</span> : quote.status === "ACCEPTED" ? <button type="button" disabled={convertingId === quote.id} onClick={() => void convert(quote.id)} className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-60" style={{ background: "rgb(var(--brand-primary-rgb, 22 141 255) / .13)", color: UI.cyan, border: "1px solid rgb(var(--brand-accent-rgb, 37 199 255) / .28)" }}><FileDown size={14} />{convertingId === quote.id ? "Creating…" : "Create invoice"}</button> : <span className="text-xs" style={{ color: UI.faint }}>Accept quote first</span>}
             </div>)}
 
             {filtered.length === 0 && <div className="px-5 py-14 text-center text-sm" style={{ color: UI.faint }}>No quotes match the current filters.</div>}

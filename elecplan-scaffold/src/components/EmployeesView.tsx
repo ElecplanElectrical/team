@@ -22,15 +22,15 @@ export type EmployeeRow = {
 };
 
 const UI = {
-  panel: "#07192b",
-  panelAlt: "#09213a",
-  border: "rgba(77,150,221,.24)",
-  borderSoft: "rgba(77,150,221,.12)",
+  panel: "var(--brand-panel, #07192b)",
+  panelAlt: "var(--brand-panel-alt, #09213a)",
+  border: "var(--brand-border, rgba(77,150,221,.24))",
+  borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))",
   text: "#f5f9ff",
-  mute: "#93a9c2",
-  faint: "#617993",
-  blue: "#168dff",
-  cyan: "#25c7ff",
+  mute: "var(--brand-muted, #93a9c2)",
+  faint: "var(--brand-faint, #617993)",
+  blue: "var(--brand-primary, #168dff)",
+  cyan: "var(--brand-accent, #25c7ff)",
   green: "#18d3a0",
   orange: "#ff9f1c",
   red: "#ff5e72",
@@ -94,15 +94,15 @@ export default function EmployeesView({ rows, currentUserId, assignableRoles }: 
 
   return (
     <>
-      <TopBar title="Employees" subtitle="Manage your team and availability" rightSlot={canInvite ? <button type="button" onClick={() => setShowInvite(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgba(22,141,255,.25)" }}><Plus size={16} /> New employee</button> : undefined} />
+      <TopBar title="Employees" subtitle="Manage your team and availability" rightSlot={canInvite ? <button type="button" onClick={() => setShowInvite(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgb(var(--brand-primary-rgb, 22 141 255) / .25)" }}><Plus size={16} /> New employee</button> : undefined} />
 
-      <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+      <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,var(--brand-glow, rgba(20,91,160,.12)),transparent 35%),var(--app-bg, #03101f)" }}>
         <div className="mx-auto w-full max-w-[1700px] space-y-3">
           <div className="grid gap-3 sm:grid-cols-3"><Metric label="Active employees" value={String(activeCount)} /><Metric label="Pending invites" value={String(invitedCount)} /><Metric label="Total team" value={String(rows.length)} /></div>
           {error && <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{error}</div>}
 
           <section className="overflow-hidden rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
-            <div className="border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search employees…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={{ background: "#041323", color: UI.text, border: `1px solid ${UI.border}` }} /></div></div>
+            <div className="border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="relative max-w-md"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.faint }} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search employees…" className="h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none" style={{ background: "var(--brand-panel-deep, #041323)", color: UI.text, border: `1px solid ${UI.border}` }} /></div></div>
 
             <div className="hidden grid-cols-[minmax(240px,1.5fr)_160px_120px_160px_minmax(200px,1fr)] gap-4 border-b px-4 py-3 text-[10px] font-semibold uppercase tracking-[.10em] md:grid" style={{ borderColor: UI.borderSoft, color: UI.faint }}><span>Employee</span><span>Role</span><span>Status</span><span>Phone</span><span>Actions</span></div>
 
@@ -110,7 +110,7 @@ export default function EmployeesView({ rows, currentUserId, assignableRoles }: 
               const status = statusOf(row);
               const manageable = canManage(row);
               const busy = busyId === row.id;
-              return <div key={row.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[minmax(240px,1.5fr)_160px_120px_160px_minmax(200px,1fr)] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold" style={{ background: "#0d2a48", color: "white", border: "1px solid rgba(37,199,255,.20)" }}>{initials(row.name)}</span><div className="min-w-0"><p className="truncate text-sm font-semibold" style={{ color: UI.text }}>{row.name}{row.id === currentUserId && <span className="ml-2 text-[10px] font-normal" style={{ color: UI.faint }}>(you)</span>}</p><p className="mt-1 truncate text-[11px]" style={{ color: UI.faint }}>{row.email}</p></div></div><span className="text-xs" style={{ color: UI.mute }}>{ROLE_TITLE[row.role]}</span><span><span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: status.bg, color: status.fg, border: `1px solid ${status.border}` }}>{status.label}</span></span><span className="text-xs" style={{ color: UI.mute }}>{row.phone ?? "—"}</span><div className="flex flex-wrap items-center gap-2">{manageable ? <><button type="button" disabled={busy} onClick={() => void issueReset(row)} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50" style={{ background: UI.panelAlt, color: UI.cyan, border: `1px solid ${UI.borderSoft}` }}><KeyRound size={13} /> {row.hasPassword ? "Reset" : "Invite link"}</button>{row.id !== currentUserId && <button type="button" disabled={busy} onClick={() => void toggleActive(row)} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50" style={{ background: row.active ? "rgba(255,94,114,.08)" : "rgba(25,211,162,.08)", color: row.active ? UI.red : UI.green, border: `1px solid ${row.active ? "rgba(255,94,114,.22)" : "rgba(25,211,162,.22)"}` }}>{row.active ? <UserX size={13} /> : <UserCheck size={13} />}{row.active ? "Disable" : "Enable"}</button>}</> : <span className="text-xs" style={{ color: UI.faint }}>No management access</span>}</div></div>;
+              return <div key={row.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[minmax(240px,1.5fr)_160px_120px_160px_minmax(200px,1fr)] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold" style={{ background: "var(--brand-primary-soft, #0d2a48)", color: "white", border: "1px solid rgb(var(--brand-accent-rgb, 37 199 255) / .20)" }}>{initials(row.name)}</span><div className="min-w-0"><p className="truncate text-sm font-semibold" style={{ color: UI.text }}>{row.name}{row.id === currentUserId && <span className="ml-2 text-[10px] font-normal" style={{ color: UI.faint }}>(you)</span>}</p><p className="mt-1 truncate text-[11px]" style={{ color: UI.faint }}>{row.email}</p></div></div><span className="text-xs" style={{ color: UI.mute }}>{ROLE_TITLE[row.role]}</span><span><span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: status.bg, color: status.fg, border: `1px solid ${status.border}` }}>{status.label}</span></span><span className="text-xs" style={{ color: UI.mute }}>{row.phone ?? "—"}</span><div className="flex flex-wrap items-center gap-2">{manageable ? <><button type="button" disabled={busy} onClick={() => void issueReset(row)} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50" style={{ background: UI.panelAlt, color: UI.cyan, border: `1px solid ${UI.borderSoft}` }}><KeyRound size={13} /> {row.hasPassword ? "Reset" : "Invite link"}</button>{row.id !== currentUserId && <button type="button" disabled={busy} onClick={() => void toggleActive(row)} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50" style={{ background: row.active ? "rgba(255,94,114,.08)" : "rgba(25,211,162,.08)", color: row.active ? UI.red : UI.green, border: `1px solid ${row.active ? "rgba(255,94,114,.22)" : "rgba(25,211,162,.22)"}` }}>{row.active ? <UserX size={13} /> : <UserCheck size={13} />}{row.active ? "Disable" : "Enable"}</button>}</> : <span className="text-xs" style={{ color: UI.faint }}>No management access</span>}</div></div>;
             })}
 
             {filtered.length === 0 && <div className="flex min-h-[300px] flex-col items-center justify-center text-center"><UserRound size={28} style={{ color: UI.faint }} /><p className="mt-3 text-sm font-semibold" style={{ color: UI.text }}>No employees found</p></div>}
