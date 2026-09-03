@@ -22,7 +22,7 @@ function QlsBrand({ businessName }: { businessName: string }) {
       <img
         src="/qls-logo-transparent.svg"
         alt={businessName}
-        className="h-auto w-full max-w-[190px] sm:max-w-[215px] lg:max-w-[235px]"
+        className="h-auto w-full max-w-[158px] sm:max-w-[185px] lg:max-w-[205px]"
       />
     </div>
   );
@@ -61,20 +61,17 @@ export default function TenantLoginForm({ callbackUrl, tenantSlug, businessName,
         <div className="absolute inset-x-0 bottom-0 h-[20%] bg-gradient-to-t from-[#0b100d] to-transparent" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] w-[92%] max-w-[1320px] flex-col items-center justify-center py-6 lg:items-start lg:py-10">
-        <section className="relative w-full max-w-[526px] overflow-hidden rounded-[22px] border bg-[linear-gradient(145deg,rgba(16,23,18,.98),rgba(8,13,10,.985))] p-6 shadow-[0_34px_110px_rgba(0,0,0,.56)] sm:p-10 lg:ml-1 lg:max-w-[548px] lg:p-11" style={{ borderColor: `${primaryColor}90` }}>
+      <div className="relative z-10 mx-auto flex min-h-[100svh] w-[92%] max-w-[1320px] flex-col items-center justify-center py-5 lg:items-start lg:py-7">
+        <section className="relative w-full max-w-[526px] overflow-hidden rounded-[22px] border bg-[linear-gradient(145deg,rgba(16,23,18,.98),rgba(8,13,10,.985))] p-5 shadow-[0_34px_110px_rgba(0,0,0,.56)] sm:p-8 lg:ml-1 lg:max-w-[548px] lg:p-9" style={{ borderColor: `${primaryColor}90` }}>
           <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-[#78c850]/80 to-transparent" />
           <QlsBrand businessName={businessName} />
 
-          <div className="mt-7 border-t border-white/[.07] pt-7 sm:mt-8 sm:pt-8">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#69bf45]/25 bg-[#69bf45]/[.06] px-3 py-1 text-[10px] font-semibold uppercase tracking-[.18em] text-[#85cf60]">
-              <LockKeyhole size={12} /> Private team portal
-            </div>
+          <div className="mt-5 border-t border-white/[.07] pt-5 sm:mt-6 sm:pt-6">
             <h1 className="text-[31px] font-bold tracking-[-.035em] sm:text-[36px]">Sign in to {shortName}</h1>
             <p className="mt-2 text-[15px] text-slate-400">Access your account to continue.</p>
           </div>
 
-          <form onSubmit={onSubmit} className="mt-8 space-y-5">
+          <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <label className="block">
               <span className="mb-2 block text-[14px] font-semibold text-slate-200">Email address</span>
               <span className="relative block">
@@ -104,10 +101,10 @@ export default function TenantLoginForm({ callbackUrl, tenantSlug, businessName,
             </button>
           </form>
 
-          <p className="mt-7 text-center text-[12px] leading-5 text-slate-500">Authorised {businessName} team members only.</p>
+          <p className="mt-5 text-center text-[12px] leading-5 text-slate-500">Authorised {businessName} team members only.</p>
         </section>
 
-        <div className="mt-6 flex w-full max-w-[548px] items-center justify-center gap-3 text-[12px] uppercase tracking-[.18em] text-slate-500 lg:ml-1">
+        <div className="mt-5 flex w-full max-w-[548px] items-center justify-center gap-3 text-[12px] uppercase tracking-[.18em] text-slate-500 lg:ml-1">
           <span>Powered by</span><YourPlanLogo width={124} />
         </div>
       </div>
