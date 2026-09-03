@@ -9,9 +9,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role === "EMPLOYEE") return NextResponse.json({ error: "Only admins and supervisors can delete project photos" }, { status: 403 });
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = dbUser.businessId;
+  if (!user.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  const businessId = user.businessId;
 
   const { id } = await params;
   const photo = await prisma.projectPhoto.findFirst({

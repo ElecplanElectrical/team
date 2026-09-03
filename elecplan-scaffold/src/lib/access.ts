@@ -43,9 +43,9 @@ const PATH_TO_SCREEN: Record<string, Screen> = Object.fromEntries((Object.entrie
 export function screenForPath(pathname:string):Screen|null{const seg="/"+(pathname.split("/").filter(Boolean)[0]??"");return PATH_TO_SCREEN[seg]??null;}
 export function canAccess(role:Role,screen:Screen):boolean{return SCREEN_ACCESS[screen].includes(role);}
 export function moduleForScreen(screen:Screen):YourPlanModule|undefined{return SCREEN_MODULE[screen];}
-export function pathForModule(module:YourPlanModule):string{return SCREEN_PATH[MODULE_SCREEN[module]];}
+export function pathForModule(enabledModule:YourPlanModule):string{return SCREEN_PATH[MODULE_SCREEN[enabledModule]];}
 export function firstAccessibleModulePath(role:Role,modules:YourPlanModule[]):string{
-  for(const module of modules){const screen=MODULE_SCREEN[module];if(canAccess(role,screen))return SCREEN_PATH[screen];}
+  for(const enabledModule of modules){const screen=MODULE_SCREEN[enabledModule];if(canAccess(role,screen))return SCREEN_PATH[screen];}
   return "/account";
 }
 export function landingPath(role:Role):string{return role==="ADMIN"?"/dashboard":"/calendar";}

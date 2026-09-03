@@ -9,18 +9,22 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canAccess(user.role, "projects")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = dbUser.businessId;
+  if (!user.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  const businessId = user.businessId;
 
   const { id } = await context.params;
   const photo = await prisma.projectPhoto.findFirst({
     where: { id, job: { businessId } },
-    select: { storageKey: true, fileUrl: true },
+    select: { storageKey: true, fileUrl: true, fileData: true, contentType: true, originalName: true },
   });
   if (!photo) return NextResponse.json({ error: "Project photo not found for this business" }, { status: 404 });
 
   if (photo.storageKey) return NextResponse.redirect(createDownloadUrl(photo.storageKey));
+
+  if (photo.fileData) {
+    const originalName = (photo.originalName || "project-photo").replace(/[\r\n"\\]/g, "_");
+    return new NextResponse(new Uint8Array(photo.fileData), { headers: { "Content-Type": photo.contentType || "image/jpeg", "Content-Length": String(photo.fileData.length), "Content-Disposition": `inline; filename="${originalName}"`, "Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff" } });
+  }
 
   try {
     const legacy = new URL(photo.fileUrl);

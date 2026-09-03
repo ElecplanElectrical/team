@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -18,7 +19,7 @@ function BrandMark({brand,compact=false}:{brand?:Brand;compact?:boolean}) {
   if (brand?.slug === "qls") return <QlsBrandLockup variant="sidebar" />;
   if (!brand?.logoUrl) return <><YourPlanLogo width={52} className="xl:hidden"/><YourPlanLogo width={176} className="hidden xl:block"/></>;
   return <div className="flex items-center gap-2">
-    <img src={brand.logoUrl} alt={brand.name} className={compact?"h-12 w-12 object-contain":"h-12 w-12 object-contain xl:h-[92px] xl:w-auto xl:max-w-[174px]"}/>
+    <Image unoptimized src={brand.logoUrl} alt={brand.name} width={300} height={220} className={compact?"h-12 w-12 object-contain":"h-12 w-12 object-contain xl:h-[92px] xl:w-auto xl:max-w-[174px]"}/>
   </div>;
 }
 

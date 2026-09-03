@@ -1,4 +1,6 @@
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { Layers3, ShieldCheck, Sparkles } from "lucide-react";
 import LoginForm from "@/components/LoginForm";
 import YourPlanLogo from "@/components/YourPlanLogo";
@@ -20,6 +22,19 @@ function tenantSlugFromCallback(value:string){
   return match?.[1]?.toLowerCase()??null;
 }
 
+export async function generateMetadata():Promise<Metadata>{
+  const requestHeaders=await headers();
+  const host=(requestHeaders.get("x-forwarded-host")??requestHeaders.get("host")??"").split(":")[0].toLowerCase();
+  if(host==="qls.your-plan.com.au")return {title:{absolute:"Sign in | Quality Landscape Solutions"},description:"Private Quality Landscape Solutions team portal.",robots:{index:false,follow:false}};
+  return {title:"Sign in"};
+}
+
+export async function generateViewport():Promise<Viewport>{
+  const requestHeaders=await headers();
+  const host=(requestHeaders.get("x-forwarded-host")??requestHeaders.get("host")??"").split(":")[0].toLowerCase();
+  return {themeColor:host==="qls.your-plan.com.au"?"#040605":"#03070b"};
+}
+
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string; tenant?: string }> }) {
   const { callbackUrl, tenant } = await searchParams;
   const destination=safeCallback(callbackUrl);
@@ -36,7 +51,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         tenantSlug={business.slug}
         businessName={business.name}
         shortName={business.slug.toUpperCase()}
-        logoSrc={business.slug==="qls"?"https://landscaping-melbourne.com.au/wp-content/uploads/2026/03/QLS-Logo.jpg":`/api/branding/${business.slug}/logo`}
         primaryColor={business.primaryColor}
         accentColor={business.accentColor}
       />;

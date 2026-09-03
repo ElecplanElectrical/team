@@ -22,10 +22,12 @@ export default function QlsBrandLockup({
       } ${className}`}
       aria-label="Quality Landscape Solutions"
     >
-      <img
+      <Image
         src="/qls-logo-transparent.svg"
         alt=""
         aria-hidden="true"
+        width={241}
+        height={282}
         className={`shrink-0 object-contain ${
           isDrawer
             ? "h-[76px] w-[65px]"
@@ -72,3 +74,4 @@ export default function QlsBrandLockup({
     </div>
   );
 }
+import Image from "next/image";

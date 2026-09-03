@@ -13,9 +13,8 @@ const schema = z.union([
 async function tenantUser() {
   const user = await getSessionUser();
   if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return { error: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) };
-  return { user, businessId: dbUser.businessId };
+  if (!user.businessId) return { error: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) };
+  return { user, businessId: user.businessId };
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

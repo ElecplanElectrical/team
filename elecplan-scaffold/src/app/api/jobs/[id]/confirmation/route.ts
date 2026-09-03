@@ -34,9 +34,8 @@ async function authorisedUser() {
   const user = await getSessionUser();
   if (!user) return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
   if (user.role === "EMPLOYEE") return { response: NextResponse.json({ error: "Only admins and supervisors can send client confirmations" }, { status: 403 }) } as const;
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return { response: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) } as const;
-  return { user, businessId: dbUser.businessId } as const;
+  if (!user.businessId) return { response: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) } as const;
+  return { user, businessId: user.businessId } as const;
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {

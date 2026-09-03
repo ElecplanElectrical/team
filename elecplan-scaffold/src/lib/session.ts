@@ -63,8 +63,8 @@ async function currentActiveUser(requiredModule?: YourPlanModule) {
     ? effectiveBusiness.modules.filter((value): value is YourPlanModule => typeof value === "string" && MODULES.has(value as YourPlanModule))
     : [...DEFAULT_MODULES];
 
-  const module = requiredModule ?? await inferredModule();
-  if (module && effectiveBusinessId && !modules.includes(module)) return null;
+  const requestedModule = requiredModule ?? await inferredModule();
+  if (requestedModule && effectiveBusinessId && !modules.includes(requestedModule)) return null;
 
   return {
     id: user.id,
@@ -92,8 +92,8 @@ export async function requireUser() {
 export async function requireAccess(screen: Screen) {
   const user = await requireUser();
   if (!canAccess(user.role, screen)) redirect(landingPath(user.role));
-  const module = moduleForScreen(screen);
-  if (module && user.business && !user.business.modules.includes(module)) {
+  const requiredModule = moduleForScreen(screen);
+  if (requiredModule && user.business && !user.business.modules.includes(requiredModule)) {
     redirect(firstAccessibleModulePath(user.role, user.business.modules));
   }
   return user;

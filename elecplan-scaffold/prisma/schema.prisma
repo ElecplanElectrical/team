@@ -80,19 +80,19 @@ enum ScanEnrichmentStatus {
 }
 
 model User {
-  id             String    @id @default(cuid())
+  id             String          @id @default(cuid())
   name           String
-  email          String    @unique
+  email          String          @unique
   phone          String?
-  role           Role      @default(EMPLOYEE)
+  role           Role            @default(EMPLOYEE)
   passwordHash   String?
-  active         Boolean   @default(true)
+  active         Boolean         @default(true)
   licenseNumber  String?
   licenseExpiry  DateTime?
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime        @default(now())
   business       BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   businessId     String?
-  assignedJobs   Job[]        @relation("AssignedEmployee")
+  assignedJobs   Job[]           @relation("AssignedEmployee")
   timesheets     Timesheet[]
   reminders      Reminder[]
   certificates   Certificate[]
@@ -117,14 +117,14 @@ model PasswordToken {
 }
 
 model Client {
-  id           String   @id @default(cuid())
+  id           String          @id @default(cuid())
   name         String
   contactName  String?
   phone        String?
   email        String?
   address      String?
   billingNotes String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime        @default(now())
   business     BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId   String?
   leads        Lead[]
@@ -137,14 +137,14 @@ model Client {
 }
 
 model Lead {
-  id          String    @id @default(cuid())
-  client      Client    @relation(fields: [clientId], references: [id])
+  id          String          @id @default(cuid())
+  client      Client          @relation(fields: [clientId], references: [id])
   clientId    String
   description String
-  stage       LeadStage @default(NEW)
+  stage       LeadStage       @default(NEW)
   value       Decimal
   source      String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime        @default(now())
   business    BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId  String?
 
@@ -152,18 +152,18 @@ model Lead {
 }
 
 model Job {
-  id             String    @id @default(cuid())
+  id             String          @id @default(cuid())
   title          String
-  client         Client    @relation(fields: [clientId], references: [id])
+  client         Client          @relation(fields: [clientId], references: [id])
   clientId       String
   address        String
-  status         JobStatus @default(SCHEDULED)
-  assignedTo     User?     @relation("AssignedEmployee", fields: [assignedToId], references: [id])
+  status         JobStatus       @default(SCHEDULED)
+  assignedTo     User?           @relation("AssignedEmployee", fields: [assignedToId], references: [id])
   assignedToId   String?
   scheduledStart DateTime?
   scheduledEnd   DateTime?
   notes          String?
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime        @default(now())
   business       BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId     String?
   events         JobEvent[]
@@ -194,22 +194,22 @@ model JobEvent {
 }
 
 model Quote {
-  id               String      @id @default(cuid())
-  quoteNumber      String?     @unique
-  job              Job?        @relation(fields: [jobId], references: [id])
+  id               String          @id @default(cuid())
+  quoteNumber      String?         @unique
+  job              Job?            @relation(fields: [jobId], references: [id])
   jobId            String?
-  client           Client      @relation(fields: [clientId], references: [id])
+  client           Client          @relation(fields: [clientId], references: [id])
   clientId         String
   subtotal         Decimal?
   gstAmount        Decimal?
   amount           Decimal
-  status           QuoteStatus @default(DRAFT)
+  status           QuoteStatus     @default(DRAFT)
   xeroId           String?
-  createdAt        DateTime    @default(now())
+  createdAt        DateTime        @default(now())
   business         BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId       String?
   lineItems        QuoteLineItem[]
-  convertedInvoice Invoice?    @relation("ConvertedQuote")
+  convertedInvoice Invoice?        @relation("ConvertedQuote")
 
   @@index([businessId, status, createdAt])
 }
@@ -228,24 +228,24 @@ model QuoteLineItem {
 }
 
 model Invoice {
-  id            String        @id @default(cuid())
-  invoiceNumber String?       @unique
-  job           Job?          @relation(fields: [jobId], references: [id])
+  id            String            @id @default(cuid())
+  invoiceNumber String?           @unique
+  job           Job?              @relation(fields: [jobId], references: [id])
   jobId         String?
-  client        Client?       @relation(fields: [clientId], references: [id])
+  client        Client?           @relation(fields: [clientId], references: [id])
   clientId      String?
   supplier      String?
   subtotal      Decimal?
   gstAmount     Decimal?
   amount        Decimal
   dueDate       DateTime
-  status        InvoiceStatus @default(UNPAID)
+  status        InvoiceStatus     @default(UNPAID)
   xeroId        String?
-  createdAt     DateTime      @default(now())
-  business      BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt     DateTime          @default(now())
+  business      BusinessPortal?   @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId    String?
-  sourceQuote   Quote?        @relation("ConvertedQuote", fields: [sourceQuoteId], references: [id])
-  sourceQuoteId String?       @unique
+  sourceQuote   Quote?            @relation("ConvertedQuote", fields: [sourceQuoteId], references: [id])
+  sourceQuoteId String?           @unique
   lineItems     InvoiceLineItem[]
 
   @@index([businessId, status, createdAt])
@@ -286,23 +286,25 @@ model Inspection {
 }
 
 model StockItem {
-  id                String @id @default(cuid())
+  id                String              @id @default(cuid())
   name              String
   unit              String
   onHand            Int
   parLevel          Int
   supplier          String?
-  barcode           String? @unique
+  barcode           String?
   modelNumber       String?
   photoStorageKey   String?
   photoOriginalName String?
   photoContentType  String?
   photoSizeBytes    Int?
-  business          BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  photoData         Bytes?
+  business          BusinessPortal?     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId        String?
   enrichmentJobs    ScanEnrichmentJob[]
   barcodes          StockBarcode[]
 
+  @@unique([businessId, barcode])
   @@index([modelNumber])
   @@index([businessId, name])
 }
@@ -345,17 +347,18 @@ model Timesheet {
 }
 
 model Document {
-  id           String   @id @default(cuid())
-  job          Job?     @relation(fields: [jobId], references: [id])
+  id           String          @id @default(cuid())
+  job          Job?            @relation(fields: [jobId], references: [id])
   jobId        String?
   name         String
   fileUrl      String
   type         String
-  storageKey   String?  @unique
+  storageKey   String?         @unique
   originalName String?
   contentType  String?
   sizeBytes    Int?
-  uploadedAt   DateTime @default(now())
+  fileData     Bytes?
+  uploadedAt   DateTime        @default(now())
   business     BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId   String?
 
@@ -371,6 +374,7 @@ model ProjectPhoto {
   originalName String?
   contentType  String?
   sizeBytes    Int?
+  fileData     Bytes?
   uploadedAt   DateTime @default(now())
 }
 
@@ -401,13 +405,13 @@ model JobMaterial {
 }
 
 model Reminder {
-  id         String   @id @default(cuid())
-  user       User     @relation(fields: [userId], references: [id])
+  id         String          @id @default(cuid())
+  user       User            @relation(fields: [userId], references: [id])
   userId     String
   title      String
   dueDate    DateTime?
   tag        String?
-  completed  Boolean  @default(false)
+  completed  Boolean         @default(false)
   business   BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId String?
 
@@ -436,15 +440,15 @@ model SmsLog {
 }
 
 model ReelIdea {
-  id           String    @id @default(cuid())
+  id           String          @id @default(cuid())
   title        String
   hook         String?
   platform     String
-  status       String    @default("IDEA")
+  status       String          @default("IDEA")
   scheduledAt  DateTime?
   publishedUrl String?
   notes        String?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime        @default(now())
   business     BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId   String?
 
@@ -476,27 +480,28 @@ model RateLimitBucket {
 }
 
 model Equipment {
-  id                String   @id @default(cuid())
+  id                String              @id @default(cuid())
   name              String
   category          String
-  quantity          Int      @default(1)
-  assetNumber       String?  @unique
+  quantity          Int                 @default(1)
+  assetNumber       String?             @unique
   serialNumber      String?
-  condition         String   @default("GOOD")
-  status            String   @default("AVAILABLE")
-  location          String   @default("Workshop")
+  condition         String              @default("GOOD")
+  status            String              @default("AVAILABLE")
+  location          String              @default("Workshop")
   assignedUserId    String?
   assignedJobId     String?
   purchaseDate      DateTime?
   notes             String?
   lastStocktakeAt   DateTime?
-  photoStorageKey   String?  @unique
+  photoStorageKey   String?             @unique
   photoOriginalName String?
   photoContentType  String?
   photoSizeBytes    Int?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  business          BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  photoData         Bytes?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  business          BusinessPortal?     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId        String?
   movements         EquipmentMovement[]
 
@@ -536,12 +541,12 @@ model EmployeeKpi {
 }
 
 model WeeklyGoal {
-  id         String   @id @default(cuid())
+  id         String          @id @default(cuid())
   weekStart  DateTime
   text       String
   createdBy  String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
   business   BusinessPortal? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   businessId String?
 
@@ -564,34 +569,34 @@ model TeamChatRead {
 }
 
 model BusinessPortal {
-  id            String   @id @default(cuid())
-  name          String
-  slug          String   @unique
-  industry      String?
-  contactName   String?
-  contactEmail  String?
-  logoUrl       String?
-  primaryColor  String   @default("#168dff")
-  accentColor   String   @default("#25c7ff")
-  modules       Json
-  plan          String   @default("CUSTOM")
-  monthlyPrice  Decimal?
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  users         User[]
-  clients       Client[]
-  leads         Lead[]
-  jobs          Job[]
-  quotes        Quote[]
-  invoices      Invoice[]
-  stockItems    StockItem[]
-  timesheets    Timesheet[]
-  documents     Document[]
-  reminders     Reminder[]
-  equipment     Equipment[]
-  reelIdeas     ReelIdea[]
-  weeklyGoals   WeeklyGoal[]
+  id           String       @id @default(cuid())
+  name         String
+  slug         String       @unique
+  industry     String?
+  contactName  String?
+  contactEmail String?
+  logoUrl      String?
+  primaryColor String       @default("#168dff")
+  accentColor  String       @default("#25c7ff")
+  modules      Json
+  plan         String       @default("CUSTOM")
+  monthlyPrice Decimal?
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  users        User[]
+  clients      Client[]
+  leads        Lead[]
+  jobs         Job[]
+  quotes       Quote[]
+  invoices     Invoice[]
+  stockItems   StockItem[]
+  timesheets   Timesheet[]
+  documents    Document[]
+  reminders    Reminder[]
+  equipment    Equipment[]
+  reelIdeas    ReelIdea[]
+  weeklyGoals  WeeklyGoal[]
 
   @@index([active, createdAt])
 }

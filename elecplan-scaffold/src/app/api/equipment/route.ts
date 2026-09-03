@@ -10,9 +10,8 @@ export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role !== "ADMIN") return NextResponse.json({ error: "Only an admin can add equipment" }, { status: 403 });
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = dbUser.businessId;
+  if (!user.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  const businessId = user.businessId;
 
   const p = createSchema.safeParse(await req.json().catch(() => null));
   if (!p.success) return NextResponse.json({ error: p.error.issues[0]?.message ?? "Invalid equipment" }, { status: 400 });

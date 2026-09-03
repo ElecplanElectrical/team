@@ -11,9 +11,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (user.role === "EMPLOYEE") return NextResponse.json({ error: "Only admins and supervisors can manage certificates" }, { status: 403 });
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = dbUser.businessId;
+  if (!user.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  const businessId = user.businessId;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid status" }, { status: 400 });

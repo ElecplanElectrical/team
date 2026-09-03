@@ -1,5 +1,8 @@
 const CACHE_NAME = "yourplan-shell-v2";
-const SAFE_ASSETS = ["/elecplan-app-icon.svg", "/manifest.webmanifest"];
+const IS_QLS = self.location.hostname === "qls.your-plan.com.au";
+const DEFAULT_ICON = IS_QLS ? "/qls-logo-transparent.svg" : "/elecplan-app-icon.svg";
+const DEFAULT_TITLE = IS_QLS ? "Quality Landscape Solutions Team" : "Team update";
+const SAFE_ASSETS = [DEFAULT_ICON, "/manifest.webmanifest"];
 
 function safeInternalUrl(value) {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//") ? value : "/team-chat";
@@ -30,10 +33,10 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch {}
-  event.waitUntil(self.registration.showNotification(data.title || "YourPlan Team", {
+  event.waitUntil(self.registration.showNotification(data.title || DEFAULT_TITLE, {
     body: data.body || "New team message",
-    icon: "/elecplan-app-icon.svg",
-    badge: "/elecplan-app-icon.svg",
+    icon: typeof data.icon === "string" && data.icon.startsWith("/") ? data.icon : DEFAULT_ICON,
+    badge: typeof data.badge === "string" && data.badge.startsWith("/") ? data.badge : DEFAULT_ICON,
     tag: data.tag || "yourplan-chat",
     data: { url: safeInternalUrl(data.url) },
   }));

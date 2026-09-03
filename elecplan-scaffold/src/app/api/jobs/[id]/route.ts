@@ -6,7 +6,7 @@ import { recordAudit } from "@/lib/audit";
 
 const updateSchema=z.object({status:z.enum(["QUOTED","SCHEDULED","IN_PROGRESS","COMPLETE","INVOICED"]).optional(),title:z.string().trim().min(1).max(160).optional(),address:z.string().trim().min(1).max(240).optional(),clientId:z.string().trim().min(1).optional(),assignedToId:z.string().trim().optional().nullable(),scheduledStart:z.string().datetime().optional().nullable(),scheduledEnd:z.string().datetime().optional().nullable(),notes:z.string().trim().max(2000).optional().nullable()});
 
-async function auth(){const user=await getSessionUser();if(!user)return {error:NextResponse.json({error:"Unauthorized"},{status:401})};const dbUser=await prisma.user.findUnique({where:{id:user.id},select:{businessId:true}});if(!dbUser?.businessId)return {error:NextResponse.json({error:"No customer business selected."},{status:409})};return {user,businessId:dbUser.businessId};}
+async function auth(){const user=await getSessionUser();if(!user)return {error:NextResponse.json({error:"Unauthorized"},{status:401})};if(!user.businessId)return {error:NextResponse.json({error:"No customer business selected."},{status:409})};return {user,businessId:user.businessId};}
 
 export async function PATCH(req:Request,context:{params:Promise<{id:string}>}){
  const a=await auth();if("error" in a)return a.error;const {user,businessId}=a;if(user.role==="EMPLOYEE")return NextResponse.json({error:"Only admins and supervisors can update jobs"},{status:403});

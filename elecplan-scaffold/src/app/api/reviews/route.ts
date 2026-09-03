@@ -6,9 +6,8 @@ import { canAccess } from "@/lib/access";
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!canAccess(user.role, "reviews")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = dbUser.businessId;
+  if (!user.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  const businessId = user.businessId;
 
   const body = await request.json().catch(() => null) as { clientId?: string; rating?: number; text?: string; source?: string } | null;
   const clientId = body?.clientId?.trim();

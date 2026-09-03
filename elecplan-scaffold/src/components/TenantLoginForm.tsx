@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
@@ -11,7 +12,6 @@ type Props = {
   tenantSlug: string;
   businessName: string;
   shortName: string;
-  logoSrc: string;
   primaryColor: string;
   accentColor: string;
 };
@@ -19,16 +19,18 @@ type Props = {
 function QlsBrand({ businessName }: { businessName: string }) {
   return (
     <div className="flex justify-center sm:justify-start">
-      <img
+      <Image
         src="/qls-logo-transparent.svg"
         alt={businessName}
+        width={241}
+        height={282}
         className="h-auto w-full max-w-[158px] sm:max-w-[185px] lg:max-w-[205px]"
       />
     </div>
   );
 }
 
-export default function TenantLoginForm({ callbackUrl, tenantSlug, businessName, shortName, logoSrc, primaryColor, accentColor }: Props) {
+export default function TenantLoginForm({ callbackUrl, tenantSlug, businessName, shortName, primaryColor, accentColor }: Props) {
   const router = useRouter();
   const isQls = tenantSlug === "qls";
   const tenantPrimary = isQls ? "#50d878" : primaryColor;
@@ -60,7 +62,7 @@ export default function TenantLoginForm({ callbackUrl, tenantSlug, businessName,
 
       <div className="pointer-events-none absolute inset-y-0 right-[-4%] hidden w-[59%] items-center justify-center lg:flex">
         <div className="absolute left-0 top-[12%] h-[76%] w-px bg-gradient-to-b from-transparent via-[#69bf45]/25 to-transparent" />
-        <img src="/qls-tree-portal.webp" alt="" className="w-full max-w-[940px] opacity-[.78] drop-shadow-[0_0_58px_rgba(105,191,69,.10)]" />
+        <Image src="/qls-tree-portal.webp" alt="" width={1491} height={1055} priority className="h-auto w-full max-w-[940px] opacity-[.78] drop-shadow-[0_0_58px_rgba(105,191,69,.10)]" />
         <div className="absolute inset-x-0 bottom-0 h-[20%] bg-gradient-to-t from-[#040605] to-transparent" />
       </div>
 

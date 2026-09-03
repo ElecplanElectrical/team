@@ -17,8 +17,7 @@ const createSchema = z.object({
 export async function POST(request: Request) {
   const user = await requireUser();
   if (!canAccess(user.role, "reels")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const actor = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!actor?.active || !actor.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  if (!user.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
 
   const parsed = createSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid reel idea" }, { status: 400 });
@@ -26,6 +25,6 @@ export async function POST(request: Request) {
   const scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
   if (scheduledAt && Number.isNaN(scheduledAt.getTime())) return NextResponse.json({ error: "Invalid schedule date" }, { status: 400 });
 
-  const idea = await prisma.reelIdea.create({ data: { businessId: actor.businessId, title: data.title, hook: data.hook || null, platform: data.platform, status: data.status, scheduledAt, publishedUrl: data.publishedUrl || null, notes: data.notes || null } });
+  const idea = await prisma.reelIdea.create({ data: { businessId: user.businessId, title: data.title, hook: data.hook || null, platform: data.platform, status: data.status, scheduledAt, publishedUrl: data.publishedUrl || null, notes: data.notes || null } });
   return NextResponse.json({ id: idea.id }, { status: 201 });
 }

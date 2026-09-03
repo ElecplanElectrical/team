@@ -13,9 +13,8 @@ async function employeeContext(){
   const actor=await getSessionUser("employees");
   if(!actor)return{error:NextResponse.json({error:"Unauthorized or Employees module disabled"},{status:403})}as const;
   if(!canAccess(actor.role,"employees"))return{error:NextResponse.json({error:"Forbidden"},{status:403})}as const;
-  const actorRecord=await prisma.user.findUnique({where:{id:actor.id},select:{businessId:true,active:true}});
-  if(!actorRecord?.active||!actorRecord.businessId)return{error:NextResponse.json({error:"No active customer business selected."},{status:409})}as const;
-  return{actor,businessId:actorRecord.businessId}as const;
+  if(!actor.businessId)return{error:NextResponse.json({error:"No active customer business selected."},{status:409})}as const;
+  return{actor,businessId:actor.businessId}as const;
 }
 
 export async function GET(){

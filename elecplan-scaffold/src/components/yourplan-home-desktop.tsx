@@ -5,7 +5,6 @@ import {
   Bell,
   Bot,
   BriefcaseBusiness,
-  Building2,
   CalendarDays,
   ChevronDown,
   FileText,

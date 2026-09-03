@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
-import { pushConfigured } from "@/lib/push";
+import { pushConfigured, validPushEndpoint } from "@/lib/push";
+
+const subscriptionSchema = z.object({
+  endpoint: z.string().url().max(2048).refine(validPushEndpoint, "Unsupported push service"),
+  keys: z.object({
+    p256dh: z.string().min(80).max(200),
+    auth: z.string().min(16).max(100),
+  }),
+});
 
 async function activeTenantUser() {
   const user = await getSessionUser();
   if (!user) return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
-  const actor = await prisma.user.findUnique({ where: { id: user.id }, select: { active: true, businessId: true } });
-  if (!actor?.active || !actor.businessId) return { response: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) } as const;
+  if (!user.businessId) return { response: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) } as const;
   return { user } as const;
 }
 
@@ -19,9 +27,11 @@ export async function GET(){
 export async function POST(req:Request){
   const auth=await activeTenantUser();
   if("response" in auth)return auth.response;
+  if(!pushConfigured())return NextResponse.json({error:"Push notifications are not configured"},{status:503});
   const user=auth.user;
-  const sub=await req.json().catch(()=>null) as {endpoint?:string;keys?:{p256dh?:string;auth?:string}}|null;
-  if(!sub?.endpoint||!sub.keys?.p256dh||!sub.keys?.auth)return NextResponse.json({error:"Invalid subscription"},{status:400});
+  const parsed=subscriptionSchema.safeParse(await req.json().catch(()=>null));
+  if(!parsed.success)return NextResponse.json({error:"Invalid push subscription"},{status:400});
+  const sub=parsed.data;
   await prisma.$executeRaw`
     INSERT INTO "PushSubscription" ("endpoint","userId","p256dh","auth","updatedAt")
     VALUES (${sub.endpoint},${user.id},${sub.keys.p256dh},${sub.keys.auth},CURRENT_TIMESTAMP)

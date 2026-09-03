@@ -10,9 +10,8 @@ const eventSchema = z.object({ title: z.string().trim().max(120).optional().null
 async function context() {
   const user = await getSessionUser();
   if (!user) return null;
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return null;
-  return { user, businessId: dbUser.businessId };
+  if (!user.businessId) return null;
+  return { user, businessId: user.businessId };
 }
 
 export async function GET() {

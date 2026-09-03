@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
@@ -9,9 +9,8 @@ type ChatRow = { id:string; body:string; createdAt:Date; senderId:string; sender
 async function activeBusinessUser() {
   const user = await getSessionUser();
   if (!user) return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!dbUser?.active || !dbUser.businessId) return { response: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) } as const;
-  return { user, businessId: dbUser.businessId } as const;
+  if (!user.businessId) return { response: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) } as const;
+  return { user, businessId: user.businessId } as const;
 }
 
 export async function GET() {
@@ -54,6 +53,13 @@ export async function POST(req:Request) {
     INSERT INTO "TeamChatReadState" ("userId","lastReadAt") VALUES (${user.id},CURRENT_TIMESTAMP)
     ON CONFLICT ("userId") DO UPDATE SET "lastReadAt" = CURRENT_TIMESTAMP
   `;
-  void sendTeamChatPush(user.id, user.name || "Team member", body.slice(0, 160));
+  after(() => sendTeamChatPush({
+      businessId,
+      businessName: user.business?.name ?? "Team",
+      businessSlug: user.business?.slug,
+      senderId: user.id,
+      senderName: user.name || "Team member",
+      body: body.slice(0, 160),
+    }).catch(() => undefined));
   return NextResponse.json({ ok:true, id });
 }

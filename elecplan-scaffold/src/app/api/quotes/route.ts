@@ -12,9 +12,8 @@ export async function POST(req:Request){
   const user=await getSessionUser();
   if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});
   if(!canAccess(user.role,"quotes"))return NextResponse.json({error:"Forbidden"},{status:403});
-  const dbUser=await prisma.user.findUnique({where:{id:user.id},select:{businessId:true}});
-  if(!dbUser?.businessId)return NextResponse.json({error:"Select a customer business before creating quote data."},{status:409});
-  const businessId=dbUser.businessId;
+  if(!user.businessId)return NextResponse.json({error:"Select a customer business before creating quote data."},{status:409});
+  const businessId=user.businessId;
   const parsed=quoteSchema.safeParse(await req.json().catch(()=>null));
   if(!parsed.success)return NextResponse.json({error:"Invalid quote details"},{status:400});
   const d=parsed.data;

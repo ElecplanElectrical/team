@@ -27,8 +27,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-const BLUE = "#168dff";
-
 const nav = [
   ["Features", "/features"],
   ["Industries", "/industries"],

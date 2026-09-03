@@ -35,7 +35,17 @@ function sameOriginMutation(req: Request): boolean {
   if (SAFE_METHODS.has(req.method.toUpperCase())) return true;
   const origin = req.headers.get("origin");
   if (origin) {
-    try { return new URL(origin).origin === new URL(req.url).origin; }
+    try {
+      const originUrl = new URL(origin);
+      const forwardedHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+      const requestHost = forwardedHost || req.headers.get("host")?.trim();
+      const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
+      const requestProtocol = forwardedProto === "http" || forwardedProto === "https"
+        ? `${forwardedProto}:`
+        : new URL(req.url).protocol;
+      if (!requestHost || !/^[a-z0-9.-]+(?::\d+)?$/i.test(requestHost)) return false;
+      return originUrl.protocol === requestProtocol && originUrl.host.toLowerCase() === requestHost.toLowerCase();
+    }
     catch { return false; }
   }
   return req.headers.get("sec-fetch-site") === "same-origin";
@@ -48,8 +58,8 @@ function apiModule(pathname: string): YourPlanModule | null {
 function nextWithModule(req: Request, pathname: string) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.delete("x-yourplan-required-module");
-  const module = apiModule(pathname);
-  if (module) requestHeaders.set("x-yourplan-required-module", module);
+  const requiredModule = apiModule(pathname);
+  if (requiredModule) requestHeaders.set("x-yourplan-required-module", requiredModule);
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
@@ -68,7 +78,7 @@ export default auth((req) => {
   const role = req.auth?.user?.role;
   const businessSlug = req.auth?.user?.businessSlug;
   const isPlatformAdmin = req.auth?.user?.platformAdmin === true;
-  const portalSlug = portalSlugForHost(req.headers.get("host"));
+  const portalSlug = portalSlugForHost(req.headers.get("x-forwarded-host") ?? req.headers.get("host"));
   const portalOrigin = portalSlug === "qls" ? "https://qls.your-plan.com.au" : nextUrl.origin;
   const portalSession = Boolean(portalSlug && isLoggedIn && role && (businessSlug === portalSlug || isPlatformAdmin));
 

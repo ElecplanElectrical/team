@@ -11,7 +11,7 @@ export default async function DocumentsPage() {
     prisma.document.findMany({
       where: { businessId },
       orderBy: { uploadedAt: "desc" },
-      include: { job: { select: { title: true } } },
+      select: { id: true, name: true, type: true, fileUrl: true, uploadedAt: true, job: { select: { title: true } } },
     }),
     prisma.job.findMany({
       where: { businessId },
@@ -33,7 +33,6 @@ export default async function DocumentsPage() {
       jobs={jobs}
       canDelete={user.role !== "EMPLOYEE"}
       storageReady={storageConfigured()}
-      canConfigureStorage={user.role === "ADMIN"}
     />
   );
 }

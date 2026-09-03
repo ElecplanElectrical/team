@@ -6,7 +6,6 @@ import { ExternalLink, Plus, Search, Sparkles } from "lucide-react";
 import TopBar from "@/components/TopBar";
 
 const STATUSES = ["IDEA", "READY", "SCHEDULED", "PUBLISHED"] as const;
-type Status = (typeof STATUSES)[number];
 type Idea = { id: string; title: string; hook: string | null; platform: string; status: string; scheduledAt: string | null; publishedUrl: string | null; notes: string | null; createdAt: string };
 
 const UI = { panel: "var(--brand-panel, #07192b)", panelAlt: "var(--brand-panel-alt, #09213a)", border: "var(--brand-border, rgba(77,150,221,.24))", borderSoft: "var(--brand-border-soft, rgba(77,150,221,.12))", text: "#f5f9ff", mute: "var(--brand-muted, #93a9c2)", faint: "var(--brand-faint, #617993)", blue: "var(--brand-primary, #168dff)", cyan: "var(--brand-accent, #25c7ff)", green: "#18d3a0", purple: "#8a5cf6", orange: "#ff9f1c" };

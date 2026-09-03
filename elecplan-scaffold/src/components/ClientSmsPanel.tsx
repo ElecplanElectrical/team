@@ -91,7 +91,7 @@ function ClientSmsPanelBody({ jobId, onClose }: { jobId: string; onClose: () => 
       }
       setSent(true);
     } catch {
-      setError("The SMS request could not reach Elecplan. Check your connection and try again.");
+      setError("The SMS request could not reach the portal. Check your connection and try again.");
     } finally {
       setSending(false);
     }

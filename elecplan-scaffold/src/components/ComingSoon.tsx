@@ -29,13 +29,13 @@ export default function ComingSoon({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "rgb(var(--brand-primary-rgb, 22 141 255) / .11)", color: UI.cyan, border: "1px solid rgb(var(--brand-accent-rgb, 37 199 255) / .20)" }}>
             <Wrench size={21} />
           </div>
-          <p className="mt-4 text-[10px] font-semibold uppercase tracking-[.14em]" style={{ color: UI.cyan }}>Elecplan workspace</p>
+          <p className="mt-4 text-[10px] font-semibold uppercase tracking-[.14em]" style={{ color: UI.cyan }}>Business workspace</p>
           <h2 className="mt-2 text-xl font-semibold" style={{ color: UI.text }}>{title} is still being prepared</h2>
           <p className="mt-3 text-sm leading-6" style={{ color: UI.mute }}>
-            {phase ? `This area belongs to ${phase}.` : "This route is reserved for a later Elecplan workflow."} Nothing here is required for the current operational tools.
+            {phase ? `This area belongs to ${phase}.` : "This route is reserved for a later workflow."} Nothing here is required for the current operational tools.
           </p>
           <div className="mt-6 rounded-xl p-3 text-xs leading-5" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}`, color: UI.faint }}>
-            Use the navigation to return to the live Elecplan screens. This placeholder will be replaced when the workflow is ready.
+            Use the navigation to return to the live portal screens. This placeholder will be replaced when the workflow is ready.
           </div>
           <Link href="/" className="mt-5 inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}>
             <ArrowLeft size={14} /> Back to dashboard

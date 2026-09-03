@@ -9,14 +9,13 @@ const patchSchema = z.object({ status: z.enum(["IDEA", "READY", "SCHEDULED", "PU
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
   if (!canAccess(user.role, "reels")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const actor = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true, active: true } });
-  if (!actor?.active || !actor.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  if (!user.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
 
   const parsed = patchSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   const { id } = await params;
   const updated = await prisma.reelIdea.updateMany({
-    where: { id, businessId: actor.businessId },
+    where: { id, businessId: user.businessId },
     data: { status: parsed.data.status },
   });
   if (updated.count !== 1) return NextResponse.json({ error: "Not found" }, { status: 404 });

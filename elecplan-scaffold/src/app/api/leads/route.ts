@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess } from "@/lib/access";
 
-async function context(){const user=await getSessionUser();if(!user)return{error:NextResponse.json({error:"Unauthorized"},{status:401})}as const;if(!canAccess(user.role,"leads"))return{error:NextResponse.json({error:"Forbidden"},{status:403})}as const;const dbUser=await prisma.user.findUnique({where:{id:user.id},select:{businessId:true}});if(!dbUser?.businessId)return{error:NextResponse.json({error:"No customer business selected."},{status:409})}as const;return{user,businessId:dbUser.businessId}as const}
+async function context(){const user=await getSessionUser();if(!user)return{error:NextResponse.json({error:"Unauthorized"},{status:401})}as const;if(!canAccess(user.role,"leads"))return{error:NextResponse.json({error:"Forbidden"},{status:403})}as const;if(!user.businessId)return{error:NextResponse.json({error:"No customer business selected."},{status:409})}as const;return{user,businessId:user.businessId}as const}
 
 export async function GET(){const ctx=await context();if("error" in ctx)return ctx.error;const leads=await prisma.lead.findMany({where:{businessId:ctx.businessId},include:{client:{select:{id:true,name:true,contactName:true,phone:true,email:true}}},orderBy:{createdAt:"desc"}});return NextResponse.json(leads)}
 

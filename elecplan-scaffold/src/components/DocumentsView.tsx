@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ExternalLink, FileText, Plus, Search, Trash2 } from "lucide-react";
+import { ExternalLink, FileText, LockKeyhole, Plus, Search, Trash2 } from "lucide-react";
 import TopBar from "@/components/TopBar";
 
 export type DocumentRow = {
@@ -23,13 +23,11 @@ export default function DocumentsView({
   jobs,
   canDelete,
   storageReady,
-  canConfigureStorage,
 }: {
   documents: DocumentRow[];
   jobs: { id: string; title: string }[];
   canDelete: boolean;
   storageReady: boolean;
-  canConfigureStorage: boolean;
 }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
@@ -50,13 +48,21 @@ export default function DocumentsView({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!storageReady) {
-      setError("Private storage is not configured yet.");
-      return;
-    }
     if (!file) return;
     setSaving(true);
     setError(null);
+    if (!storageReady) {
+      const form = new FormData();
+      form.set("name", name);
+      form.set("type", type);
+      form.set("jobId", jobId);
+      form.set("file", file);
+      const response = await fetch("/api/documents", { method: "POST", body: form });
+      setSaving(false);
+      if (!response.ok) { const body = await response.json().catch(() => null); setError(body?.error ?? "Could not upload document."); return; }
+      setName(""); setType("General"); setFile(null); setJobId(""); setShowForm(false); router.refresh();
+      return;
+    }
     const ticketRes = await fetch("/api/storage/upload-ticket", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "documents", fileName: file.name, contentType: file.type || "application/octet-stream", sizeBytes: file.size }) });
     if (!ticketRes.ok) { const body = await ticketRes.json().catch(() => null); setSaving(false); setError(body?.error ?? "Could not prepare private upload."); return; }
     const ticket = await ticketRes.json() as UploadTicket;
@@ -83,11 +89,7 @@ export default function DocumentsView({
   }
 
   const field = { background: "var(--brand-panel-deep, #041323)", border: `1px solid ${UI.border}`, color: UI.text } as const;
-  const uploadButton = storageReady ? (
-    <button type="button" onClick={() => setShowForm((value) => !value)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={16} /> Upload document</button>
-  ) : (
-    <button type="button" disabled className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold opacity-55" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}><Plus size={16} /> Upload unavailable</button>
-  );
+  const uploadButton = <button type="button" onClick={() => setShowForm((value) => !value)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={16} /> Upload document</button>;
 
   return <>
     <TopBar title="Documents" subtitle="Securely manage company and job files" rightSlot={uploadButton} />
@@ -95,16 +97,9 @@ export default function DocumentsView({
       <div className="mx-auto w-full max-w-[1700px] space-y-3">
         <div className="grid gap-3 sm:grid-cols-3"><Metric label="Documents" value={String(documents.length)} /><Metric label="Job linked" value={String(documents.filter((doc) => doc.job).length)} /><Metric label="Global files" value={String(documents.filter((doc) => !doc.job).length)} /></div>
 
-        {storageReady ? (
-          <div className="rounded-xl px-4 py-3 text-xs leading-5" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}>Private storage is ready. Files use short-lived upload/download links. PDF, JPG, PNG, WebP and text files are allowed up to 15 MB.</div>
-        ) : (
-          <div className="flex gap-3 rounded-xl px-4 py-4" style={{ background: "rgba(255,159,28,.07)", border: "1px solid rgba(255,159,28,.28)" }}>
-            <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: UI.orange }} />
-            <div><p className="text-sm font-semibold" style={{ color: UI.text }}>Private uploads are not configured yet</p><p className="mt-1 text-xs leading-5" style={{ color: UI.mute }}>{canConfigureStorage ? "The app is ready, but the Railway production service still needs the S3-compatible bucket credentials. Upload controls are disabled until that setup is complete." : "Uploads are temporarily unavailable. An Elecplan admin needs to finish private storage setup first."}</p></div>
-          </div>
-        )}
+        <div className="flex gap-3 rounded-xl px-4 py-3 text-xs leading-5" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}><LockKeyhole size={17} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><span>Private storage is ready. Files are tenant-protected and served only through authenticated links. PDF, JPG, PNG, WebP and text files are allowed up to 15 MB.</span></div>
 
-        {showForm && storageReady && <form onSubmit={submit} className="grid grid-cols-1 gap-3 rounded-xl p-4 md:grid-cols-2" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
+        {showForm && <form onSubmit={submit} className="grid grid-cols-1 gap-3 rounded-xl p-4 md:grid-cols-2" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
           <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Document name" className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} />
           <select value={type} onChange={(e) => setType(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field}>{["General","Certificate","Invoice","Quote","Plan","Photo","Safety","Employee"].map((item) => <option key={item}>{item}</option>)}</select>
           <input required type="file" accept="application/pdf,image/jpeg,image/png,image/webp,text/plain" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} />

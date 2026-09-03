@@ -18,9 +18,8 @@ async function authorize() {
   const user = await getSessionUser();
   if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   if (!canAccess(user.role, "clients")) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { businessId: true } });
-  if (!dbUser?.businessId) return { error: NextResponse.json({ error: "No customer business selected." }, { status: 409 }) };
-  return { user, businessId: dbUser.businessId };
+  if (!user.businessId) return { error: NextResponse.json({ error: "No customer business selected." }, { status: 409 }) };
+  return { user, businessId: user.businessId };
 }
 
 export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {

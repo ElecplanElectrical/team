@@ -11,9 +11,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!actor) return NextResponse.json({ error: "Unauthorized or Employees module disabled" }, { status: 403 });
   if (!canAccess(actor.role, "employees")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const actorRecord = await prisma.user.findUnique({ where: { id: actor.id }, select: { businessId: true, active: true } });
-  if (!actorRecord?.active || !actorRecord.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = actorRecord.businessId;
+  if (!actor.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
+  const businessId = actor.businessId;
 
   const { id } = await params;
   const target = await prisma.user.findFirst({ where: { id, businessId }, select: { id: true, role: true, email: true, active: true } });

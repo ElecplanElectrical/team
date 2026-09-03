@@ -40,7 +40,7 @@ export default function InviteUserModal({ assignableRoles, onClose, onInvited }:
       <form onSubmit={submit} className="max-h-[82vh] overflow-auto p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Full name" className="md:col-span-2"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Jordan Fielding" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} autoFocus /></Field>
-          <Field label="Email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@elecplan.com.au" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
+          <Field label="Email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="team.member@example.com" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
           <Field label="Phone"><input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="04xx xxx xxx" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
           <Field label="Role"><select value={role} onChange={(e) => setRole(e.target.value as Role)} className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field}>{assignableRoles.map((assignableRole) => <option key={assignableRole} value={assignableRole}>{ROLE_TITLE[assignableRole]}</option>)}</select></Field>
         </div>

@@ -1,7 +1,29 @@
+import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { requireUser } from "@/lib/session";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
 import type { CSSProperties } from "react";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const requestHeaders = await headers();
+  const host = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "").split(":")[0].toLowerCase();
+  if (host === "qls.your-plan.com.au") {
+    return {
+      title: { absolute: "Quality Landscape Solutions Team Portal" },
+      description: "Private Quality Landscape Solutions team portal.",
+      applicationName: "Quality Landscape Solutions",
+      robots: { index: false, follow: false },
+    };
+  }
+  return {};
+}
+
+export async function generateViewport():Promise<Viewport>{
+  const requestHeaders=await headers();
+  const host=(requestHeaders.get("x-forwarded-host")??requestHeaders.get("host")??"").split(":")[0].toLowerCase();
+  return {themeColor:host==="qls.your-plan.com.au"?"#040605":"#03101f"};
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();

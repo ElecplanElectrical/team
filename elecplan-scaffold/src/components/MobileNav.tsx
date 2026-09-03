@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -19,7 +20,7 @@ function MobileBrand({brand,drawer=false}:{brand?:Brand;drawer?:boolean}) {
   if (brand?.slug === "qls") return <QlsBrandLockup variant={drawer ? "drawer" : "mobile"} />;
   if (!brand?.logoUrl) return <YourPlanLogo width={drawer?144:112}/>;
   return <div className="flex items-center gap-2.5">
-    <img src={brand.logoUrl} alt={brand.name} className={drawer?"h-28 w-auto max-w-[150px] object-contain object-left":"h-11 w-11 object-contain"}/>
+    <Image unoptimized src={brand.logoUrl} alt={brand.name} width={300} height={220} className={drawer?"h-28 w-auto max-w-[150px] object-contain object-left":"h-11 w-11 object-contain"}/>
   </div>;
 }
 
@@ -38,7 +39,7 @@ export default function MobileNav({role,brand}:{role:Role;brand?:Brand}) {
     <div className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between px-4 md:hidden" style={{background:isQls?"rgba(3,6,5,.98)":"rgba(2,14,27,.97)",borderBottom:`1px solid ${border}`,backdropFilter:"blur(16px)"}}>
       <button type="button" onClick={()=>setOpen(true)} aria-label="Open navigation" className="flex h-10 w-10 items-center justify-center rounded-lg" style={{background:panel,border:`1px solid ${border}`,color:UI.mute}}><Menu size={19}/></button>
       <Link href="/dashboard" aria-label={`${label} dashboard`} className="flex h-14 min-w-0 max-w-[230px] items-center justify-center"><MobileBrand brand={brand}/></Link>
-      <button type="button" aria-label="Notifications" className="relative flex h-10 w-10 items-center justify-center rounded-lg" style={{background:panel,border:`1px solid ${border}`,color:UI.mute}}><Bell size={17}/><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500"/></button>
+      <Link href="/notifications" aria-label="Open notifications" className="flex h-10 w-10 items-center justify-center rounded-lg" style={{background:panel,border:`1px solid ${border}`,color:UI.mute}}><Bell size={17}/></Link>
     </div>
     {open&&<div className="fixed inset-0 z-[60] md:hidden">
       <button type="button" aria-label="Close navigation overlay" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=>setOpen(false)}/>

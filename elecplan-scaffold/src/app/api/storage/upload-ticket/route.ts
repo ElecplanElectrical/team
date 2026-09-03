@@ -3,7 +3,6 @@ import { z } from "zod";
 import { canAccess } from "@/lib/access";
 import { getSessionUser } from "@/lib/session";
 import { getPlatformAdmin } from "@/lib/platform-admin";
-import { prisma } from "@/lib/prisma";
 import { createUploadTicket, DOCUMENT_MAX_BYTES, DOCUMENT_TYPES, PHOTO_MAX_BYTES, PHOTO_TYPES, storageConfigured } from "@/lib/storage";
 
 const schema=z.object({kind:z.enum(["documents","project-photos","equipment-photos","material-photos"]),fileName:z.string().trim().min(1).max(200),contentType:z.string().trim().min(1).max(100),sizeBytes:z.number().int().positive()});
@@ -13,10 +12,7 @@ export async function POST(req:Request){
   const parsed=schema.safeParse(await req.json().catch(()=>null));
   if(!parsed.success)return NextResponse.json({error:"Invalid upload request"},{status:400});
   const{kind,fileName,contentType,sizeBytes}=parsed.data;
-  const actor=await prisma.user.findUnique({where:{id:user.id},select:{active:true,businessId:true}});
-  if(!actor?.active)return NextResponse.json({error:"Inactive account"},{status:403});
-
-  if(!actor.businessId){
+  if(!user.businessId){
     const platformAdmin=await getPlatformAdmin();
     if(!platformAdmin||kind!=="documents")return NextResponse.json({error:"No active customer business selected."},{status:409});
     if(!DOCUMENT_TYPES.has(contentType))return NextResponse.json({error:"HQ documents must be PDF, PNG, JPEG, WebP or text"},{status:400});
