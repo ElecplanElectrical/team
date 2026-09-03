@@ -20,7 +20,7 @@ export default function QlsBrandLockup({
   return (
     <div
       className={`flex min-w-0 items-center ${
-        isDrawer ? "gap-3" : isSidebar ? "justify-center" : "gap-2"
+        isDrawer ? "gap-3" : isSidebar ? "w-full justify-center" : "gap-2"
       } ${className}`}
       aria-label="Quality Landscape Solutions"
     >
