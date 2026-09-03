@@ -75,9 +75,9 @@ export default auth((req) => {
   if (pathname.startsWith("/api/")) {
     if (pathname === "/api/sms/inbound") return NextResponse.next();
     if (pathname === "/api/set-password") {
-      if (!sameOriginMutation(req)) {
-        return NextResponse.json({ error: "Cross-site request rejected" }, { status: 403 });
-      }
+      // This public endpoint is authorised by its high-entropy, single-use token.
+      // Railway terminates TLS upstream, so its internal request origin can differ
+      // from the public tenant origin and must not block password setup.
       return NextResponse.next();
     }
     if (portalSlug && !portalSession) {
