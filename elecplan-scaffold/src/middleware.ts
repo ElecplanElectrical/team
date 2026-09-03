@@ -74,6 +74,12 @@ export default auth((req) => {
 
   if (pathname.startsWith("/api/")) {
     if (pathname === "/api/sms/inbound") return NextResponse.next();
+    if (pathname === "/api/set-password") {
+      if (!sameOriginMutation(req)) {
+        return NextResponse.json({ error: "Cross-site request rejected" }, { status: 403 });
+      }
+      return NextResponse.next();
+    }
     if (portalSlug && !portalSession) {
       return NextResponse.json({ error: "This account is not authorised for this business portal" }, { status: 401 });
     }
