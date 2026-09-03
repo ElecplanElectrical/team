@@ -1,12 +1,14 @@
+import Image from "next/image";
+
 type QlsBrandLockupProps = {
   variant?: "mobile" | "drawer" | "sidebar";
   className?: string;
 };
 
 /**
- * The QLS tenant header lockup. The emblem is the approved transparent QLS
- * artwork; the adjacent wordmark follows the horizontal arrangement supplied
- * in the QLS design reference.
+ * The QLS tenant header lockup. Mobile and drawer views keep the approved
+ * emblem + wordmark treatment; the desktop sidebar intentionally uses the
+ * emblem on its own at a larger size for a cleaner navigation rail.
  */
 export default function QlsBrandLockup({
   variant = "mobile",
@@ -18,7 +20,7 @@ export default function QlsBrandLockup({
   return (
     <div
       className={`flex min-w-0 items-center ${
-        isDrawer ? "gap-3" : isSidebar ? "gap-2.5" : "gap-2"
+        isDrawer ? "gap-3" : isSidebar ? "justify-center" : "gap-2"
       } ${className}`}
       aria-label="Quality Landscape Solutions"
     >
@@ -32,46 +34,43 @@ export default function QlsBrandLockup({
           isDrawer
             ? "h-[76px] w-[65px]"
             : isSidebar
-              ? "h-14 w-12"
+              ? "h-14 w-12 xl:h-[98px] xl:w-[84px]"
               : "h-[47px] w-10"
         }`}
       />
-      <div
-        className={`${isSidebar ? "hidden xl:block" : "block"} min-w-0`}
-        style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}
-      >
+      {!isSidebar ? (
         <div
-          className={`whitespace-nowrap font-medium uppercase text-[#f3f6f3] ${
-            isDrawer
-              ? "text-[11px] tracking-[0.22em]"
-              : isSidebar
-                ? "text-[8px] tracking-[0.16em]"
-                : "text-[8px] tracking-[0.13em]"
-          }`}
+          className="min-w-0"
+          style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}
         >
-          Quality Landscape
-        </div>
-        <div
-          className={`mt-1 flex items-center text-[var(--brand-accent,#82eca0)] ${
-            isDrawer ? "gap-2" : "gap-1.5"
-          }`}
-        >
-          <span className="h-px min-w-3 flex-1 bg-current" />
-          <span
-            className={`font-semibold uppercase ${
+          <div
+            className={`whitespace-nowrap font-medium uppercase text-[#f3f6f3] ${
               isDrawer
-                ? "text-[11px] tracking-[0.42em]"
-                : isSidebar
-                  ? "text-[8px] tracking-[0.3em]"
-                  : "text-[8px] tracking-[0.26em]"
+                ? "text-[11px] tracking-[0.22em]"
+                : "text-[8px] tracking-[0.13em]"
             }`}
           >
-            Solutions
-          </span>
-          <span className="h-px min-w-3 flex-1 bg-current" />
+            Quality Landscape
+          </div>
+          <div
+            className={`mt-1 flex items-center text-[var(--brand-accent,#82eca0)] ${
+              isDrawer ? "gap-2" : "gap-1.5"
+            }`}
+          >
+            <span className="h-px min-w-3 flex-1 bg-current" />
+            <span
+              className={`font-semibold uppercase ${
+                isDrawer
+                  ? "text-[11px] tracking-[0.42em]"
+                  : "text-[8px] tracking-[0.26em]"
+              }`}
+            >
+              Solutions
+            </span>
+            <span className="h-px min-w-3 flex-1 bg-current" />
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
-import Image from "next/image";
