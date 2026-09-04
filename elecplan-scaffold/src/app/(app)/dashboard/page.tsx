@@ -2,15 +2,6 @@ import { requireAccess } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import DashboardView from "@/components/DashboardView";
 
-function currentWeekStart() {
-  const now = new Date();
-  const melbourne = new Date(now.toLocaleString("en-US", { timeZone: "Australia/Melbourne" }));
-  const day = melbourne.getDay();
-  melbourne.setDate(melbourne.getDate() + (day === 0 ? -6 : 1 - day));
-  melbourne.setHours(0, 0, 0, 0);
-  return melbourne;
-}
-
 export default async function DashboardPage() {
   const user = await requireAccess("dashboard");
   const now = new Date();
@@ -18,7 +9,7 @@ export default async function DashboardPage() {
   weekAgo.setDate(weekAgo.getDate() - 6);
   weekAgo.setHours(0, 0, 0, 0);
 
-  const [quotes, invoices, jobs, clients, upcomingJobs, reminders, weeklyGoal] = await Promise.all([
+  const [quotes, invoices, jobs, clients, upcomingJobs, reminders] = await Promise.all([
     prisma.quote.findMany({ select: { amount: true, status: true } }),
     prisma.invoice.findMany({ select: { amount: true, status: true, clientId: true, supplier: true, dueDate: true, createdAt: true } }),
     prisma.job.findMany({ select: { status: true } }),
@@ -31,11 +22,10 @@ export default async function DashboardPage() {
     }),
     prisma.reminder.findMany({
       where: { userId: user.id, completed: false },
-      orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+      orderBy: [{ dueAt: "asc" }, { id: "asc" }],
       take: 6,
-      select: { id: true, title: true, dueDate: true, tag: true },
+      select: { id: true, title: true, dueAt: true },
     }),
-    prisma.weeklyGoal.findUnique({ where: { weekStart: currentWeekStart() }, select: { text: true } }),
   ]);
 
   const quotePipeline = quotes.filter((q) => q.status === "DRAFT" || q.status === "SENT").reduce((sum, q) => sum + Number(q.amount), 0);
@@ -61,8 +51,8 @@ export default async function DashboardPage() {
   return <DashboardView
     metrics={{ quotePipeline, acceptedQuotes, receivables, payables, paidRevenue, paidSupplierBills, overdueCount, activeJobs, completedJobs, quotedJobs, scheduledJobs, clients, quoteCount: quotes.length, invoiceCount: invoices.length }}
     upcomingJobs={upcomingJobs.map((job) => ({ ...job, scheduledStart: job.scheduledStart?.toISOString() ?? null, scheduledEnd: job.scheduledEnd?.toISOString() ?? null, assignedTo: job.assignedTo?.name ?? null, client: job.client.name }))}
-    reminders={reminders.map((r) => ({ ...r, dueDate: r.dueDate?.toISOString() ?? null }))}
-    weeklyGoal={weeklyGoal?.text ?? ""}
+    reminders={reminders.map((r) => ({ id: r.id, title: r.title, dueDate: r.dueAt.toISOString(), tag: null }))}
+    weeklyGoal=""
     cashSeries={cashSeries}
   />;
 }
