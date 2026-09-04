@@ -1,4 +1,4 @@
-import { addDays } from "date-fns";
+import { addDays, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
 import { requireAccess } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { weekStartFrom, weekKey } from "@/lib/week";
@@ -12,26 +12,29 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const isQls = user.business?.slug === "qls";
   const { week } = await searchParams;
   const start = weekStartFrom(week);
-  const end = addDays(start, 7);
-  const queryStart = addDays(start, -1);
-  const queryEnd = addDays(end, 1);
+  const monthStart = startOfWeek(startOfMonth(start), { weekStartsOn: 1 });
+  const monthEnd = addDays(endOfWeek(endOfMonth(start), { weekStartsOn: 1 }), 1);
+  const queryStart = addDays(monthStart, -1);
+  const queryEnd = addDays(monthEnd, 1);
 
   const where: Prisma.JobEventWhereInput = {
     OR: [{ job: { businessId } }, { jobId: null, assignedTo: { businessId } }],
-    startsAt: { gte: queryStart, lt: queryEnd },
+    startsAt: { lt: queryEnd },
+    endsAt: { gt: queryStart },
     type: { notIn: ["field-arrived", "field-complete", "field-revisit"] },
   };
   if (user.role === "EMPLOYEE") where.assignedToId = user.id;
-  const scheduledJobWhere: Prisma.JobWhereInput = { businessId, scheduledStart: { not: null, gte: queryStart, lt: queryEnd }, scheduledEnd: { not: null }, ...(user.role === "EMPLOYEE" ? { assignedToId: user.id } : {}) };
+  const scheduledJobWhere: Prisma.JobWhereInput = {
+    businessId,
+    scheduledStart: { not: null, lt: queryEnd },
+    scheduledEnd: { not: null, gt: queryStart },
+    ...(user.role === "EMPLOYEE" ? { assignedToId: user.id } : {}),
+  };
 
   const [rows, scheduledJobs, jobs, employees, inspections, clients] = await Promise.all([
     prisma.jobEvent.findMany({ where, include: { job: { select: { title: true } } }, orderBy: { startsAt: "asc" } }),
     prisma.job.findMany({ where: scheduledJobWhere, select: { id: true, title: true, assignedToId: true, scheduledStart: true, scheduledEnd: true }, orderBy: { scheduledStart: "asc" } }),
-    prisma.job.findMany({
-      where: { businessId, ...(user.role === "EMPLOYEE" ? { assignedToId: user.id } : {}) },
-      select: { id: true, title: true, address: true, notes: true, status: true, scheduledStart: true, scheduledEnd: true, assignedTo: { select: { name: true } }, client: { select: { name: true, contactName: true, phone: true } } },
-      orderBy: { title: "asc" },
-    }),
+    prisma.job.findMany({ where: { businessId, ...(user.role === "EMPLOYEE" ? { assignedToId: user.id } : {}) }, select: { id: true, title: true, address: true, notes: true, status: true, scheduledStart: true, scheduledEnd: true, assignedTo: { select: { name: true } }, client: { select: { name: true, contactName: true, phone: true } } }, orderBy: { title: "asc" } }),
     user.role === "EMPLOYEE" ? Promise.resolve([]) : prisma.user.findMany({ where: { businessId, active: true }, select: { id: true, name: true, role: true }, orderBy: { name: "asc" } }),
     isQls ? Promise.resolve([]) : prisma.inspection.findMany({ where: { date: { gte: queryStart, lt: queryEnd }, status: "SCHEDULED", job: { businessId, ...(user.role === "EMPLOYEE" ? { assignedToId: user.id } : {}) } }, select: { id: true, type: true, date: true, jobId: true, job: { select: { title: true, assignedToId: true } } }, orderBy: { date: "asc" } }),
     user.role === "EMPLOYEE" ? Promise.resolve([]) : prisma.client.findMany({ where: { businessId }, select: { id: true, name: true, address: true }, orderBy: { name: "asc" } }),
