@@ -42,7 +42,6 @@ async function main() {
   await prisma.job.deleteMany();
   await prisma.lead.deleteMany();
   await prisma.client.deleteMany();
-  await prisma.stockItem.deleteMany();
   await prisma.user.deleteMany();
 
   // Password for the seeded accounts. Override via SEED_PASSWORD in any
@@ -214,7 +213,6 @@ async function main() {
   // --- Calendar events (current week) --------------------------------------
   await prisma.jobEvent.createMany({
     data: [
-      // Job events (linked to a job; title falls back to job title when null)
       {
         jobId: switchboard.id,
         type: "job",
@@ -250,7 +248,6 @@ async function main() {
         endsAt: at(3, 15, 30),
         assignedToId: sam.id,
       },
-      // Non-job events
       {
         title: "Call Meadow Lane re: quote",
         type: "call",
