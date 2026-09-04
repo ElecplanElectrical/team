@@ -9,6 +9,11 @@ import { generateToken, expiryFromNow, setPasswordUrl, INVITE_TTL_HOURS } from "
 
 const createSchema = z.object({ name: z.string().trim().min(1, "Name is required").max(120), email: z.string().trim().toLowerCase().email().max(160), phone: z.string().trim().max(40).optional().nullable(), role: z.enum(["ADMIN", "SUPERVISOR", "EMPLOYEE"]) });
 
+function passwordLinkOrigin(req: Request, businessSlug?: string | null): string {
+  if (businessSlug === "qls") return "https://qls.your-plan.com.au";
+  return process.env.APP_ORIGIN ?? process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? new URL(req.url).origin;
+}
+
 async function employeeContext(){
   const actor=await getSessionUser("employees");
   if(!actor)return{error:NextResponse.json({error:"Unauthorized or Employees module disabled"},{status:403})}as const;
@@ -42,6 +47,6 @@ export async function POST(req: Request) {
   const { raw, hash } = generateToken();
   const user = await prisma.user.create({ data: { businessId, name: d.name, email: d.email, phone: d.phone || null, role: d.role, passwordTokens: { create: { tokenHash: hash, type: "INVITE", expiresAt: expiryFromNow(INVITE_TTL_HOURS) } } }, select: { id: true, name: true, email: true, role: true } });
   await recordAudit({ actor, action: "USER_INVITED", entityType: "User", entityId: user.id, details: { businessId, targetEmail: user.email, targetRole: user.role } });
-  const inviteUrl = setPasswordUrl(new URL(req.url).origin, raw);
+  const inviteUrl = setPasswordUrl(passwordLinkOrigin(req, actor.business?.slug), raw);
   return NextResponse.json({ user, inviteUrl }, { status: 201 });
 }
