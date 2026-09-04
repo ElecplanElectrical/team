@@ -25,11 +25,13 @@ const DUMMY_PASSWORD_HASH = bcrypt.hashSync("elecplan-invalid-login-sentinel", 1
 
 function isPlatformAdminIdentity(user: { role: string; businessId: string | null; email: string }) {
   if (user.role !== "ADMIN" || user.businessId) return false;
-  const allowed = (process.env.YOURPLAN_ADMIN_EMAILS || "")
+  const allowed = (process.env.YOURPLAN_ADMIN_EMAILS || process.env.OWNER_EMAIL || "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
-  return allowed.length === 0 || allowed.includes(user.email.toLowerCase());
+  // Platform administration must fail closed. OWNER_EMAIL keeps the production
+  // bootstrap owner working when a separate allowlist has not been configured.
+  return allowed.includes(user.email.toLowerCase());
 }
 
 function requestIp(request: Request): string {
