@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Pencil, X } from "lucide-react";
+import { CalendarDays, Pencil, Trash2, X } from "lucide-react";
 import type { TimelineJob } from "@/components/JobTimeline";
 import type { JobCrewOption } from "@/components/NewJobModal";
 
@@ -23,6 +23,7 @@ export default function EditJobModal({ job, crew, onClose, onDone }: { job: Time
   const [notes, setNotes] = useState(job.notes ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,6 +35,22 @@ export default function EditJobModal({ job, crew, onClose, onDone }: { job: Time
     const res = await fetch(`/api/jobs/${job.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: title.trim(), address: address.trim(), assignedToId: assignedToId || null, scheduledStart: scheduledStart ? new Date(scheduledStart).toISOString() : null, scheduledEnd: scheduledEnd ? new Date(scheduledEnd).toISOString() : null, notes: notes.trim() || null }) });
     setSaving(false);
     if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not update the job."); return; }
+    onDone();
+  }
+
+  async function deleteJob() {
+    if (deleting || saving) return;
+    const confirmed = window.confirm(`Delete ${job.title}? This permanently removes the job and cannot be undone.`);
+    if (!confirmed) return;
+    setError(null);
+    setDeleting(true);
+    const res = await fetch(`/api/jobs/${job.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setError(body?.error ?? "Could not delete the job.");
+      setDeleting(false);
+      return;
+    }
     onDone();
   }
 
@@ -60,7 +77,10 @@ export default function EditJobModal({ job, crew, onClose, onDone }: { job: Time
         </div>
 
         {error && <p className="mt-4 text-xs" style={{ color: UI.red }}>{error}</p>}
-        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving} className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Save changes"}</button></div>
+        <div className="mt-5 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: UI.borderSoft }}>
+          <button type="button" disabled={saving || deleting} onClick={() => void deleteJob()} className="flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50" style={{ background: "rgba(255,94,114,.07)", color: UI.red, border: "1px solid rgba(255,94,114,.28)" }}><Trash2 size={15} />{deleting ? "Deleting…" : "Delete job"}</button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row"><button type="button" disabled={deleting} onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving || deleting} className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Save changes"}</button></div>
+        </div>
       </form>
     </section>
   </div>;
