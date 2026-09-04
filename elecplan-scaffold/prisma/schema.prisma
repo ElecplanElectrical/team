@@ -91,6 +91,7 @@ model User {
   licenseExpiry DateTime?
   createdAt     DateTime  @default(now())
   assignedJobs   Job[]        @relation("AssignedEmployee")
+  crewJobs       Job[]        @relation("JobCrew")
   timesheets     Timesheet[]
   reminders      Reminder[]
   certificates   Certificate[]
@@ -147,6 +148,7 @@ model Job {
   status         JobStatus @default(SCHEDULED)
   assignedTo     User?     @relation("AssignedEmployee", fields: [assignedToId], references: [id])
   assignedToId   String?
+  crew           User[]    @relation("JobCrew")
   scheduledStart DateTime?
   scheduledEnd   DateTime?
   notes          String?
@@ -180,7 +182,7 @@ model Quote {
   id               String      @id @default(cuid())
   quoteNumber      String?     @unique
   job              Job?        @relation(fields: [jobId], references: [id])
-  jobId            String?
+  jobId             String?
   client           Client      @relation(fields: [clientId], references: [id])
   clientId         String
   subtotal         Decimal?
@@ -258,152 +260,95 @@ model Inspection {
   status InspectionStatus @default(SCHEDULED)
 }
 
-model StockItem {
-  id                String @id @default(cuid())
-  name              String
-  unit              String
-  onHand            Int
-  parLevel          Int
-  supplier          String?
-  barcode           String? @unique
-  modelNumber       String?
-  photoStorageKey   String?
-  photoOriginalName String?
-  photoContentType  String?
-  photoSizeBytes    Int?
-  enrichmentJobs    ScanEnrichmentJob[]
-  barcodes          StockBarcode[]
-  @@index([modelNumber])
-}
-
-model StockBarcode {
-  barcode     String    @id
-  stockItem   StockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
-  stockItemId String
-  createdAt   DateTime  @default(now())
-  @@index([stockItemId])
-}
-
-model ScanEnrichmentJob {
-  id              String               @id @default(cuid())
-  stockItem       StockItem            @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
-  stockItemId     String
-  photoStorageKey String
-  status          ScanEnrichmentStatus @default(PENDING)
-  attempts        Int                  @default(0)
-  lastError       String?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  @@index([status, createdAt])
-  @@index([stockItemId])
-}
-
 model Timesheet {
-  id     String          @id @default(cuid())
-  user   User            @relation(fields: [userId], references: [id])
-  userId String
-  date   DateTime
-  hours  Decimal
-  status TimesheetStatus @default(PENDING)
+  id        String          @id @default(cuid())
+  user      User            @relation(fields: [userId], references: [id])
+  userId    String
+  weekStart DateTime
+  hours     Decimal
+  status    TimesheetStatus @default(PENDING)
+  createdAt DateTime        @default(now())
 }
 
 model Document {
-  id           String   @id @default(cuid())
-  job          Job?     @relation(fields: [jobId], references: [id])
-  jobId        String?
-  name         String
-  fileUrl      String
-  type         String
-  storageKey   String?  @unique
-  originalName String?
-  contentType  String?
-  sizeBytes    Int?
-  uploadedAt   DateTime @default(now())
-}
-
-model ProjectPhoto {
-  id           String   @id @default(cuid())
-  job          Job      @relation(fields: [jobId], references: [id])
-  jobId        String
-  fileUrl      String
-  storageKey   String?  @unique
-  originalName String?
-  contentType  String?
-  sizeBytes    Int?
-  uploadedAt   DateTime @default(now())
-}
-
-model JobTask {
-  id        String   @id @default(cuid())
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId     String
-  title     String
-  completed Boolean  @default(false)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  @@index([jobId, sortOrder])
-}
-
-model JobMaterial {
-  id        String   @id @default(cuid())
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId     String
-  name      String
-  quantity  Decimal
-  unit      String?
-  unitCost  Decimal  @default(0)
-  unitSell  Decimal  @default(0)
-  createdAt DateTime @default(now())
-  @@index([jobId])
+  id         String   @id @default(cuid())
+  name       String
+  url        String
+  storageKey String?
+  mimeType   String?
+  sizeBytes  Int?
+  kind       String?
+  job        Job?     @relation(fields: [jobId], references: [id])
+  jobId      String?
+  createdAt  DateTime @default(now())
 }
 
 model Reminder {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
   title     String
-  dueDate   DateTime?
-  tag       String?
+  dueAt     DateTime
   completed Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model Review {
   id        String   @id @default(cuid())
-  client    Client   @relation(fields: [clientId], references: [id])
-  clientId  String
+  client    Client?  @relation(fields: [clientId], references: [id])
+  clientId  String?
   rating    Int
-  text      String?
-  source    String?
+  comment   String?
   createdAt DateTime @default(now())
 }
 
-model SmsLog {
-  id          String    @id @default(cuid())
-  job         Job       @relation(fields: [jobId], references: [id])
-  jobId       String
-  phoneNumber String
-  message     String
-  status      SmsStatus @default(SENT)
-  providerId  String?
-  createdAt   DateTime  @default(now())
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  address     String?
+  createdAt   DateTime @default(now())
+  photos      ProjectPhoto[]
 }
 
-model ReelIdea {
-  id           String    @id @default(cuid())
-  title        String
-  hook         String?
-  platform     String
-  status       String    @default("IDEA")
-  scheduledAt  DateTime?
-  publishedUrl String?
-  notes        String?
-  createdAt    DateTime  @default(now())
+model ProjectPhoto {
+  id         String   @id @default(cuid())
+  project    Project? @relation(fields: [projectId], references: [id])
+  projectId  String?
+  job        Job?     @relation(fields: [jobId], references: [id])
+  jobId      String?
+  url        String
+  storageKey String?
+  mimeType   String?
+  sizeBytes  Int?
+  createdAt  DateTime @default(now())
+}
+
+model SmsLog {
+  id         String    @id @default(cuid())
+  job        Job       @relation(fields: [jobId], references: [id])
+  jobId      String
+  to         String
+  message    String
+  providerId String?
+  status     SmsStatus @default(SENT)
+  createdAt  DateTime  @default(now())
+}
+
+model QuoteLine {
+  id          String   @id @default(cuid())
+  description String
+  quantity    Decimal
+  unitPrice   Decimal
+  createdAt   DateTime @default(now())
 }
 
 model AuditLog {
-  id         String   @id @default(uuid())
+  id         String   @id @default(cuid())
   actorId    String?
+  actorName  String?
   actorEmail String?
+  actorRole  String?
   action     String
   entityType String
   entityId   String?
@@ -416,82 +361,134 @@ model AuditLog {
 
 model RateLimitBucket {
   key         String   @id
-  count       Int
+  count       Int      @default(0)
   windowStart DateTime
-  expiresAt   DateTime
-  @@index([expiresAt])
+  updatedAt   DateTime @updatedAt
 }
 
 model Equipment {
-  id                String   @id @default(cuid())
-  name              String
-  category          String
-  quantity          Int      @default(1)
-  assetNumber       String?  @unique
-  serialNumber      String?
-  condition         String   @default("GOOD")
-  status            String   @default("AVAILABLE")
-  location          String   @default("Workshop")
-  assignedUserId    String?
-  assignedJobId     String?
-  purchaseDate      DateTime?
-  notes             String?
-  lastStocktakeAt   DateTime?
-  photoStorageKey   String?  @unique
-  photoOriginalName String?
-  photoContentType  String?
-  photoSizeBytes    Int?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  movements         EquipmentMovement[]
+  id             String   @id @default(cuid())
+  name           String
+  category       String?
+  make           String?
+  model          String?
+  serialNumber   String?
+  assetNumber    String?  @unique
+  quantity       Int      @default(1)
+  status         String   @default("AVAILABLE")
+  assignedTo     String?
+  location       String?
+  purchaseDate   DateTime?
+  purchasePrice  Decimal?
+  serviceDue     DateTime?
+  notes          String?
+  photoUrl       String?
+  photoStorageKey String?
+  photoMimeType  String?
+  photoSizeBytes Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
-model EquipmentMovement {
-  id             String    @id @default(cuid())
-  equipment      Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  equipmentId    String
-  actorId        String?
-  action         String
-  fromLocation   String?
-  toLocation     String?
-  assignedUserId String?
-  assignedJobId  String?
-  notes          String?
-  createdAt      DateTime  @default(now())
-  @@index([equipmentId, createdAt])
+model Material {
+  id              String   @id @default(cuid())
+  name            String
+  category        String?
+  brand           String?
+  model            String?
+  sku             String?
+  barcode         String?
+  supplier        String?
+  supplierSku     String?
+  unit            String?
+  stockOnHand     Decimal  @default(0)
+  reorderPoint    Decimal?
+  unitCost        Decimal?
+  notes           String?
+  photoUrl        String?
+  photoStorageKey String?
+  photoMimeType   String?
+  photoSizeBytes  Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model EmployeeKpi {
+  id           String   @id @default(cuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  weekStart    DateTime
+  jobsComplete Int      @default(0)
+  hoursWorked  Decimal  @default(0)
+  reworkCount  Int      @default(0)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@unique([userId, weekStart])
+  @@index([weekStart])
+}
+
+model TeamMessage {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  title     String
-  target    String
-  notes     String?
-  active    Boolean  @default(true)
+  name      String
+  role      Role
+  body      String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@index([userId, active])
+  reads     TeamMessageRead[]
+  @@index([createdAt])
+}
+
+model TeamMessageRead {
+  id        String      @id @default(cuid())
+  message   TeamMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String
+  userId    String
+  readAt    DateTime    @default(now())
+  @@unique([messageId, userId])
+  @@index([userId, readAt])
 }
 
 model WeeklyGoal {
   id        String   @id @default(cuid())
   weekStart DateTime @unique
-  text      String
-  createdBy String?
+  target    Decimal  @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model TeamChatMessage {
-  id        String   @id @default(cuid())
-  authorId  String
-  body      String
-  createdAt DateTime @default(now())
-  @@index([createdAt])
+model ScanEnrichmentQueue {
+  id          String               @id @default(cuid())
+  materialId  String
+  barcode     String?
+  photoUrl    String?
+  status      ScanEnrichmentStatus @default(PENDING)
+  attempts    Int                  @default(0)
+  lastError   String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  @@index([status, createdAt])
 }
 
-model TeamChatRead {
-  userId    String   @id
-  lastReadAt DateTime @default(now())
+model JobTask {
+  id        String   @id @default(cuid())
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId     String
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([jobId])
+}
+
+model JobMaterial {
+  id         String   @id @default(cuid())
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId      String
+  materialId String
+  name       String
+  quantity   Decimal  @default(1)
+  unit       String?
+  createdAt  DateTime @default(now())
+  @@index([jobId])
 }
