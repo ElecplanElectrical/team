@@ -1,0 +1,14 @@
+CREATE TABLE "_JobCrew" (
+  "A" TEXT NOT NULL,
+  "B" TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX "_JobCrew_AB_unique" ON "_JobCrew"("A", "B");
+CREATE INDEX "_JobCrew_B_index" ON "_JobCrew"("B");
+
+ALTER TABLE "_JobCrew" ADD CONSTRAINT "_JobCrew_A_fkey" FOREIGN KEY ("A") REFERENCES "Job"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "_JobCrew" ADD CONSTRAINT "_JobCrew_B_fkey" FOREIGN KEY ("B") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+INSERT INTO "_JobCrew" ("A", "B")
+SELECT "id", "assignedToId" FROM "Job" WHERE "assignedToId" IS NOT NULL
+ON CONFLICT DO NOTHING;
