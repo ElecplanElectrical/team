@@ -6,12 +6,12 @@ import CalendarView from "@/components/CalendarView";
 import CalendarQuickJobBridge from "@/components/CalendarQuickJobBridge";
 import type { Prisma } from "@prisma/client";
 
-export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
+export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ month?: string; week?: string }> }) {
   const user = await requireAccess("calendar");
   const businessId = user.businessId ?? "__unassigned__";
   const isQls = user.business?.slug === "qls";
-  const { month } = await searchParams;
-  const parsedMonth = month ? parseISO(`${month}-15`) : new Date();
+  const { month, week } = await searchParams;
+  const parsedMonth = month ? parseISO(`${month}-15`) : week ? addDays(parseISO(week), 7) : new Date();
   const anchor = isValid(parsedMonth) ? parsedMonth : new Date();
   const calendarMonth = startOfMonth(anchor);
   const monthStart = startOfWeek(calendarMonth, { weekStartsOn: 1 });
