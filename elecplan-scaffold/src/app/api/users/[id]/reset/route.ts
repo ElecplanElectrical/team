@@ -6,6 +6,11 @@ import { recordAudit } from "@/lib/audit";
 import { consumeRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { generateToken, expiryFromNow, setPasswordUrl, RESET_TTL_HOURS } from "@/lib/tokens";
 
+function passwordLinkOrigin(req: Request, businessSlug?: string | null): string {
+  if (businessSlug === "qls") return "https://qls.your-plan.com.au";
+  return process.env.APP_ORIGIN ?? process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? new URL(req.url).origin;
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const actor = await getSessionUser("employees");
   if (!actor) return NextResponse.json({ error: "Unauthorized or Employees module disabled" }, { status: 403 });
@@ -33,6 +38,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   ]);
 
   await recordAudit({ actor, action: "PASSWORD_RESET_LINK_ISSUED", entityType: "User", entityId: target.id, details: { businessId, targetEmail: target.email, targetRole: target.role, expiresInHours: RESET_TTL_HOURS } });
-  const resetUrl = setPasswordUrl(new URL(req.url).origin, raw);
+  const resetUrl = setPasswordUrl(passwordLinkOrigin(req, actor.business?.slug), raw);
   return NextResponse.json({ resetUrl });
 }
