@@ -1,19 +1,21 @@
-import { addDays, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
+import { addDays, endOfMonth, endOfWeek, format, isValid, parseISO, startOfMonth, startOfWeek } from "date-fns";
 import { requireAccess } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { weekStartFrom, weekKey } from "@/lib/week";
+import { weekKey } from "@/lib/week";
 import CalendarView from "@/components/CalendarView";
 import CalendarQuickJobBridge from "@/components/CalendarQuickJobBridge";
 import type { Prisma } from "@prisma/client";
 
-export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
+export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
   const user = await requireAccess("calendar");
   const businessId = user.businessId ?? "__unassigned__";
   const isQls = user.business?.slug === "qls";
-  const { week } = await searchParams;
-  const start = weekStartFrom(week);
-  const monthStart = startOfWeek(startOfMonth(start), { weekStartsOn: 1 });
-  const monthEnd = addDays(endOfWeek(endOfMonth(start), { weekStartsOn: 1 }), 1);
+  const { month } = await searchParams;
+  const parsedMonth = month ? parseISO(`${month}-15`) : new Date();
+  const anchor = isValid(parsedMonth) ? parsedMonth : new Date();
+  const calendarMonth = startOfMonth(anchor);
+  const monthStart = startOfWeek(calendarMonth, { weekStartsOn: 1 });
+  const monthEnd = addDays(endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 }), 1);
   const queryStart = addDays(monthStart, -1);
   const queryEnd = addDays(monthEnd, 1);
 
@@ -48,7 +50,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   ];
 
   return <>
-    <CalendarView weekStart={weekKey(start)} events={events} jobs={jobs.map((job) => ({ id: job.id, title: job.title, client: job.client.name, contactName: job.client.contactName, phone: job.client.phone, address: job.address, notes: job.notes, status: job.status, crew: job.assignedTo?.name ?? null, scheduledStart: job.scheduledStart?.toISOString() ?? null, scheduledEnd: job.scheduledEnd?.toISOString() ?? null }))} employees={employees.map(({ id, name }) => ({ id, name }))} role={user.role} currentUserId={user.id} />
-    {isQls && user.role !== "EMPLOYEE" && <CalendarQuickJobBridge weekStart={weekKey(start)} clients={clients} crew={employees.map((person) => ({ id: person.id, name: person.name, role: person.role }))} role={user.role} />}
+    <CalendarView weekStart={format(calendarMonth, "yyyy-MM-15")} events={events} jobs={jobs.map((job) => ({ id: job.id, title: job.title, client: job.client.name, contactName: job.client.contactName, phone: job.client.phone, address: job.address, notes: job.notes, status: job.status, crew: job.assignedTo?.name ?? null, scheduledStart: job.scheduledStart?.toISOString() ?? null, scheduledEnd: job.scheduledEnd?.toISOString() ?? null }))} employees={employees.map(({ id, name }) => ({ id, name }))} role={user.role} currentUserId={user.id} />
+    {isQls && user.role !== "EMPLOYEE" && <CalendarQuickJobBridge weekStart={weekKey(calendarMonth)} clients={clients} crew={employees.map((person) => ({ id: person.id, name: person.name, role: person.role }))} role={user.role} />}
   </>;
 }
