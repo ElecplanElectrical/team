@@ -32,8 +32,8 @@ export default function CalendarView({weekStart,events,jobs,employees,role,curre
  const days=useMemo(()=>{const count=differenceInCalendarDays(gridEnd,gridStart)+1;return Array.from({length:count},(_,i)=>new Date(gridStart.getFullYear(),gridStart.getMonth(),gridStart.getDate()+i))},[gridStart.getTime(),gridEnd.getTime()]);
  const filteredEvents=useMemo(()=>selectedCrew.length===0?calendarEvents:calendarEvents.filter(e=>e.assignedToId&&selectedCrew.includes(e.assignedToId)),[calendarEvents,selectedCrew]);
  const selectedJob=selectedEvent?.jobId?jobs.find(j=>j.id===selectedEvent.jobId)??null:null;
- function goMonth(delta:number){router.push(`/calendar?week=${weekKey(addMonths(monthStart,delta))}`)}
- function goToday(){router.push("/calendar")}
+ function goMonth(delta:number){router.push(`/calendar?month=${format(addMonths(monthStart,delta),"yyyy-MM")}`)}
+ function goToday(){router.push(`/calendar?month=${format(new Date(),"yyyy-MM")}`)}
  function refresh(){setShowModal(false);setEditingEvent(null);router.refresh()}
  function toggleCrew(id:string){setSelectedCrew(c=>c.includes(id)?c.filter(x=>x!==id):[...c,id])}
  function openEvent(event:CalendarEvent){if(event.jobId)router.push(`/jobs/${event.jobId}`);else setEditingEvent(event)}
