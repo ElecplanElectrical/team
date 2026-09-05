@@ -161,3 +161,9 @@ span[role="img"][aria-label="YourPlan"] { background-image:url('/yourplan-wordma
 * { scrollbar-width:thin; scrollbar-color:#242a33 transparent; }
 *::-webkit-scrollbar { width:8px; height:8px; }
 *::-webkit-scrollbar-thumb { background:#242a33; border-radius:8px; }
+
+/* QLS sidebar navigation must not frost/blur the tree artwork behind inactive items. */
+.qls-theme aside nav a[class*="rounded"] {
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
