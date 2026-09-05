@@ -569,34 +569,35 @@ model TeamChatRead {
 }
 
 model BusinessPortal {
-  id           String       @id @default(cuid())
-  name         String
-  slug         String       @unique
-  industry     String?
-  contactName  String?
-  contactEmail String?
-  logoUrl      String?
-  primaryColor String       @default("#168dff")
-  accentColor  String       @default("#25c7ff")
-  modules      Json
-  plan         String       @default("CUSTOM")
-  monthlyPrice Decimal?
-  active       Boolean      @default(true)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  users        User[]
-  clients      Client[]
-  leads        Lead[]
-  jobs         Job[]
-  quotes       Quote[]
-  invoices     Invoice[]
-  stockItems   StockItem[]
-  timesheets   Timesheet[]
-  documents    Document[]
-  reminders    Reminder[]
-  equipment    Equipment[]
-  reelIdeas    ReelIdea[]
-  weeklyGoals  WeeklyGoal[]
+  id             String       @id @default(cuid())
+  name           String
+  slug           String       @unique
+  industry       String?
+  contactName    String?
+  contactEmail   String?
+  logoUrl        String?
+  primaryColor   String       @default("#168dff")
+  accentColor    String       @default("#25c7ff")
+  brandingConfig Json?
+  modules        Json
+  plan           String       @default("CUSTOM")
+  monthlyPrice   Decimal?
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  users          User[]
+  clients        Client[]
+  leads          Lead[]
+  jobs           Job[]
+  quotes         Quote[]
+  invoices       Invoice[]
+  stockItems     StockItem[]
+  timesheets     Timesheet[]
+  documents      Document[]
+  reminders      Reminder[]
+  equipment      Equipment[]
+  reelIdeas      ReelIdea[]
+  weeklyGoals    WeeklyGoal[]
 
   @@index([active, createdAt])
 }
