@@ -28,6 +28,7 @@ export async function generateViewport():Promise<Viewport>{
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const isQls=user.business?.slug==="qls";
+  const isPlatformAdmin=user.role==="ADMIN"&&!user.businessId;
   const primary=user.business?.primaryColor??"#168dff";
   const accent=user.business?.accentColor??"#25c7ff";
   const theme={
@@ -49,9 +50,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   } as CSSProperties;
   return (
     <div className={`${isQls?"qls-theme ":""}flex min-h-screen w-full flex-col md:flex-row`} style={{...theme,background:isQls?"radial-gradient(circle at 52% -12%,rgba(80,216,120,.04),transparent 34%),#040605":"#03101f",color:"#f4f8ff",fontFamily:"Inter, ui-sans-serif, system-ui, sans-serif"}}>
-      <Sidebar role={user.role} name={user.name ?? user.email ?? "User"} brand={user.business} />
+      <Sidebar role={user.role} name={user.name ?? user.email ?? "User"} brand={user.business} platformAdmin={isPlatformAdmin} />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden pt-16 md:pt-0">{children}</main>
-      <MobileNav role={user.role} brand={user.business} />
+      <MobileNav role={user.role} brand={user.business} platformAdmin={isPlatformAdmin} />
     </div>
   );
 }
