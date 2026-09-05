@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { createDownloadUrl, storageConfigured } from "@/lib/storage";
+function storageKey(value:string|null){if(!value)return null;try{const parsed=new URL(value,"https://your-plan.com.au");const key=parsed.searchParams.get("key")?.trim();return key?.startsWith("documents/")?key:null}catch{return null}}
+export async function GET(req:Request,{params}:{params:Promise<{slug:string}>}){const{slug}=await params;const url=new URL(req.url);const slot=url.searchParams.get("slot");if(slot!=="login"&&slot!=="sidebar")return new NextResponse(null,{status:404});const business=await prisma.businessPortal.findUnique({where:{slug},select:{active:true,brandingConfig:true}});if(!business?.active)return new NextResponse(null,{status:404});const config=(business.brandingConfig??{}) as Record<string,unknown>;const raw=slot==="login"?config.loginArtworkUrl:config.sidebarArtworkUrl;const key=storageKey(typeof raw==="string"?raw:null);if(!key||!storageConfigured())return new NextResponse(null,{status:404});return NextResponse.redirect(createDownloadUrl(key),307)}
