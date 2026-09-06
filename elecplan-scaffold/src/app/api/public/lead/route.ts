@@ -1,0 +1,9 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { randomUUID } from "crypto";
+import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const schema=z.object({contactName:z.string().trim().min(2).max(120),businessName:z.string().trim().max(160).optional().default(""),email:z.string().trim().toLowerCase().email().max(180),phone:z.string().trim().max(50).optional().default(""),industry:z.string().trim().max(120).optional().default(""),teamSize:z.string().trim().max(50).optional().default(""),message:z.string().trim().max(3000).optional().default(""),website:z.string().max(0).optional().default("")});
+function ip(req:Request){return(req.headers.get("x-forwarded-for")?.split(",")[0]||req.headers.get("x-real-ip")||"unknown").trim()}
+export async function POST(req:Request){const limit=await checkRateLimit(`public-lead:${ip(req)}`,5,15*60*1000);if(!limit.allowed)return NextResponse.json({error:"Too many requests. Please try again shortly."},{status:429});const parsed=schema.safeParse(await req.json().catch(()=>null));if(!parsed.success)return NextResponse.json({error:"Check your contact details and try again."},{status:400});if(parsed.data.website)return NextResponse.json({ok:true},{status:201});const d=parsed.data;try{await prisma.$executeRaw`INSERT INTO "PlatformLead" ("id","contactName","businessName","email","phone","industry","teamSize","message","source","status","createdAt","updatedAt") VALUES (${randomUUID()},${d.contactName},${d.businessName||null},${d.email},${d.phone||null},${d.industry||null},${d.teamSize||null},${d.message||null},'YOURPLAN_WEBSITE','NEW',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`;return NextResponse.json({ok:true},{status:201})}catch(e){console.error("public lead capture failed",e);return NextResponse.json({error:"Could not submit your request. Please try again."},{status:500})}}
