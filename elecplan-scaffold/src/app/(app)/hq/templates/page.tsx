@@ -1,0 +1,16 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Check, Layers3 } from "lucide-react";
+import TopBar from "@/components/TopBar";
+import { getPlatformAdmin } from "@/lib/platform-admin";
+import { PORTAL_TEMPLATES } from "@/lib/portal-templates";
+
+const UI={panel:"var(--brand-panel, #07192b)",border:"var(--brand-border, rgba(77,150,221,.24))",text:"#f5f9ff",mute:"var(--brand-muted, #93a9c2)",faint:"var(--brand-faint, #617993)",cyan:"var(--brand-accent, #25c7ff)",blue:"#168dff"};
+
+export default async function TemplatesPage(){
+  const admin=await getPlatformAdmin();if(!admin)notFound();
+  return <><TopBar title="Portal Templates" subtitle="Reusable starting points for new YourPlan customers"/><main className="flex-1 overflow-auto p-4 md:p-6" style={{background:"var(--app-bg, #03101f)"}}><div className="mx-auto max-w-7xl space-y-5">
+    <div className="flex flex-col gap-3 rounded-xl p-5 sm:flex-row sm:items-center sm:justify-between" style={{background:UI.panel,border:`1px solid ${UI.border}`}}><div><div className="flex items-center gap-2"><Layers3 size={18} style={{color:UI.cyan}}/><h2 className="text-base font-semibold" style={{color:UI.text}}>YourPlan Template Library</h2></div><p className="mt-2 max-w-3xl text-xs leading-5" style={{color:UI.mute}}>Choose the closest operating model, then apply the customer's branding and adjust only what is different. Templates configure the starting industry and feature set without creating separate versions of YourPlan.</p></div><Link href="/hq/onboarding" className="shrink-0 rounded-lg px-4 py-2.5 text-sm font-semibold text-white" style={{background:UI.blue}}>Create company</Link></div>
+    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{PORTAL_TEMPLATES.map(template=><article key={template.id} className="flex min-h-64 flex-col rounded-xl p-5" style={{background:UI.panel,border:`1px solid ${UI.border}`}}><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.16em]" style={{color:UI.cyan}}>{template.category}</p><h3 className="mt-2 text-base font-semibold" style={{color:UI.text}}>{template.name}</h3></div><span className="rounded-full px-2 py-1 text-[10px]" style={{background:"rgba(22,141,255,.12)",color:UI.cyan}}>{template.modules.length} modules</span></div><p className="mt-3 text-xs leading-5" style={{color:UI.mute}}>{template.description}</p><p className="mt-4 text-[11px] leading-5" style={{color:UI.faint}}>{template.recommendedFor}</p><div className="mt-4 flex flex-wrap gap-1.5">{template.modules.slice(0,6).map(module=><span key={module} className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] capitalize" style={{background:"var(--app-bg, #03101f)",color:UI.mute}}><Check size={10} style={{color:UI.cyan}}/>{module}</span>)}{template.modules.length>6&&<span className="rounded-md px-2 py-1 text-[10px]" style={{background:"var(--app-bg, #03101f)",color:UI.faint}}>+{template.modules.length-6} more</span>}</div><Link href={`/hq/onboarding?template=${template.id}`} className="mt-auto pt-5 text-sm font-semibold" style={{color:UI.cyan}}>Use this template →</Link></article>)}</section>
+  </div></main></>
+}
