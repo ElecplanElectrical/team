@@ -1,0 +1,31 @@
+FROM node:24-bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/* \
+  && corepack enable
+
+WORKDIR /app
+
+# Only the browser-safe VAPID public key is accepted as a build argument.
+# Private auth, database, storage and VAPID credentials are injected by
+# Railway at container runtime and are never declared as Docker ARG/ENV.
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+
+# Prisma generation validates the datasource during dependency install.
+# This intentionally fake build-only URL contains no production credentials.
+ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
+ENV NODE_ENV="production"
+ENV NEXT_TELEMETRY_DISABLED="1"
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+RUN pnpm build
+
+EXPOSE 8080
+ENV PORT="8080"
+
+CMD ["pnpm", "start"]
