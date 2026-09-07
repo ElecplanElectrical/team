@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   applicationName: BRAND.name,
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/yourplan-app-icon.png?v=2",
-    apple: [{ url: "/yourplan-app-icon.png?v=2", sizes: "180x180", type: "image/png" }],
+    icon: "/apple-touch-icon.png",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: { capable: true, title: BRAND.name, statusBarStyle: "black-translucent" },
 };
