@@ -8,7 +8,10 @@ export const metadata: Metadata = {
   description: BRAND.description,
   applicationName: BRAND.name,
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/yourplan-app-icon.svg", apple: "/yourplan-app-icon.svg" },
+  icons: {
+    icon: "/yourplan-app-icon.png?v=2",
+    apple: [{ url: "/yourplan-app-icon.png?v=2", sizes: "180x180", type: "image/png" }],
+  },
   appleWebApp: { capable: true, title: BRAND.name, statusBarStyle: "black-translucent" },
 };
 export const viewport: Viewport = { themeColor: BRAND.background };
