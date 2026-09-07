@@ -16,16 +16,16 @@ ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
 # Prisma generation validates the datasource during dependency install.
 # This intentionally fake build-only URL contains no production credentials.
 ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
-ENV NODE_ENV="production"
 ENV NEXT_TELEMETRY_DISABLED="1"
 
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod=false
 
 COPY . .
 RUN pnpm build
 
+ENV NODE_ENV="production"
 EXPOSE 8080
 ENV PORT="8080"
 
