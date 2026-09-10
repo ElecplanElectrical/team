@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "").split(":")[0].toLowerCase();
   const isQLS = host === "qls.your-plan.com.au";
   const name = isQLS ? "QLS Portal" : BRAND.name;
-  const appleIcon = isQLS ? "/qls-home-icon-v9.png" : "/apple-touch-icon.png";
+  const appleIcon = isQLS ? "/qls-ios-icon-v10.png" : "/apple-touch-icon.png";
 
   return {
     title: { default: name, template: `%s | ${name}` },
@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: appleIcon,
       shortcut: appleIcon,
-      apple: [{ url: appleIcon, sizes: "512x512", type: "image/png" }],
+      apple: [{ url: appleIcon, sizes: "180x180", type: "image/png" }],
     },
     appleWebApp: { capable: true, title: name, statusBarStyle: "black-translucent" },
   };
