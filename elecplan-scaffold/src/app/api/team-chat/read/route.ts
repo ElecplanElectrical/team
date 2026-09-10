@@ -1,14 +1,4 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
-
-export async function POST() {
-  const user=await getSessionUser();
-  if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});
-  if(!user.businessId)return NextResponse.json({error:"No active customer business selected."},{status:409});
-  await prisma.$executeRaw`
-    INSERT INTO "TeamChatReadState" ("userId","lastReadAt") VALUES (${user.id},CURRENT_TIMESTAMP)
-    ON CONFLICT ("userId") DO UPDATE SET "lastReadAt" = CURRENT_TIMESTAMP
-  `;
-  return NextResponse.json({ok:true});
-}
+export async function POST(req:Request){const user=await getSessionUser();if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});if(!user.businessId)return NextResponse.json({error:"No active customer business selected."},{status:409});const data=await req.json().catch(()=>null) as {roomId?:string}|null;const roomId=data?.roomId;if(!roomId)return NextResponse.json({error:"Chat is required."},{status:400});const rows=await prisma.$queryRaw<{id:string}[]>`SELECT r."id" FROM "TeamChatRoom" r WHERE r."id"=${roomId} AND r."businessId"=${user.businessId} AND (r."isGeneral"=TRUE OR EXISTS(SELECT 1 FROM "TeamChatRoomMember" rm WHERE rm."roomId"=r."id" AND rm."userId"=${user.id})) LIMIT 1`;if(!rows[0])return NextResponse.json({error:"Chat not found."},{status:404});await prisma.$executeRaw`INSERT INTO "TeamChatReadState" ("userId","roomId","lastReadAt") VALUES (${user.id},${roomId},CURRENT_TIMESTAMP) ON CONFLICT ("userId","roomId") DO UPDATE SET "lastReadAt"=CURRENT_TIMESTAMP`;return NextResponse.json({ok:true});}
