@@ -1,8 +1,8 @@
-const CACHE_NAME = "yourplan-shell-v2";
+const CACHE_NAME = "yourplan-shell-v3";
 const IS_QLS = self.location.hostname === "qls.your-plan.com.au";
-const DEFAULT_ICON = IS_QLS ? "/qls-logo-transparent.svg" : "/elecplan-app-icon.svg";
+const DEFAULT_ICON = IS_QLS ? "/qls-apple-touch-icon.png?v=7" : "/elecplan-app-icon.svg";
 const DEFAULT_TITLE = IS_QLS ? "Quality Landscape Solutions Team" : "Team update";
-const SAFE_ASSETS = [DEFAULT_ICON, "/manifest.webmanifest"];
+const SAFE_ASSETS = IS_QLS ? [DEFAULT_ICON, "/qls-manifest.webmanifest"] : [DEFAULT_ICON, "/manifest.webmanifest"];
 
 function safeInternalUrl(value) {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//") ? value : "/team-chat";
@@ -14,20 +14,16 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),
-  );
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))));
   self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || !SAFE_ASSETS.includes(url.pathname)) return;
-
-  event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
+  event.respondWith(fetch(request).catch(() => caches.match(request)));
 });
 
 self.addEventListener("push", (event) => {
