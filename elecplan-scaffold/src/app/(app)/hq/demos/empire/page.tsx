@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, ChevronLeft, ClipboardList, Clock3, FileText, Flag, Gauge, Radio, Users, Wrench } from "lucide-react";
+import { CalendarDays, ChevronLeft, ClipboardList, Clock3, FileText, Flag, Gauge, MessageCircle, Users, Wrench } from "lucide-react";
 import { getPlatformAdmin } from "@/lib/platform-admin";
 
 const green="#69be28", dark="#080a0b", panel="#111416", border="#2a3033", muted="#9aa3a7";
@@ -14,7 +14,7 @@ const modules=[
  {title:"Bike Setup",text:"Setup sheets and changes recorded against rider and event.",icon:Wrench,href:"setup"},
  {title:"Equipment",text:"Team equipment, service status and assigned assets.",icon:Gauge,href:"equipment"},
  {title:"Documents",text:"Team documents, event files and shared resources.",icon:FileText,href:"documents"},
- {title:"Team Comms",text:"Private team and event chats with media access.",icon:Radio,href:"comms"},
+ {title:"Team Chat",text:"Whole-team, rider-crew and event chats with photos and files.",icon:MessageCircle,href:"chat"},
 ];
 export default async function EmpireDemo(){const user=await getPlatformAdmin();if(!user)notFound();return <main className="min-h-screen text-white" style={{background:dark}}>
  <header className="sticky top-0 z-20 border-b" style={{background:"rgba(8,10,11,.96)",borderColor:border}}><div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6"><div className="flex items-center gap-4"><Link href="/hq/demos" className="flex items-center gap-1 text-xs" style={{color:muted}}><ChevronLeft size={15}/>Client Demos</Link><div className="hidden h-7 w-px md:block" style={{background:border}}/><div><p className="text-[10px] font-bold uppercase tracking-[.28em]" style={{color:green}}>Penrite Racing</p><h1 className="text-lg font-black uppercase tracking-tight">Empire Kawasaki</h1></div></div><span className="rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest" style={{borderColor:green,color:green}}>Demo mode</span></div></header>
