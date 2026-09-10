@@ -4,62 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { sendTeamChatPush } from "@/lib/push";
 
-type ChatRow = { id:string; body:string; createdAt:Date; senderId:string; senderName:string };
-
-async function activeBusinessUser() {
-  const user = await getSessionUser();
-  if (!user) return { response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
-  if (!user.businessId) return { response: NextResponse.json({ error: "No active customer business selected." }, { status: 409 }) } as const;
-  return { user, businessId: user.businessId } as const;
+type ChatRow={id:string;body:string;createdAt:Date;senderId:string;senderName:string};
+type RoomRow={id:string;name:string;isGeneral:boolean};
+async function activeBusinessUser(){const user=await getSessionUser();if(!user)return {response:NextResponse.json({error:"Unauthorized"},{status:401})} as const;if(!user.businessId)return {response:NextResponse.json({error:"No active customer business selected."},{status:409})} as const;return {user,businessId:user.businessId} as const}
+async function roomForUser(roomId:string|undefined,businessId:string,userId:string){
+ if(roomId){const rows=await prisma.$queryRaw<RoomRow[]>`SELECT r."id",r."name",r."isGeneral" FROM "TeamChatRoom" r WHERE r."id"=${roomId} AND r."businessId"=${businessId} AND (r."isGeneral"=TRUE OR EXISTS(SELECT 1 FROM "TeamChatRoomMember" rm WHERE rm."roomId"=r."id" AND rm."userId"=${userId})) LIMIT 1`;return rows[0]||null}
+ const rows=await prisma.$queryRaw<RoomRow[]>`SELECT r."id",r."name",r."isGeneral" FROM "TeamChatRoom" r WHERE r."businessId"=${businessId} AND r."isGeneral"=TRUE LIMIT 1`;return rows[0]||null;
 }
-
-export async function GET() {
-  const auth = await activeBusinessUser();
-  if ("response" in auth) return auth.response;
-  const { user, businessId } = auth;
-
-  const messages = await prisma.$queryRaw<ChatRow[]>`
-    SELECT m."id", m."body", m."createdAt", m."senderId", u."name" AS "senderName"
-    FROM "TeamChatMessage" m
-    JOIN "User" u ON u."id" = m."senderId"
-    WHERE m."businessId" = ${businessId}
-    ORDER BY m."createdAt" DESC LIMIT 80
-  `;
-
-  const unreadRows = await prisma.$queryRaw<{count:bigint}[]>`
-    SELECT COUNT(*)::bigint AS count
-    FROM "TeamChatMessage" m
-    WHERE m."businessId" = ${businessId}
-      AND m."senderId" <> ${user.id}
-      AND m."createdAt" > COALESCE((SELECT r."lastReadAt" FROM "TeamChatReadState" r WHERE r."userId" = ${user.id}), TIMESTAMP '1970-01-01')
-  `;
-
-  return NextResponse.json({ messages: messages.reverse(), unread: Number(unreadRows[0]?.count ?? 0), me: user.id });
-}
-
-export async function POST(req:Request) {
-  const auth = await activeBusinessUser();
-  if ("response" in auth) return auth.response;
-  const { user, businessId } = auth;
-
-  const data = await req.json().catch(()=>null) as {body?:string}|null;
-  const body = data?.body?.trim();
-  if (!body) return NextResponse.json({ error: "Message is required" }, { status: 400 });
-  if (body.length > 2000) return NextResponse.json({ error: "Message is too long" }, { status: 400 });
-
-  const id = randomUUID();
-  await prisma.$executeRaw`INSERT INTO "TeamChatMessage" ("id","senderId","businessId","body") VALUES (${id},${user.id},${businessId},${body})`;
-  await prisma.$executeRaw`
-    INSERT INTO "TeamChatReadState" ("userId","lastReadAt") VALUES (${user.id},CURRENT_TIMESTAMP)
-    ON CONFLICT ("userId") DO UPDATE SET "lastReadAt" = CURRENT_TIMESTAMP
-  `;
-  after(() => sendTeamChatPush({
-      businessId,
-      businessName: user.business?.name ?? "Team",
-      businessSlug: user.business?.slug,
-      senderId: user.id,
-      senderName: user.name || "Team member",
-      body: body.slice(0, 160),
-    }).catch(() => undefined));
-  return NextResponse.json({ ok:true, id });
-}
+export async function GET(req:Request){const auth=await activeBusinessUser();if("response" in auth)return auth.response;const {user,businessId}=auth;const room=await roomForUser(new URL(req.url).searchParams.get("roomId")||undefined,businessId,user.id);if(!room)return NextResponse.json({error:"Chat not found."},{status:404});const messages=await prisma.$queryRaw<ChatRow[]>`SELECT m."id",m."body",m."createdAt",m."senderId",u."name" AS "senderName" FROM "TeamChatMessage" m JOIN "User" u ON u."id"=m."senderId" WHERE m."businessId"=${businessId} AND m."roomId"=${room.id} ORDER BY m."createdAt" DESC LIMIT 120`;return NextResponse.json({messages:messages.reverse(),me:user.id,room});}
+export async function POST(req:Request){const auth=await activeBusinessUser();if("response" in auth)return auth.response;const {user,businessId}=auth;const data=await req.json().catch(()=>null) as {body?:string;roomId?:string}|null;const body=data?.body?.trim();if(!body)return NextResponse.json({error:"Message is required"},{status:400});if(body.length>2000)return NextResponse.json({error:"Message is too long"},{status:400});const room=await roomForUser(data?.roomId,businessId,user.id);if(!room)return NextResponse.json({error:"Chat not found."},{status:404});const id=randomUUID();await prisma.$executeRaw`INSERT INTO "TeamChatMessage" ("id","senderId","businessId","roomId","body") VALUES (${id},${user.id},${businessId},${room.id},${body})`;await prisma.$executeRaw`UPDATE "TeamChatRoom" SET "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=${room.id}`;await prisma.$executeRaw`INSERT INTO "TeamChatReadState" ("userId","roomId","lastReadAt") VALUES (${user.id},${room.id},CURRENT_TIMESTAMP) ON CONFLICT ("userId","roomId") DO UPDATE SET "lastReadAt"=CURRENT_TIMESTAMP`;after(()=>sendTeamChatPush({businessId,businessName:user.business?.name??"Team",businessSlug:user.business?.slug,senderId:user.id,senderName:user.name||"Team member",body:body.startsWith("[[photo:")?"sent a photo":body.slice(0,160),roomId:room.id,roomName:room.name,isGeneral:room.isGeneral}).catch(()=>undefined));return NextResponse.json({ok:true,id});}
