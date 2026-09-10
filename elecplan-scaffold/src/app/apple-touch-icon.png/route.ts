@@ -3,7 +3,43 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const host = url.hostname.toLowerCase();
+
+  if (host === "qls.your-plan.com.au") {
+    const logoUrl = new URL("/qls-logo-transparent.svg", url.origin).toString();
+    const icon = React.createElement(
+      "div",
+      {
+        style: {
+          width: "180px",
+          height: "180px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#040605",
+          borderRadius: "36px",
+          padding: "20px",
+        },
+      },
+      React.createElement("img", {
+        src: logoUrl,
+        width: 140,
+        height: 140,
+        style: { objectFit: "contain" },
+      })
+    );
+
+    return new ImageResponse(icon, {
+      width: 180,
+      height: 180,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
+    });
+  }
+
   const svg = React.createElement(
     "svg",
     { width: 180, height: 180, viewBox: "0 0 888 888", xmlns: "http://www.w3.org/2000/svg" },
