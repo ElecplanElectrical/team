@@ -71,3 +71,122 @@ span[role="img"][aria-label="YourPlan"] { background-image:url('/yourplan-wordma
 *::-webkit-scrollbar { width:8px; height:8px; }
 *::-webkit-scrollbar-thumb { background:#242a33; border-radius:8px; }
 .qls-theme aside nav a[class*="rounded"] { backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+
+/* QLS PREMIUM LIGHT WORKSPACE V2
+   Everything below the existing QLS top bar is light. Sidebar and top bar stay dark. */
+.qls-theme main {
+  --app-bg:#f3f6f4;
+  --brand-panel:#ffffff;
+  --brand-panel-alt:#f8faf9;
+  --brand-panel-deep:#eef3f0;
+  --brand-border:rgba(15,23,42,.13);
+  --brand-border-soft:rgba(15,23,42,.075);
+  --brand-muted:#667085;
+  --brand-faint:#8b97a3;
+  --brand-glow:rgba(32,166,84,.065);
+  background:#f3f6f4 !important;
+  color:#101828 !important;
+}
+
+/* Keep the approved dark top bar exactly as a dark QLS surface. */
+.qls-theme main > header {
+  --app-bg:#040605;
+  --brand-panel:#0d1110;
+  --brand-panel-alt:#151a17;
+  --brand-panel-deep:#080b09;
+  --brand-border:rgba(180,198,186,.17);
+  --brand-border-soft:rgba(180,198,186,.08);
+  --brand-muted:#aab3ad;
+  --brand-faint:#6f7972;
+  --brand-glow:rgba(80,216,120,.075);
+  background:color-mix(in srgb,#0d1110 88%,#020705) !important;
+  border-bottom-color:rgba(180,198,186,.17) !important;
+}
+.qls-theme main > header h1 { color:#f6f9ff !important; }
+.qls-theme main > header p { color:#aab3ad !important; }
+.qls-theme main > header :is(input,textarea,select) {
+  background:#0d1110 !important;
+  color:#f6f9ff !important;
+  border-color:rgba(180,198,186,.17) !important;
+}
+.qls-theme main > header :is(input,textarea)::placeholder { color:#7f8a83 !important; }
+
+/* Main page canvas and cards. */
+.qls-theme main > header ~ * {
+  background-color:#f3f6f4;
+  color:#101828;
+}
+.qls-theme main > header ~ * section[class*="rounded-xl"],
+.qls-theme main > header ~ * section[class*="rounded-2xl"],
+.qls-theme main > header ~ * div[class*="rounded-xl"][style*="border"] {
+  box-shadow:0 1px 2px rgba(16,24,40,.035),0 10px 28px rgba(16,24,40,.055);
+}
+.qls-theme main > header ~ * :is(h1,h2,h3,h4) {
+  color:#101828 !important;
+  letter-spacing:-.018em;
+}
+.qls-theme main > header ~ * h2 { font-weight:650; }
+.qls-theme main > header ~ * :is(input,textarea,select) {
+  background:#fff !important;
+  color:#101828 !important;
+  border-color:#d5ddd8 !important;
+  box-shadow:0 1px 2px rgba(16,24,40,.025);
+}
+.qls-theme main > header ~ * :is(input,textarea)::placeholder { color:#98a2b3 !important; }
+
+/* Convert the legacy hard-coded dark-theme body text to high-contrast light-theme text. */
+.qls-theme main > header ~ * [style*="color:#f5f9ff"],
+.qls-theme main > header ~ * [style*="color: #f5f9ff"],
+.qls-theme main > header ~ * [style*="color: rgb(245, 249, 255)"],
+.qls-theme main > header ~ * [style*="color:#f6f9ff"],
+.qls-theme main > header ~ * [style*="color: #f6f9ff"],
+.qls-theme main > header ~ * [style*="color: rgb(246, 249, 255)"],
+.qls-theme main > header ~ * [style*="color:#f4f8ff"],
+.qls-theme main > header ~ * [style*="color: #f4f8ff"],
+.qls-theme main > header ~ * [style*="color: rgb(244, 248, 255)"] {
+  color:#101828 !important;
+}
+
+/* Keep intentional white lettering on solid action buttons. */
+.qls-theme main > header ~ * :is(button,a)[style*="color: white"],
+.qls-theme main > header ~ * :is(button,a)[style*="color:white"],
+.qls-theme main > header ~ * :is(button,a)[style*="color: rgb(255, 255, 255)"] {
+  color:#fff !important;
+}
+
+/* Calendar/job status text must remain readable on the new light cards. */
+.qls-theme main > header ~ * [style*="color:#b9fbff"],
+.qls-theme main > header ~ * [style*="color: #b9fbff"],
+.qls-theme main > header ~ * [style*="color: rgb(185, 251, 255)"] { color:#155e66 !important; }
+.qls-theme main > header ~ * [style*="color:#c9fbd8"],
+.qls-theme main > header ~ * [style*="color: #c9fbd8"],
+.qls-theme main > header ~ * [style*="color: rgb(201, 251, 216)"] { color:#1f6b3b !important; }
+.qls-theme main > header ~ * [style*="color:#dbeafe"],
+.qls-theme main > header ~ * [style*="color: #dbeafe"],
+.qls-theme main > header ~ * [style*="color: rgb(219, 234, 254)"] { color:#25558f !important; }
+.qls-theme main > header ~ * [style*="color:#b99cff"],
+.qls-theme main > header ~ * [style*="color: #b99cff"],
+.qls-theme main > header ~ * [style*="color: rgb(185, 156, 255)"] { color:#6941c6 !important; }
+.qls-theme main > header ~ * [style*="color:#62b6ff"],
+.qls-theme main > header ~ * [style*="color: #62b6ff"],
+.qls-theme main > header ~ * [style*="color: rgb(98, 182, 255)"] { color:#175f9e !important; }
+.qls-theme main > header ~ * [style*="color:#4de2bb"],
+.qls-theme main > header ~ * [style*="color: #4de2bb"],
+.qls-theme main > header ~ * [style*="color: rgb(77, 226, 187)"] { color:#17715b !important; }
+.qls-theme main > header ~ * [style*="color:#62ddff"],
+.qls-theme main > header ~ * [style*="color: #62ddff"],
+.qls-theme main > header ~ * [style*="color: rgb(98, 221, 255)"] { color:#087188 !important; }
+
+/* Refined QLS light borders and hover states without touching the sidebar. */
+.qls-theme main > header ~ * [style*="border"] { --qls-light-border:#d9e1dc; }
+.qls-theme main > header ~ * a:hover,
+.qls-theme main > header ~ * button:hover { filter:brightness(.985); }
+.qls-theme main > header ~ * ::selection { background:rgba(80,216,120,.22); color:#101828; }
+
+@media (max-width:767px) {
+  .qls-theme main > header ~ * { background:#f3f6f4; }
+  .qls-theme main > header ~ * section[class*="rounded-xl"],
+  .qls-theme main > header ~ * div[class*="rounded-xl"][style*="border"] {
+    box-shadow:0 1px 2px rgba(16,24,40,.03),0 7px 20px rgba(16,24,40,.045);
+  }
+}
