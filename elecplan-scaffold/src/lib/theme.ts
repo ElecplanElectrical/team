@@ -12,6 +12,9 @@ export const FONTS = { display: "'Sora', sans-serif", body: "'Inter', sans-serif
 export const EVENT_COLOR: Record<string,{ bg:string;border:string;fg:string }> = {
   job:{bg:"rgba(61,197,240,0.22)",border:COLORS.accent,fg:"#BFEBFA"},
   "job-history":{bg:"rgba(61,197,240,0.16)",border:COLORS.accent,fg:"#BFEBFA"},
+  "job-scheduled":{bg:"#BFE8E4",border:"#72C9C1",fg:"#000000"},
+  "job-in-progress":{bg:"#BFE6CA",border:"#63B57A",fg:"#000000"},
+  "job-complete":{bg:"#9CCBFF",border:"#4C9FEF",fg:"#000000"},
   revisit:{bg:"rgba(255,159,28,0.24)",border:"#FF9F1C",fg:"#FFE0AD"},
   inspection:{bg:"rgba(138,92,246,0.22)",border:"#9D7BFF",fg:"#E5DCFF"},
   call:{bg:"rgba(51,214,172,0.22)",border:COLORS.teal,fg:"#B9F5E4"},
