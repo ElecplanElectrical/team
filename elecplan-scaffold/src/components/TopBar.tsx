@@ -5,12 +5,9 @@ import { EVENT_COLOR } from "@/lib/theme";
 
 const UI = { bg: "rgba(3,16,31,.94)", panel: "#081b30", border: "rgba(77,150,221,.23)", text: "#f6f9ff", mute: "#8fa5bf", blue: "#168dff" };
 const CALENDAR_KEY = [
-  ["job", "Jobs"],
-  ["inspection", "Inspections"],
-  ["call", "Calls"],
-  ["admin", "Admin"],
-  ["material", "Materials"],
-  ["personal", "Personal"],
+  ["job-scheduled", "Scheduled"],
+  ["job-in-progress", "In progress"],
+  ["job-complete", "Complete"],
 ] as const;
 
 export default function TopBar({ title, subtitle, rightSlot }: { title: string; subtitle?: string; rightSlot?: ReactNode }) {
@@ -19,7 +16,7 @@ export default function TopBar({ title, subtitle, rightSlot }: { title: string; 
       <div className="min-w-0">
         <h1 className="truncate text-xl font-semibold tracking-[-0.02em] md:text-2xl" style={{ color: UI.text }}>{title}</h1>
         {subtitle && <p className="mt-0.5 truncate text-xs md:text-sm" style={{ color: UI.mute }}>{subtitle}</p>}
-        {title === "Calendar" && <div className="mt-2 flex max-w-full flex-wrap gap-x-3 gap-y-1.5">{CALENDAR_KEY.map(([type,label]) => { const c=EVENT_COLOR[type]; return <span key={type} className="inline-flex items-center gap-1.5 text-[10px] font-medium md:text-[11px]" style={{color:UI.mute}}><span className="h-2.5 w-2.5 rounded-sm" style={{background:c.bg,border:`1px solid ${c.border}`}}/>{label}</span>; })}</div>}
+        {title === "Calendar" && <div className="mt-2 flex max-w-full flex-wrap gap-x-4 gap-y-1.5">{CALENDAR_KEY.map(([type,label]) => { const c=EVENT_COLOR[type]; return <span key={type} className="inline-flex items-center gap-1.5 text-[10px] font-medium md:text-[11px]" style={{color:UI.mute}}><span className="h-2.5 w-2.5 rounded-full" style={{background:c.border}}/>{label}</span>; })}</div>}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <div className="relative hidden lg:block"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.mute }} /><input aria-label="Search" placeholder="Search jobs, clients, quotes..." className="h-10 w-60 rounded-lg bg-transparent pl-9 pr-3 text-xs outline-none xl:w-72" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text }} /></div>
