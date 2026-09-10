@@ -19,64 +19,30 @@ async function ensureQlsEmployeeProfiles(businessId: string) {
       await prisma.user.update({ where: { id: existingByEmail.id }, data: { name, role: "EMPLOYEE", businessId, active: true } });
       continue;
     }
-
     const existingByName = await prisma.user.findFirst({ where: { businessId, name, role: "EMPLOYEE" }, select: { id: true, email: true } });
     if (existingByName) continue;
-
-    await prisma.user.create({
-      data: {
-        name,
-        email,
-        role: "EMPLOYEE",
-        active: true,
-        businessId,
-        passwordHash: null,
-      },
-    });
+    await prisma.user.create({ data: { name, email, role: "EMPLOYEE", active: true, businessId, passwordHash: null } });
   }
 }
 
 export default async function EmployeesPage() {
   const actor = await requireAccess("employees");
   const businessId = actor.businessId ?? "__unassigned__";
-
-  if (actor.business?.slug === "qls" && actor.businessId) {
-    await ensureQlsEmployeeProfiles(actor.businessId);
-  }
+  if (actor.business?.slug === "qls" && actor.businessId) await ensureQlsEmployeeProfiles(actor.businessId);
 
   const users = await prisma.user.findMany({
     where: { businessId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      role: true,
-      active: true,
-      passwordHash: true,
-      licenseNumber: true,
-      licenseExpiry: true,
-    },
+    select: { id:true,name:true,email:true,phone:true,role:true,active:true,passwordHash:true,licenseNumber:true,licenseExpiry:true },
     orderBy: [{ active: "desc" }, { name: "asc" }],
   });
-
+  const ids=users.map(u=>u.id);
+  let photoIds=new Set<string>();
+  if(ids.length){
+    const photos=await prisma.$queryRawUnsafe<Array<{userId:string}>>(`SELECT "userId" FROM "EmployeeProfilePhoto" WHERE "userId" IN (${ids.map((_,i)=>`$${i+1}`).join(",")})`,...ids).catch(()=>[]);
+    photoIds=new Set(photos.map(p=>p.userId));
+  }
   const rows: EmployeeRow[] = users.map((u) => ({
-    id: u.id,
-    name: u.name,
-    email: u.email.endsWith("@pending.qls.local") ? "Email to be added" : u.email,
-    phone: u.phone,
-    role: u.role,
-    active: u.active,
-    hasPassword: u.passwordHash != null,
-    licenseNumber: u.licenseNumber,
-    licenseExpiry: u.licenseExpiry?.toISOString() ?? null,
+    id:u.id,name:u.name,email:u.email.endsWith("@pending.qls.local")?"Email to be added":u.email,phone:u.phone,role:u.role,active:u.active,hasPassword:u.passwordHash!=null,licenseNumber:u.licenseNumber,licenseExpiry:u.licenseExpiry?.toISOString()??null,hasPhoto:photoIds.has(u.id),
   }));
-
-  return (
-    <EmployeesView
-      rows={rows}
-      currentUserId={actor.id}
-      assignableRoles={assignableRoles(actor.role)}
-    />
-  );
+  return <EmployeesView rows={rows} currentUserId={actor.id} assignableRoles={assignableRoles(actor.role)} />;
 }
