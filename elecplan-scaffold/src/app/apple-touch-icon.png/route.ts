@@ -5,36 +5,20 @@ export const runtime = "edge";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const host = url.hostname.toLowerCase();
+  const host = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? url.hostname)
+    .split(",")[0]
+    .split(":")[0]
+    .trim()
+    .toLowerCase();
 
   if (host === "qls.your-plan.com.au") {
-    const logoUrl = new URL("/qls-logo-transparent.svg", url.origin).toString();
-    const icon = React.createElement(
-      "div",
-      {
-        style: {
-          width: "180px",
-          height: "180px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#040605",
-          borderRadius: "36px",
-          padding: "20px",
-        },
-      },
-      React.createElement("img", {
-        src: logoUrl,
-        width: 140,
-        height: 140,
-        style: { objectFit: "contain" },
-      })
-    );
-
-    return new ImageResponse(icon, {
-      width: 180,
-      height: 180,
+    const qlsIcon = new URL("/qls-ios-icon-v12.png?v=15", url.origin);
+    const response = await fetch(qlsIcon, { cache: "no-store" });
+    if (!response.ok) return new Response("QLS icon unavailable", { status: 502 });
+    const bytes = await response.arrayBuffer();
+    return new Response(bytes, {
       headers: {
+        "Content-Type": "image/png",
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
       },
     });
