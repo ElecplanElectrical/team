@@ -10,17 +10,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = rawHost.split(",")[0].split(":")[0].trim().toLowerCase();
   const isQLS = host === "qls.your-plan.com.au";
   const name = isQLS ? "QLS Portal" : BRAND.name;
-  const appleIcon = isQLS ? "/qls-ios-icon-v10.png?v=18" : "/apple-touch-icon.png";
+  const appleIcon = isQLS ? "/qls-home-icon-clean-v19.jpg?v=19" : "/apple-touch-icon.png";
 
   return {
     title: { default: name, template: `%s | ${name}` },
     description: isQLS ? "Private Quality Landscape Solutions team portal." : BRAND.description,
     applicationName: name,
-    manifest: isQLS ? "/qls-manifest-v8.webmanifest?v=18" : "/manifest.webmanifest",
+    manifest: isQLS ? "/qls-manifest-v8.webmanifest?v=19" : "/manifest.webmanifest",
     icons: {
       icon: appleIcon,
       shortcut: appleIcon,
-      apple: [{ url: appleIcon, sizes: "180x180", type: "image/png" }],
+      apple: [{ url: appleIcon, sizes: "512x512", type: "image/jpeg" }],
     },
     appleWebApp: { capable: true, title: name, statusBarStyle: "black-translucent" },
   };
