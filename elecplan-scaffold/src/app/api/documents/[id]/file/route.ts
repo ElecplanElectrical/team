@@ -7,17 +7,18 @@ import { createDownloadUrl } from "@/lib/storage";
 export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canAccess(user.role, "documents")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
   if (!user.businessId) return NextResponse.json({ error: "No active customer business selected." }, { status: 409 });
-  const businessId = user.businessId;
 
   const { id } = await context.params;
   const document = await prisma.document.findFirst({
-    where: { id, businessId },
-    select: { storageKey: true, fileUrl: true, fileData: true, contentType: true, originalName: true },
+    where: { id, businessId: user.businessId },
+    select: { type: true, storageKey: true, fileUrl: true, fileData: true, contentType: true, originalName: true },
   });
   if (!document) return NextResponse.json({ error: "Document not found for this business" }, { status: 404 });
+
+  const isTeamChatPhoto = document.type === "TEAM_CHAT_PHOTO";
+  const allowed = isTeamChatPhoto ? canAccess(user.role, "teamChat") : canAccess(user.role, "documents");
+  if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   if (document.storageKey) return NextResponse.redirect(createDownloadUrl(document.storageKey));
 
