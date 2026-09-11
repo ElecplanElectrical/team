@@ -5,75 +5,19 @@ import { getSessionUser } from "@/lib/session";
 import { EVENT_TYPES } from "@/lib/theme";
 import { recordAudit } from "@/lib/audit";
 
-const eventSchema = z.object({ title: z.string().trim().max(120).optional().nullable(), notes: z.string().trim().max(2000).optional().nullable(), type: z.enum(EVENT_TYPES), jobId: z.string().cuid().optional().nullable(), assignedToId: z.string().cuid().optional().nullable(), startsAt: z.string().datetime(), endsAt: z.string().datetime() }).refine((d) => new Date(d.endsAt) > new Date(d.startsAt), { message: "End time must be after start time", path: ["endsAt"] });
-
-async function context() {
-  const user = await getSessionUser();
-  if (!user) return null;
-  if (!user.businessId) return null;
-  return { user, businessId: user.businessId };
+const eventSchema = z.object({ title:z.string().trim().max(120).optional().nullable(), notes:z.string().trim().max(2000).optional().nullable(), type:z.enum(EVENT_TYPES), jobId:z.string().cuid().optional().nullable(), assignedToId:z.string().cuid().optional().nullable(), assignedToIds:z.array(z.string().cuid()).max(50).optional(), startsAt:z.string().datetime(), endsAt:z.string().datetime() }).refine(d=>new Date(d.endsAt)>new Date(d.startsAt),{message:"End time must be after start time",path:["endsAt"]});
+async function context(){const user=await getSessionUser();if(!user||!user.businessId)return null;return{user,businessId:user.businessId}}
+export async function GET(){const ctx=await context();if(!ctx)return NextResponse.json({error:"Unauthorized or no active customer business selected"},{status:401});const{user,businessId}=ctx;const rows=await prisma.$queryRaw<Array<{id:string;title:string|null;notes:string|null;type:string;startsAt:Date;endsAt:Date;jobId:string|null;assignedToId:string|null;assignedToIds:string[];assignedToNames:string[];jobTitle:string|null;jobAddress:string|null;jobStatus:string|null;clientId:string|null;clientName:string|null}>>`
+ SELECT e."id",e."title",e."notes",e."type",e."startsAt",e."endsAt",e."jobId",e."assignedToId",
+ COALESCE(array_agg(DISTINCT a."userId") FILTER (WHERE a."userId" IS NOT NULL),ARRAY[]::text[]) AS "assignedToIds",
+ COALESCE(array_agg(DISTINCT u."name") FILTER (WHERE u."name" IS NOT NULL),ARRAY[]::text[]) AS "assignedToNames",
+ j."title" AS "jobTitle",j."address" AS "jobAddress",j."status"::text AS "jobStatus",c."id" AS "clientId",c."name" AS "clientName"
+ FROM "JobEvent" e LEFT JOIN "Job" j ON j."id"=e."jobId" LEFT JOIN "Client" c ON c."id"=j."clientId"
+ LEFT JOIN "JobEventAssignee" a ON a."eventId"=e."id" LEFT JOIN "User" u ON u."id"=a."userId"
+ WHERE (j."businessId"=${businessId} OR (e."jobId" IS NULL AND EXISTS(SELECT 1 FROM "User" owner WHERE owner."id"=e."assignedToId" AND owner."businessId"=${businessId})))
+ ${user.role==="EMPLOYEE"?prisma.$queryRaw``:prisma.$queryRaw``}
+ GROUP BY e."id",j."id",c."id" ORDER BY e."startsAt" ASC`;
+ const visible=user.role==="EMPLOYEE"?rows.filter(r=>r.assignedToIds.includes(user.id)||r.assignedToId===user.id):rows;
+ return NextResponse.json(visible.map(r=>({id:r.id,title:r.title,notes:r.notes,type:r.type,startsAt:r.startsAt,endsAt:r.endsAt,assignedTo:{id:r.assignedToId,name:r.assignedToNames[0]??null},assignedToIds:r.assignedToIds,assignedToNames:r.assignedToNames,job:r.jobId?{id:r.jobId,title:r.jobTitle,address:r.jobAddress,status:r.jobStatus,client:{id:r.clientId,name:r.clientName}}:null})));
 }
-
-export async function GET() {
-  const ctx = await context();
-  if (!ctx) return NextResponse.json({ error: "Unauthorized or no active customer business selected" }, { status: 401 });
-  const { user, businessId } = ctx;
-
-  const tenantScope = { OR: [{ job: { businessId } }, { jobId: null, assignedTo: { businessId } }] };
-  const events = await prisma.jobEvent.findMany({
-    where: user.role === "EMPLOYEE"
-      ? { AND: [tenantScope, { assignedToId: user.id }] }
-      : tenantScope,
-    select: {
-      id: true,
-      title: true,
-      notes: true,
-      type: true,
-      startsAt: true,
-      endsAt: true,
-      assignedTo: { select: { id: true, name: true, email: true } },
-      job: { select: { id: true, title: true, address: true, status: true, client: { select: { id: true, name: true } } } },
-    },
-    orderBy: { startsAt: "asc" },
-  });
-
-  return NextResponse.json(events);
-}
-
-export async function POST(req: Request) {
-  const ctx = await context();
-  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { user, businessId } = ctx;
-
-  const parsed = eventSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
-  const data = parsed.data;
-  if (user.role === "EMPLOYEE" && (data.type === "job" || data.jobId)) return NextResponse.json({ error: "Job scheduling must be done by an admin or supervisor" }, { status: 403 });
-
-  const assignedToId = user.role === "EMPLOYEE" ? user.id : data.assignedToId ?? (data.jobId ? null : user.id);
-  if (assignedToId) {
-    const assignee = await prisma.user.findFirst({ where: { id: assignedToId, businessId, active: true }, select: { id: true } });
-    if (!assignee) return NextResponse.json({ error: "Assignee not found for this business or inactive" }, { status: 400 });
-  }
-  if (data.jobId) {
-    const job = await prisma.job.findFirst({ where: { id: data.jobId, businessId }, select: { id: true } });
-    if (!job) return NextResponse.json({ error: "Job not found for this business" }, { status: 404 });
-  }
-
-  const startsAt = new Date(data.startsAt), endsAt = new Date(data.endsAt);
-  try {
-    const event = await prisma.$transaction(async (tx) => {
-      const created = await tx.jobEvent.create({ data: { title: data.title?.trim() || null, notes: data.notes?.trim() || null, type: data.type, jobId: data.jobId ?? null, assignedToId, startsAt, endsAt } });
-      if (data.type === "job" && data.jobId) {
-        const existing = await tx.job.findFirst({ where: { id: data.jobId, businessId }, select: { status: true } });
-        if (!existing) throw new Error("JOB_NOT_FOUND");
-        await tx.job.updateMany({ where: { id: data.jobId, businessId }, data: { scheduledStart: startsAt, scheduledEnd: endsAt, assignedToId, ...(existing.status === "QUOTED" ? { status: "SCHEDULED" as const } : {}) } });
-      }
-      return created;
-    });
-    if (data.type === "job" && data.jobId) await recordAudit({ actor: user, action: "CALENDAR_JOB_EVENT_CREATED", entityType: "JobEvent", entityId: event.id, details: { businessId, jobId: data.jobId, assignedToId } });
-    return NextResponse.json(event, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Could not create event (check job/assignee)" }, { status: 400 });
-  }
-}
+export async function POST(req:Request){const ctx=await context();if(!ctx)return NextResponse.json({error:"Unauthorized"},{status:401});const{user,businessId}=ctx;const parsed=eventSchema.safeParse(await req.json().catch(()=>null));if(!parsed.success)return NextResponse.json({error:"Invalid input",issues:parsed.error.flatten()},{status:400});const d=parsed.data;if(user.role==="EMPLOYEE"&&(d.type==="job"||d.jobId))return NextResponse.json({error:"Job scheduling must be done by an admin or supervisor"},{status:403});let ids=user.role==="EMPLOYEE"?[user.id]:[...new Set(d.assignedToIds??(d.assignedToId?[d.assignedToId]:[]))];if(!ids.length&&!d.jobId)ids=[user.id];if(ids.length){const valid=await prisma.user.findMany({where:{id:{in:ids},businessId,active:true},select:{id:true}});if(valid.length!==ids.length)return NextResponse.json({error:"One or more assignees are invalid or inactive"},{status:400})}if(d.jobId){const job=await prisma.job.findFirst({where:{id:d.jobId,businessId},select:{id:true}});if(!job)return NextResponse.json({error:"Job not found for this business"},{status:404})}const primary=ids[0]??null,startsAt=new Date(d.startsAt),endsAt=new Date(d.endsAt);try{const event=await prisma.$transaction(async tx=>{const created=await tx.jobEvent.create({data:{title:d.title?.trim()||null,notes:d.notes?.trim()||null,type:d.type,jobId:d.jobId??null,assignedToId:primary,startsAt,endsAt}});for(const id of ids)await tx.$executeRaw`INSERT INTO "JobEventAssignee" ("eventId","userId") VALUES (${created.id},${id}) ON CONFLICT DO NOTHING`;if(d.type==="job"&&d.jobId){const existing=await tx.job.findFirst({where:{id:d.jobId,businessId},select:{status:true}});if(!existing)throw new Error("JOB_NOT_FOUND");await tx.job.updateMany({where:{id:d.jobId,businessId},data:{scheduledStart:startsAt,scheduledEnd:endsAt,assignedToId:primary,...(existing.status==="QUOTED"?{status:"SCHEDULED" as const}:{})}})}return created});if(d.type==="job"&&d.jobId)await recordAudit({actor:user,action:"CALENDAR_JOB_EVENT_CREATED",entityType:"JobEvent",entityId:event.id,details:{businessId,jobId:d.jobId,assignedToIds:ids}});return NextResponse.json({...event,assignedToIds:ids},{status:201})}catch{return NextResponse.json({error:"Could not create event (check job/assignee)"},{status:400})}}
