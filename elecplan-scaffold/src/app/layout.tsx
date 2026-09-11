@@ -10,13 +10,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = rawHost.split(",")[0].split(":")[0].trim().toLowerCase();
   const isQLS = host === "qls.your-plan.com.au";
   const name = isQLS ? "QLS Portal" : BRAND.name;
-  const appleIcon = "/apple-touch-icon.png?v=15";
+  const appleIcon = isQLS ? "/qls-ios-icon-v11.png?v=16" : "/apple-touch-icon.png";
 
   return {
     title: { default: name, template: `%s | ${name}` },
     description: isQLS ? "Private Quality Landscape Solutions team portal." : BRAND.description,
     applicationName: name,
-    manifest: "/manifest.webmanifest?v=15",
+    manifest: isQLS ? "/qls-manifest-v8.webmanifest?v=16" : "/manifest.webmanifest",
     icons: {
       icon: appleIcon,
       shortcut: appleIcon,
