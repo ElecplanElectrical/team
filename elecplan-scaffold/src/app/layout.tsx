@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "").split(":")[0].toLowerCase();
   const isQLS = host === "qls.your-plan.com.au";
   const name = isQLS ? "QLS Portal" : BRAND.name;
-  const appleIcon = isQLS ? "/qls-ios-icon-v12.png?v=12" : "/apple-touch-icon.png";
+  const appleIcon = isQLS ? "/qls-ios-icon-v13.png" : "/apple-touch-icon.png";
 
   return {
     title: { default: name, template: `%s | ${name}` },
