@@ -6,16 +6,17 @@ import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
-  const host = (requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "").split(":")[0].toLowerCase();
+  const rawHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+  const host = rawHost.split(",")[0].split(":")[0].trim().toLowerCase();
   const isQLS = host === "qls.your-plan.com.au";
   const name = isQLS ? "QLS Portal" : BRAND.name;
-  const appleIcon = isQLS ? "/qls-ios-icon-v13.png" : "/apple-touch-icon.png";
+  const appleIcon = "/apple-touch-icon.png?v=15";
 
   return {
     title: { default: name, template: `%s | ${name}` },
     description: isQLS ? "Private Quality Landscape Solutions team portal." : BRAND.description,
     applicationName: name,
-    manifest: isQLS ? undefined : "/manifest.webmanifest",
+    manifest: "/manifest.webmanifest?v=15",
     icons: {
       icon: appleIcon,
       shortcut: appleIcon,
