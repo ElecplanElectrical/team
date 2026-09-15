@@ -4,7 +4,7 @@ const { Pool } = pg;
 const app = express();
 app.use(express.json());
 const port = process.env.PORT || 3000;
-const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized:false } : false }) : null;
+const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 const demo = {
   updatedAt: new Date().toISOString(),
@@ -25,38 +25,20 @@ async function initDb(){
  if(!pool) return;
  await pool.query(`CREATE TABLE IF NOT EXISTS raceedge_tip_results (id BIGSERIAL PRIMARY KEY, meeting TEXT NOT NULL, race_no INT NOT NULL, runner TEXT NOT NULL, score NUMERIC, price NUMERIC, result_position INT, created_at TIMESTAMPTZ DEFAULT NOW())`);
 }
-
 function scoreRunner(r={}){
  const weights={form:.25,speed:.20,classRating:.15,pace:.15,conditions:.15,barrier:.10};
  const val=(k,d=50)=>Number.isFinite(Number(r[k]))?Number(r[k]):d;
  return Math.round(Object.entries(weights).reduce((s,[k,w])=>s+val(k)*w,0));
 }
-
-app.get('/health', async (_req,res)=>{
- let database='not-configured';
- if(pool){ try{await pool.query('SELECT 1');database='ok';}catch{database='error';} }
- res.json({ok:true,service:'raceedge',database,time:new Date().toISOString()});
-});
+app.get('/health', async (_req,res)=>{let database='not-configured';if(pool){try{await pool.query('SELECT 1');database='ok';}catch{database='error';}}res.json({ok:true,service:'raceedge',database,time:new Date().toISOString()});});
 app.get('/api/v1/home', (_req,res)=>res.json(demo));
 app.post('/api/v1/rating', (req,res)=>res.json({score:scoreRunner(req.body),weights:{form:.25,speed:.20,class:.15,pace:.15,conditions:.15,barrier:.10}}));
 app.get('/api/v1/provider/next-to-go', async (_req,res)=>{
  const key=process.env.PUNTERSEDGE_API_KEY;
  if(!key) return res.status(503).json({connected:false,message:'Live racing provider key not configured yet.',demo});
- try{
-  const base=process.env.PUNTERSEDGE_BASE_URL || 'https://api.puntersedge.online';
-  const response=await fetch(`${base}/v1/racing/next-to-go`,{headers:{Authorization:`Bearer ${key}`,'x-api-key':key,Accept:'application/json'}});
-  const text=await response.text();
-  res.status(response.status).type(response.headers.get('content-type')||'application/json').send(text);
- }catch(e){res.status(502).json({connected:false,error:'Provider request failed'});}
+ try{const base=process.env.PUNTERSEDGE_BASE_URL||'https://api.puntersedge.online';const response=await fetch(`${base}/v1/racing/next-to-go`,{headers:{Authorization:`Bearer ${key}`,'x-api-key':key,Accept:'application/json'}});const text=await response.text();res.status(response.status).type(response.headers.get('content-type')||'application/json').send(text);}catch{res.status(502).json({connected:false,error:'Provider request failed'});}
 });
-app.get('/api/v1/results',async(_req,res)=>{
- if(!pool)return res.json([]);
- const {rows}=await pool.query('SELECT * FROM raceedge_tip_results ORDER BY created_at DESC LIMIT 100');res.json(rows);
-});
-app.post('/api/v1/results',async(req,res)=>{
- if(!pool)return res.status(503).json({error:'Database not configured'});
- const {meeting,raceNo,runner,score,price,resultPosition}=req.body;
- const {rows}=await pool.query('INSERT INTO raceedge_tip_results(meeting,race_no,runner,score,price,result_position) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',[meeting,raceNo,runner,score,price,resultPosition]);res.status(201).json(rows[0]);
-});
+app.get('/api/v1/results',async(_req,res)=>{if(!pool)return res.json([]);const {rows}=await pool.query('SELECT * FROM raceedge_tip_results ORDER BY created_at DESC LIMIT 100');res.json(rows);});
+app.post('/api/v1/results',async(req,res)=>{if(!pool)return res.status(503).json({error:'Database not configured'});const {meeting,raceNo,runner,score,price,resultPosition}=req.body;const {rows}=await pool.query('INSERT INTO raceedge_tip_results(meeting,race_no,runner,score,price,result_position) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',[meeting,raceNo,runner,score,price,resultPosition]);res.status(201).json(rows[0]);});
 app.use(express.static('public'));
 initDb().then(()=>app.listen(port,'0.0.0.0',()=>console.log(`RaceEdge listening on ${port}`))).catch(e=>{console.error(e);process.exit(1)});
