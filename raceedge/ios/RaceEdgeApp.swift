@@ -5,12 +5,19 @@ struct RaceEdgeApp: App {
     var body: some Scene {
         WindowGroup {
             TabView {
-                HomeView().tabItem { Label("Home", systemImage: "house.fill") }
-                Text("Races").tabItem { Label("Races", systemImage: "flag.checkered") }
-                Text("Tips").tabItem { Label("Tips", systemImage: "star.fill") }
-                Text("Results").tabItem { Label("Results", systemImage: "chart.bar.fill") }
-                Text("More").tabItem { Label("More", systemImage: "ellipsis") }
-            }.tint(.green).preferredColorScheme(.dark)
+                HomeView()
+                    .tabItem { Label("Home", systemImage: "house.fill") }
+                RacesView()
+                    .tabItem { Label("Races", systemImage: "flag.checkered") }
+                TipsView()
+                    .tabItem { Label("Tips", systemImage: "star.fill") }
+                ResultsView()
+                    .tabItem { Label("Results", systemImage: "chart.bar.fill") }
+                MoreView()
+                    .tabItem { Label("More", systemImage: "ellipsis") }
+            }
+            .tint(.green)
+            .preferredColorScheme(.dark)
         }
     }
 }
