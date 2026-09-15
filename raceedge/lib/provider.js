@@ -1,4 +1,4 @@
-import { normalizeProviderPayload } from './normalizers.js';
+import { normalizeProviderPayload, normalizeChanges } from './normalizers.js';
 
 const defaultBaseURL = 'https://api.puntersedge.online';
 
@@ -28,11 +28,24 @@ export async function puntersEdgeRequest(path) {
   return body ? JSON.parse(body) : null;
 }
 
-export async function getNextToGo() {
-  return puntersEdgeRequest('/v1/racing/next-to-go');
-}
+export const getNextToGo = () => puntersEdgeRequest('/v1/racing/next-to-go');
+export const getEvents = () => puntersEdgeRequest('/v1/racing/events');
+export const getResults = () => puntersEdgeRequest('/v1/racing/results');
+export const getAcceptances = () => puntersEdgeRequest('/v1/racing/acceptances');
+export const getChanges = () => puntersEdgeRequest('/v1/racing/changes');
 
 export async function getNormalizedNextToGo() {
-  const payload = await getNextToGo();
-  return normalizeProviderPayload(payload);
+  return normalizeProviderPayload(await getNextToGo());
+}
+
+export async function getNormalizedEvents() {
+  return normalizeProviderPayload(await getEvents());
+}
+
+export async function getNormalizedAcceptances() {
+  return normalizeProviderPayload(await getAcceptances());
+}
+
+export async function getNormalizedChanges() {
+  return normalizeChanges(await getChanges());
 }
