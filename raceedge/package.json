@@ -1,8 +1,16 @@
 {
   "name": "raceedge",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
-  "scripts": {"start":"node server.js"},
-  "dependencies": {"express":"^5.1.0","pg":"^8.16.3"}
+  "packageManager": "npm@11.3.0",
+  "engines": {"node": ">=20 <25"},
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check lib/provider.js && node --check lib/normalizers.js && node --check lib/ratingEngine.js && node --check lib/backtest.js && node --check lib/liveStore.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.16.3"
+  }
 }
