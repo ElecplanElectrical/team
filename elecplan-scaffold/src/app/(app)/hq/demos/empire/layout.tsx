@@ -1,2 +1,1 @@
-import type{ReactNode}from"react";import EmpireDemoShell from"@/components/EmpireDemoShell";
-export default function EmpireDemoLayout({children}:{children:ReactNode}){return <EmpireDemoShell>{children}</EmpireDemoShell>}
+import type{ReactNode}from"react";import EmpireDemoShell from"@/components/EmpireDemoShell";import EmpirePresentationControls from"@/components/EmpirePresentationControls";export default function EmpireDemoLayout({children}:{children:ReactNode}){return <EmpireDemoShell>{children}<EmpirePresentationControls/></EmpireDemoShell>}
