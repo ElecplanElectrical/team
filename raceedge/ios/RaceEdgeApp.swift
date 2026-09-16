@@ -2,10 +2,12 @@ import SwiftUI
 
 @main
 struct RaceEdgeApp: App {
+    @StateObject private var api = RaceEdgeAPI()
+
     var body: some Scene {
         WindowGroup {
             TabView {
-                HomeView()
+                LiveTodayView(api: api)
                     .tabItem { Label("Home", systemImage: "house.fill") }
                 RacesView()
                     .tabItem { Label("Races", systemImage: "flag.checkered") }
@@ -18,6 +20,7 @@ struct RaceEdgeApp: App {
             }
             .tint(.green)
             .preferredColorScheme(.dark)
+            .task { await api.loadHome() }
         }
     }
 }
