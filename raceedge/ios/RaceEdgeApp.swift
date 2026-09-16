@@ -11,16 +11,16 @@ struct RaceEdgeApp: App {
                     .tabItem { Label("Home", systemImage: "house.fill") }
                 RacesView(api: api)
                     .tabItem { Label("Races", systemImage: "flag.checkered") }
-                TipsView()
+                TipsView(api: api)
                     .tabItem { Label("Tips", systemImage: "star.fill") }
-                ResultsView()
+                ResultsView(api: api)
                     .tabItem { Label("Results", systemImage: "chart.bar.fill") }
                 MoreView()
                     .tabItem { Label("More", systemImage: "ellipsis") }
             }
             .tint(.green)
             .preferredColorScheme(.dark)
-            .task { await api.loadHome() }
+            .task { if api.home == nil && api.liveToday == nil { await api.loadHome() } }
         }
     }
 }
