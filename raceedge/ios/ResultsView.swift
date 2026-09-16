@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ResultsView: View {
-    @StateObject private var api = RaceEdgeAPI()
+    @ObservedObject var api: RaceEdgeAPI
 
     var body: some View {
         NavigationStack {
@@ -41,11 +41,12 @@ struct ResultsView: View {
                         }
 
                         if let message=api.errorMessage { Text(message).foregroundStyle(.secondary) }
+                        Text("Historical results describe recorded performance only and do not guarantee future outcomes.").font(.caption).foregroundStyle(.secondary)
                     }.padding()
                 }
             }
             .navigationTitle("Results")
-            .task { await api.loadResultsAndPerformance() }
+            .task { if api.performance == nil && api.results.isEmpty { await api.loadResultsAndPerformance() } }
             .refreshable { await api.loadResultsAndPerformance() }
         }
         .preferredColorScheme(.dark)
