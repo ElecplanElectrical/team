@@ -30,25 +30,28 @@ export function normalizeProviderPayload(payload={}) {
 
 export function normalizeChanges(payload={}) {
   const source=Array.isArray(payload)?payload:payload.changes??payload.data??payload.events??[];
-  return (Array.isArray(source)?source:[]).map(raw=>({
-    providerId:text(raw.id??raw.change_id),
-    meetingId:text(raw.meeting_id??raw.meetingId),
-    raceId:text(raw.race_id??raw.raceId??raw.event_id),
-    raceNo:number(raw.race_no??raw.race_number),
-    runnerId:text(raw.runner_id??raw.competitor_id),
-    runnerNumber:number(raw.runner_number??raw.number??raw.tab_number),
-    runnerName:text(raw.runner_name??raw.name),
-    type:text(raw.type??raw.change_type??(raw.scratched?'scratching':null)),
-    scratched:Boolean(raw.scratched??raw.is_scratched??String(raw.type??'').toLowerCase().includes('scratch')),
-    timestamp:text(raw.updated_at??raw.timestamp??raw.created_at)
-  }));
+  return (Array.isArray(source)?source:[]).map(raw=>({providerId:text(raw.id??raw.change_id),meetingId:text(raw.meeting_id??raw.meetingId),raceId:text(raw.race_id??raw.raceId??raw.event_id),raceNo:number(raw.race_no??raw.race_number),runnerId:text(raw.runner_id??raw.competitor_id),runnerNumber:number(raw.runner_number??raw.number??raw.tab_number),runnerName:text(raw.runner_name??raw.name),type:text(raw.type??raw.change_type??(raw.scratched?'scratching':null)),scratched:Boolean(raw.scratched??raw.is_scratched??String(raw.type??'').toLowerCase().includes('scratch')),timestamp:text(raw.updated_at??raw.timestamp??raw.created_at)}));
 }
 
 export function applyChangesToRace(race, changes=[]) {
   if (!race?.runners) return race;
-  const relevant=changes.filter(change=>!change.raceId||!race.providerId||change.raceId===race.providerId);
-  return {...race,runners:race.runners.map(runner=>{
-    const change=relevant.find(c=>(c.runnerId&&runner.providerId&&c.runnerId===runner.providerId)||(c.runnerNumber!=null&&runner.number!=null&&Number(c.runnerNumber)===Number(runner.number)));
-    return change?.scratched?{...runner,scratched:true}:runner;
-  }),scratchingsChecked:true};
+  const relevant=changes.filter(change=>(!change.raceId||!race.providerId||change.raceId===race.providerId)&&(!change.raceNo||!race.raceNo||Number(change.raceNo)===Number(race.raceNo)));
+  return {...race,runners:race.runners.map(runner=>{const change=relevant.find(c=>(c.runnerId&&runner.providerId&&c.runnerId===runner.providerId)||(c.runnerNumber!=null&&runner.number!=null&&Number(c.runnerNumber)===Number(runner.number)));return change?.scratched?{...runner,scratched:true}:runner;}),scratchingsChecked:true};
+}
+
+export function applyChangesToEvents(events=[], changes=[]) {
+  return (Array.isArray(events)?events:[]).map(event=>({
+    ...event,
+    races:(event.races??[]).map(race=>applyChangesToRace(race,changes.filter(change=>!change.meetingId||!event.meeting?.providerId||change.meetingId===event.meeting.providerId)) )
+  }));
+}
+
+export function normalizeResults(payload={}) {
+  const source=Array.isArray(payload)?payload:payload.results??payload.data??payload.events??[];
+  return (Array.isArray(source)?source:[]).flatMap(raw=>{
+    const meeting=normalizeMeeting(raw);
+    const races=raw.races??raw.results??(raw.race?[raw.race]:[]);
+    if(Array.isArray(races)&&races.length) return races.map(race=>({meeting,providerId:text(race.id??race.race_id),raceNo:number(race.race_no??race.race_number??race.number),status:text(race.status),winnerNumber:number(race.winner_number??race.winner?.number??race.first?.number),winnerName:text(race.winner_name??race.winner?.name??race.first?.name),results:Array.isArray(race.runners??race.results)?(race.runners??race.results).map(r=>({number:number(r.number??r.runner_number),name:text(r.name??r.runner_name),position:number(r.position??r.place),price:number(r.price??r.odds)})):[]}));
+    return [{meeting,providerId:text(raw.id??raw.race_id),raceNo:number(raw.race_no??raw.race_number),status:text(raw.status),winnerNumber:number(raw.winner_number??raw.winner?.number),winnerName:text(raw.winner_name??raw.winner?.name),results:[]}];
+  });
 }
