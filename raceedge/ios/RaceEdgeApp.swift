@@ -9,7 +9,7 @@ struct RaceEdgeApp: App {
             TabView {
                 LiveTodayView(api: api)
                     .tabItem { Label("Home", systemImage: "house.fill") }
-                RacesView()
+                RacesView(api: api)
                     .tabItem { Label("Races", systemImage: "flag.checkered") }
                 TipsView()
                     .tabItem { Label("Tips", systemImage: "star.fill") }
