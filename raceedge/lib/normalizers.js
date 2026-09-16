@@ -1,5 +1,12 @@
 const text = value => value == null ? null : String(value).trim();
 const number = value => Number.isFinite(Number(value)) ? Number(value) : null;
+const firstNumber = (...values) => {
+  for (const value of values) {
+    const parsed = number(value);
+    if (parsed != null) return parsed;
+  }
+  return null;
+};
 
 export function normalizeRaceCode(value) {
   const code = String(value ?? '').toUpperCase();
@@ -14,8 +21,42 @@ export function normalizeMeeting(raw={}) {
   return {providerId:text(raw.id??raw.event_id??raw.meeting_id),code:normalizeRaceCode(raw.code??raw.race_type??raw.type),name:text(raw.name??venue.name??raw.venue_name??raw.track_name),state:text(raw.state??venue.state??raw.region),date:text(raw.date??raw.meeting_date??raw.start_date),condition:text(raw.track_condition??raw.condition??raw.going),status:text(raw.status)??'Open'};
 }
 
+function extractRaceEdgeFactors(raw={}) {
+  const stats = raw.stats ?? raw.statistics ?? raw.form_stats ?? {};
+  const ratings = raw.ratings ?? raw.rating ?? {};
+  const factors = {
+    form: firstNumber(raw.form_rating, ratings.form, stats.form_rating, raw.form),
+    speed: firstNumber(raw.speed_rating, ratings.speed, stats.speed_rating, raw.speed),
+    classRating: firstNumber(raw.class_rating, ratings.class, stats.class_rating, raw.class),
+    pace: firstNumber(raw.pace_rating, ratings.pace, stats.pace_rating, raw.pace),
+    conditions: firstNumber(raw.conditions_rating, ratings.conditions, stats.conditions_rating, stats.track_condition_rating, raw.track_rating),
+    barrier: firstNumber(raw.barrier_rating, ratings.barrier, stats.barrier_rating, raw.box_rating, raw.draw_rating)
+  };
+  const sources = Object.fromEntries(Object.entries(factors).map(([key,value]) => [key, value == null ? null : 'provider']));
+  return { factors, sources };
+}
+
 export function normalizeRunner(raw={}) {
-  return {providerId:text(raw.id??raw.runner_id??raw.competitor_id),number:number(raw.number??raw.runner_number??raw.tab_number),name:text(raw.name??raw.runner_name??raw.horse_name??raw.greyhound_name),barrier:number(raw.barrier??raw.box??raw.draw),weight:number(raw.weight),jockey:text(raw.jockey??raw.driver),trainer:text(raw.trainer),price:number(raw.price??raw.odds??raw.fixed_odds),scratched:Boolean(raw.scratched??raw.is_scratched??false),form:number(raw.form_rating??raw.form),speed:number(raw.speed_rating??raw.speed),classRating:number(raw.class_rating??raw.class),pace:number(raw.pace_rating??raw.pace),conditions:number(raw.conditions_rating??raw.track_rating),barrierRating:number(raw.barrier_rating)};
+  const mapped = extractRaceEdgeFactors(raw);
+  return {
+    providerId:text(raw.id??raw.runner_id??raw.competitor_id),
+    number:number(raw.number??raw.runner_number??raw.tab_number),
+    name:text(raw.name??raw.runner_name??raw.horse_name??raw.greyhound_name),
+    barrier:number(raw.barrier??raw.box??raw.draw),
+    weight:number(raw.weight),
+    jockey:text(raw.jockey??raw.driver),
+    trainer:text(raw.trainer),
+    price:number(raw.price??raw.odds??raw.fixed_odds),
+    scratched:Boolean(raw.scratched??raw.is_scratched??false),
+    form:mapped.factors.form,
+    speed:mapped.factors.speed,
+    classRating:mapped.factors.classRating,
+    pace:mapped.factors.pace,
+    conditions:mapped.factors.conditions,
+    barrierRating:mapped.factors.barrier,
+    factorSources:mapped.sources,
+    rawFactorCoverage:Object.values(mapped.factors).filter(value=>value!=null).length
+  };
 }
 
 export function normalizeRace(raw={}) {
@@ -40,10 +81,7 @@ export function applyChangesToRace(race, changes=[]) {
 }
 
 export function applyChangesToEvents(events=[], changes=[]) {
-  return (Array.isArray(events)?events:[]).map(event=>({
-    ...event,
-    races:(event.races??[]).map(race=>applyChangesToRace(race,changes.filter(change=>!change.meetingId||!event.meeting?.providerId||change.meetingId===event.meeting.providerId)) )
-  }));
+  return (Array.isArray(events)?events:[]).map(event=>({...event,races:(event.races??[]).map(race=>applyChangesToRace(race,changes.filter(change=>!change.meetingId||!event.meeting?.providerId||change.meetingId===event.meeting.providerId)))}));
 }
 
 export function normalizeResults(payload={}) {
