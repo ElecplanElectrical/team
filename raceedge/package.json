@@ -7,7 +7,8 @@
   "engines": {"node": ">=20 <25"},
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check lib/provider.js && node --check lib/normalizers.js && node --check lib/ratingEngine.js && node --check lib/backtest.js && node --check lib/liveStore.js"
+    "test": "node --test test/*.test.js",
+    "check": "node --check server.js && node --check lib/provider.js && node --check lib/normalizers.js && node --check lib/ratingEngine.js && node --check lib/backtest.js && node --check lib/liveStore.js && npm test"
   },
   "dependencies": {
     "express": "^5.1.0",
