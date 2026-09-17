@@ -10,50 +10,94 @@ struct TipsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.raceEdgeNavy.ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        header
+
                         if !bestBets.isEmpty {
-                            Text("Today's Best Bets").font(.title2.bold())
+                            sectionTitle("Today's Best Bets", subtitle: "RaceEdge selections")
                             ForEach(bestBets) { tipCard($0) }
                         }
 
                         if !greyhoundTips.isEmpty {
-                            Text("Greyhound Selections").font(.title2.bold()).padding(.top, 4)
+                            sectionTitle("Greyhound Selections", subtitle: "Dedicated greyhound analysis")
+                                .padding(.top, 4)
                             ForEach(greyhoundTips) { tipCard($0) }
                         }
 
-                        if tips.isEmpty && api.errorMessage == nil {
-                            ProgressView()
-                        }
-
+                        if tips.isEmpty && api.errorMessage == nil { ProgressView().tint(.raceEdgeBlue) }
                         if let message = api.errorMessage { Text(message).foregroundStyle(.secondary) }
-                        Text("RaceEdge ratings are analytical estimates and are not guaranteed outcomes.").font(.caption).foregroundStyle(.secondary).padding(.top,8)
-                    }.padding()
+
+                        Text("RaceEdge ratings are analytical estimates and are not guaranteed outcomes.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 8)
+                    }
+                    .padding()
                 }
             }
-            .navigationTitle("Tips")
+            .navigationBarHidden(true)
             .task { if api.home == nil { await api.loadHome() } }
             .refreshable { await api.loadHome() }
         }
         .preferredColorScheme(.dark)
     }
 
-    private func tipCard(_ tip: RaceTip) -> some View {
-        VStack(alignment:.leading,spacing:8) {
-            Text(tip.label ?? "RACEEDGE").font(.caption.bold()).foregroundStyle(.green)
-            HStack {
-                Text("#\(tip.number ?? 0) \(tip.runner)").font(.headline)
-                Spacer()
-                if let score=tip.score { Text("\(score,specifier:"%.0f")").font(.title2.bold()).foregroundStyle(.green) }
-            }
-            HStack {
-                Text("\(tip.meeting) · Race \(tip.race)")
-                if let price=tip.price { Text("· $\(price,specifier:"%.2f")") }
-            }.foregroundStyle(.secondary)
-            if let reason=tip.reason { Text(reason).font(.footnote).foregroundStyle(.secondary) }
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("TIPS").font(.caption.bold()).tracking(2).foregroundStyle(.raceEdgeBlue)
+            Text("RaceEdge Selections").font(.largeTitle.bold())
+            Text("Top picks, dangers and value selections.").foregroundStyle(.secondary)
         }
-        .padding()
-        .background(.thinMaterial,in:RoundedRectangle(cornerRadius:16))
+    }
+
+    private func sectionTitle(_ title: String, subtitle: String) -> some View {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.title2.bold())
+                Text(subtitle).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+    }
+
+    private func tipCard(_ tip: RaceTip) -> some View {
+        HStack(spacing: 0) {
+            Rectangle().fill(.raceEdgeBlue).frame(width: 5)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text((tip.label ?? "RACEEDGE").uppercased())
+                        .font(.caption2.bold())
+                        .foregroundStyle(.raceEdgeBlue)
+                    Spacer()
+                    if let score = tip.score {
+                        VStack(spacing: 0) {
+                            Text("\(score, specifier: "%.0f")").font(.title.bold()).foregroundStyle(.raceEdgeBlue)
+                            Text("RATING").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                HStack(alignment: .firstTextBaseline) {
+                    Text("#\(tip.number ?? 0) \(tip.runner)").font(.title3.bold())
+                    Spacer()
+                    if let price = tip.price { Text("$\(price, specifier: "%.2f")").font(.title3.bold()) }
+                }
+
+                Text("\(tip.meeting) · Race \(tip.race)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                if let reason = tip.reason {
+                    Divider().overlay(Color.white.opacity(0.12))
+                    Text(reason).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            .padding(16)
+        }
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
+        .foregroundStyle(Color.black)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
