@@ -17,20 +17,14 @@ const schema = z.object({
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canAccess(user.role, "documents")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  if (!canAccess(user.role, "documents")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Document name, type and completed private upload are required" }, { status: 400 });
-  }
+  if (!parsed.success) return NextResponse.json({ error: "Document name, type and completed private upload are required" }, { status: 400 });
 
   const { name, type, jobId = null, commitToken } = parsed.data;
   const upload = verifyCommitToken(commitToken, "documents");
-  if (!upload) {
-    return NextResponse.json({ error: "Upload ticket is invalid or expired" }, { status: 400 });
-  }
+  if (!upload) return NextResponse.json({ error: "Upload ticket is invalid or expired" }, { status: 400 });
 
   if (jobId) {
     const job = await prisma.job.findUnique({ where: { id: jobId }, select: { id: true } });
@@ -42,13 +36,12 @@ export async function POST(req: Request) {
     data: {
       id,
       name,
-      type,
-      jobId,
-      fileUrl: `/api/documents/${id}/file`,
+      url: `/api/documents/${id}/file`,
       storageKey: upload.key,
-      originalName: upload.fileName,
-      contentType: upload.contentType,
+      mimeType: upload.contentType,
       sizeBytes: upload.sizeBytes,
+      kind: type,
+      jobId,
     },
   });
 
