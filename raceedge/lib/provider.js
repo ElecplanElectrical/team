@@ -1,17 +1,59 @@
 import { normalizeProviderPayload, normalizeChanges, normalizeResults } from './normalizers.js';
 
 const defaultBaseURL = 'https://api.puntersedge.online';
+const defaultTimeoutMs = 10000;
 
 export function providerConfigured() { return Boolean(process.env.PUNTERSEDGE_API_KEY); }
 
+export function providerTimeoutMs() {
+  const configured = Number(process.env.PUNTERSEDGE_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured >= 1000 && configured <= 30000 ? configured : defaultTimeoutMs;
+}
+
 export async function puntersEdgeRequest(path) {
   const key = process.env.PUNTERSEDGE_API_KEY;
-  if (!key) { const error = new Error('PuntersEdge API key is not configured'); error.code = 'PROVIDER_NOT_CONFIGURED'; throw error; }
+  if (!key) {
+    const error = new Error('PuntersEdge API key is not configured');
+    error.code = 'PROVIDER_NOT_CONFIGURED';
+    throw error;
+  }
+
   const baseURL = (process.env.PUNTERSEDGE_BASE_URL || defaultBaseURL).replace(/\/$/, '');
-  const response = await fetch(`${baseURL}${path}`, { headers: { 'X-API-Key': key, Accept: 'application/json' } });
-  const body = await response.text();
-  if (!response.ok) { const error = new Error(`PuntersEdge returned HTTP ${response.status}`); error.status = response.status; error.providerBody = body.slice(0, 500); throw error; }
-  return body ? JSON.parse(body) : null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), providerTimeoutMs());
+
+  try {
+    const response = await fetch(`${baseURL}${path}`, {
+      headers: { 'X-API-Key': key, Accept: 'application/json' },
+      signal: controller.signal
+    });
+    const body = await response.text();
+
+    if (!response.ok) {
+      const error = new Error(`PuntersEdge returned HTTP ${response.status}`);
+      error.status = response.status;
+      error.code = 'PROVIDER_HTTP_ERROR';
+      throw error;
+    }
+
+    if (!body) return null;
+    try {
+      return JSON.parse(body);
+    } catch {
+      const error = new Error('PuntersEdge returned invalid JSON');
+      error.code = 'PROVIDER_INVALID_JSON';
+      throw error;
+    }
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      const timeoutError = new Error('PuntersEdge request timed out');
+      timeoutError.code = 'PROVIDER_TIMEOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export const getNextToGo = () => puntersEdgeRequest('/v1/racing/next-to-go');
