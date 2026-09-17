@@ -361,9 +361,11 @@ model AuditLog {
 
 model RateLimitBucket {
   key         String   @id
-  count       Int      @default(0)
+  count       Int
   windowStart DateTime
-  updatedAt   DateTime @updatedAt
+  expiresAt   DateTime
+
+  @@index([expiresAt])
 }
 
 model Equipment {
