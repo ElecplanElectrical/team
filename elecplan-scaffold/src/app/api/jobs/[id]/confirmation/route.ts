@@ -58,7 +58,7 @@ async function confirmationForJob(id: string) {
       jobTitle: job.title,
       clientName: job.client.name,
       contactName: job.client.contactName,
-      phoneNumber: to,
+      to,
       address: job.address,
       scheduledStart: job.scheduledStart.toISOString(),
       scheduledEnd: job.scheduledEnd?.toISOString() ?? null,
@@ -137,7 +137,7 @@ export async function POST(
   try {
     const result = await sendSms(to, message);
     const smsLog = await prisma.smsLog.create({
-      data: { jobId: job.id, phoneNumber: to, message, status: "SENT", providerId: result.providerId },
+      data: { jobId: job.id, to, message, status: "SENT", providerId: result.providerId },
     });
     await recordAudit({
       actor: user,
@@ -146,10 +146,10 @@ export async function POST(
       entityId: job.id,
       details: { smsLogId: smsLog.id, providerAccepted: true },
     });
-    return NextResponse.json({ ok: true, phoneNumber: to });
+    return NextResponse.json({ ok: true, to });
   } catch (error) {
     const smsLog = await prisma.smsLog.create({
-      data: { jobId: job.id, phoneNumber: to, message, status: "FAILED" },
+      data: { jobId: job.id, to, message, status: "FAILED" },
     });
     await recordAudit({
       actor: user,
