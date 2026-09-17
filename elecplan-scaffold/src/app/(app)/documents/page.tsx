@@ -8,7 +8,7 @@ export default async function DocumentsPage() {
 
   const [documents, jobs] = await Promise.all([
     prisma.document.findMany({
-      orderBy: { uploadedAt: "desc" },
+      orderBy: { createdAt: "desc" },
       include: { job: { select: { title: true } } },
     }),
     prisma.job.findMany({
@@ -22,10 +22,10 @@ export default async function DocumentsPage() {
       documents={documents.map((doc) => ({
         id: doc.id,
         name: doc.name,
-        type: doc.type,
-        fileUrl: doc.fileUrl,
+        type: doc.kind ?? "General",
+        fileUrl: doc.url,
         job: doc.job?.title ?? null,
-        uploadedAt: doc.uploadedAt.toISOString(),
+        uploadedAt: doc.createdAt.toISOString(),
       }))}
       jobs={jobs}
       canDelete={user.role !== "EMPLOYEE"}
