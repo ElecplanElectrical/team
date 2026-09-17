@@ -1,10 +1,10 @@
-import { LayoutGrid, Calendar as CalendarIcon, Users, FileCheck2, Bell, Clock, ClipboardList, Receipt, FileText, Star, Film, TrendingUp, Briefcase, Archive, FolderOpen, BadgeCheck, Wrench, Target, MessageCircle, Sparkles, type LucideIcon } from "lucide-react";
+import { LayoutGrid, Calendar as CalendarIcon, Users, FileCheck2, ListTodo, Clock, ClipboardList, Receipt, FileText, Star, Film, TrendingUp, Briefcase, Archive, FolderOpen, BadgeCheck, Wrench, Target, MessageCircle, Sparkles, type LucideIcon } from "lucide-react";
 import type { Role } from "@prisma/client";
 import type { Screen } from "@/lib/access";
 export type NavItem={screen:Screen;label:string;icon:LucideIcon};export type NavGroup={heading?:string;items:NavItem[]};
 const NAV:Record<Role,NavGroup[]>={
  ADMIN:[
-  {items:[{screen:"dashboard",label:"Dashboard",icon:LayoutGrid},{screen:"aiAssistant",label:"AI Assistant",icon:Sparkles},{screen:"clients",label:"Clients",icon:Briefcase},{screen:"calendar",label:"Calendar",icon:CalendarIcon},{screen:"reminders",label:"Reminders",icon:Bell},{screen:"materials",label:"Materials",icon:ClipboardList},{screen:"equipment",label:"Equipment",icon:Wrench}]},
+  {items:[{screen:"dashboard",label:"Dashboard",icon:LayoutGrid},{screen:"aiAssistant",label:"AI Assistant",icon:Sparkles},{screen:"clients",label:"Clients",icon:Briefcase},{screen:"calendar",label:"Calendar",icon:CalendarIcon},{screen:"reminders",label:"To Do List",icon:ListTodo},{screen:"materials",label:"Materials",icon:ClipboardList},{screen:"equipment",label:"Equipment",icon:Wrench}]},
   {heading:"Jobs",items:[{screen:"timelines",label:"Jobs",icon:Clock},{screen:"inspections",label:"Inspections",icon:FileCheck2},{screen:"certificates",label:"Certificates",icon:BadgeCheck},{screen:"projects",label:"Past projects",icon:Archive},{screen:"documents",label:"Documents",icon:FolderOpen}]},
   {heading:"Finance",items:[{screen:"quotes",label:"Quotes",icon:FileText},{screen:"invoices",label:"Invoices",icon:Receipt},{screen:"bills",label:"Bills",icon:Receipt}]},
   {heading:"Employees",items:[{screen:"employees",label:"Employees",icon:Users},{screen:"teamChat",label:"Team Chat",icon:MessageCircle},{screen:"kpis",label:"KPIs",icon:Target},{screen:"timesheets",label:"Timesheets",icon:Receipt}]},
