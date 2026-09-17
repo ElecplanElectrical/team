@@ -20,7 +20,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const before = await prisma.timesheet.findUnique({
       where: { id },
-      select: { id: true, status: true, userId: true, date: true, hours: true },
+      select: { id: true, status: true, userId: true, weekStart: true, hours: true },
     });
     if (!before) return NextResponse.json({ error: "Timesheet entry not found" }, { status: 404 });
 
@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         userId: before.userId,
         from: before.status,
         to: parsed.data.status,
-        date: before.date.toISOString().slice(0, 10),
+        weekStart: before.weekStart.toISOString().slice(0, 10),
         hours: Number(before.hours),
       },
     });

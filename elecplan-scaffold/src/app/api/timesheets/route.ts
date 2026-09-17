@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 
 const schema = z.object({
-  date: z.string().datetime(),
-  hours: z.number().positive().max(24),
-});
+  weekStart: z.string().datetime().optional(),
+  date: z.string().datetime().optional(),
+  hours: z.number().positive().max(168),
+}).refine((value) => Boolean(value.weekStart || value.date), { message: "Week start is required" });
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
@@ -15,11 +16,14 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid timesheet entry", issues: parsed.error.flatten() }, { status: 400 });
 
+  const rawWeekStart = parsed.data.weekStart || parsed.data.date;
+  if (!rawWeekStart) return NextResponse.json({ error: "Week start is required" }, { status: 400 });
+
   try {
     const entry = await prisma.timesheet.create({
       data: {
         userId: user.id,
-        date: new Date(parsed.data.date),
+        weekStart: new Date(rawWeekStart),
         hours: parsed.data.hours,
         status: "PENDING",
       },

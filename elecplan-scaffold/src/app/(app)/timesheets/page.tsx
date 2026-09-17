@@ -8,14 +8,14 @@ export default async function TimesheetsPage() {
   const rows = await prisma.timesheet.findMany({
     where: user.role === "EMPLOYEE" ? { userId: user.id } : {},
     include: { user: { select: { name: true } } },
-    orderBy: [{ date: "desc" }, { user: { name: "asc" } }],
+    orderBy: [{ weekStart: "desc" }, { user: { name: "asc" } }],
   });
 
   const entries: TimesheetRow[] = rows.map((entry) => ({
     id: entry.id,
     userId: entry.userId,
     userName: entry.user.name,
-    date: entry.date.toISOString(),
+    weekStart: entry.weekStart.toISOString(),
     hours: Number(entry.hours),
     status: entry.status,
   }));
