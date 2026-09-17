@@ -13,13 +13,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canAccess(user.role, "reminders")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json().catch(() => null) as { completed?: boolean } | null;
-  if (typeof body?.completed !== "boolean") return NextResponse.json({ error: "Completed flag is required" }, { status: 400 });
+  const body = await req.json().catch(() => null) as { completed?: boolean; title?: string } | null;
+  if (!body || (typeof body.completed !== "boolean" && body.title === undefined)) return NextResponse.json({ error: "No task changes supplied" }, { status: 400 });
+
+  const data: { completed?: boolean; title?: string } = {};
+  if (typeof body.completed === "boolean") data.completed = body.completed;
+  if (body.title !== undefined) {
+    const title = body.title.trim();
+    if (!title) return NextResponse.json({ error: "Task name is required" }, { status: 400 });
+    data.title = title;
+  }
 
   const { id } = await params;
   if (!await ownedReminder(id, user.id)) return NextResponse.json({ error: "Reminder not found" }, { status: 404 });
 
-  const reminder = await prisma.reminder.update({ where: { id }, data: { completed: body.completed } });
+  const reminder = await prisma.reminder.update({ where: { id }, data });
   return NextResponse.json(reminder);
 }
 
