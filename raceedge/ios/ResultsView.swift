@@ -6,38 +6,40 @@ struct ResultsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color.raceEdgeNavy.ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment:.leading,spacing:4) {
+                            Text("RESULTS").font(.caption.bold()).tracking(2).foregroundStyle(.raceEdgeBlue)
+                            Text("Performance").font(.largeTitle.bold())
+                            Text("Recorded RaceEdge selection history.").foregroundStyle(.secondary)
+                        }
+
                         if let p = api.performance {
-                            Text("Performance").font(.title2.bold())
-                            LazyVGrid(columns:[GridItem(.flexible()),GridItem(.flexible())],spacing:12) {
+                            LazyVGrid(columns:[GridItem(.flexible()),GridItem(.flexible())],spacing:10) {
                                 metric("Tips", "\(p.tips)")
                                 metric("Wins", "\(p.wins)")
-                                metric("Strike rate", p.strikeRate.map { "\($0, specifier: "%.1f")%" } ?? "—")
+                                metric("Strike Rate", p.strikeRate.map { "\($0, specifier: "%.1f")%" } ?? "—")
                                 metric("ROI", p.roi.map { "\($0, specifier: "%.1f")%" } ?? "—")
                             }
                             if let note=p.note { Text(note).font(.caption).foregroundStyle(.secondary) }
                         }
 
-                        Text("Recorded Results").font(.title2.bold()).padding(.top,8)
-                        if api.results.isEmpty && !api.isLoading {
-                            Text("No settled RaceEdge results recorded yet.").foregroundStyle(.secondary)
-                        }
+                        Text("Recorded Results").font(.title2.bold()).padding(.top,4)
+                        if api.results.isEmpty && !api.isLoading { Text("No settled RaceEdge results recorded yet.").foregroundStyle(.secondary) }
                         ForEach(api.results) { result in
-                            HStack {
+                            HStack(spacing:12) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius:10).fill((result.result_position == 1 ? Color.raceEdgeBlue : Color.white.opacity(0.08)))
+                                    Text(result.result_position == 1 ? "W" : result.result_position.map(String.init) ?? "—").font(.headline.bold()).foregroundStyle(result.result_position == 1 ? .black : .white)
+                                }.frame(width:42,height:42)
                                 VStack(alignment:.leading,spacing:4) {
                                     Text(result.runner).bold()
                                     Text("\(result.meeting) · Race \(result.race_no)").font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                if let position=result.result_position {
-                                    Text(position == 1 ? "WIN" : "#\(position)")
-                                        .font(.headline).foregroundStyle(position == 1 ? .green : .secondary)
-                                }
-                            }
-                            .padding()
-                            .background(.thinMaterial,in:RoundedRectangle(cornerRadius:16))
+                                if result.result_position == 1 { Text("WIN").font(.caption.bold()).foregroundStyle(.raceEdgeBlue) }
+                            }.padding().background(Color.raceEdgeCard,in:RoundedRectangle(cornerRadius:16))
                         }
 
                         if let message=api.errorMessage { Text(message).foregroundStyle(.secondary) }
@@ -45,20 +47,16 @@ struct ResultsView: View {
                     }.padding()
                 }
             }
-            .navigationTitle("Results")
+            .navigationBarHidden(true)
             .task { if api.performance == nil && api.results.isEmpty { await api.loadResultsAndPerformance() } }
             .refreshable { await api.loadResultsAndPerformance() }
-        }
-        .preferredColorScheme(.dark)
+        }.preferredColorScheme(.dark)
     }
 
     private func metric(_ title:String,_ value:String) -> some View {
         VStack(alignment:.leading,spacing:5) {
             Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.title2.bold()).foregroundStyle(.green)
-        }
-        .frame(maxWidth:.infinity,alignment:.leading)
-        .padding()
-        .background(.thinMaterial,in:RoundedRectangle(cornerRadius:16))
+            Text(value).font(.title2.bold()).foregroundStyle(.raceEdgeBlue)
+        }.frame(maxWidth:.infinity,alignment:.leading).padding().background(Color.raceEdgeCard,in:RoundedRectangle(cornerRadius:16))
     }
 }
