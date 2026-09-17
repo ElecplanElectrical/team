@@ -17,10 +17,9 @@ export default async function ReviewsPage() {
     <ReviewsView
       reviews={reviews.map((review) => ({
         id: review.id,
-        client: review.client.name,
+        client: review.client?.name ?? "Client",
         rating: review.rating,
-        text: review.text,
-        source: review.source,
+        text: review.comment,
         createdAt: review.createdAt.toISOString(),
       }))}
       clients={clients}
