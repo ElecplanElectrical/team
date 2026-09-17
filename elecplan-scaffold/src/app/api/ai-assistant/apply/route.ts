@@ -5,19 +5,21 @@ import { getSessionUser } from "@/lib/session";
 import { canAccess } from "@/lib/access";
 import { recordAudit } from "@/lib/audit";
 
+const isoDateTime = z.string().datetime({ offset: true });
+
 const proposal = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("event"),
     title: z.string().trim().min(1).max(120),
     jobId: z.string().cuid().optional(),
-    startsAt: z.string().datetime(),
-    endsAt: z.string().datetime(),
+    startsAt: isoDateTime,
+    endsAt: isoDateTime,
     notes: z.string().max(2000).optional(),
   }),
   z.object({
     kind: z.literal("reminder"),
     title: z.string().trim().min(1).max(200),
-    dueDate: z.string().datetime(),
+    dueDate: isoDateTime,
     notes: z.string().max(2000).optional(),
   }),
 ]);
