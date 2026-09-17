@@ -1,51 +1,72 @@
 # RaceEdge V1 Production Checklist
 
-## Repository
-- [ ] Dedicated private `ElecplanElectrical/raceedge` repository exists and ChatGPT GitHub integration can access it.
-- [ ] Migrate the contents of the current `raceedge/` folder to the dedicated repository root.
-- [ ] Keep RaceEdge independent from YourPlan.
+Last reviewed: 2026-09-18
+
+## Repository and automated QA
+- [x] RaceEdge remains isolated on the `raceedge` branch and separate from YourPlan.
+- [x] GitHub Actions runs static checks, unit tests, API-contract tests and dependency audit on RaceEdge changes.
+- [x] Pace-map UI no longer fabricates runner positions when validated pace-position data is unavailable.
+- [x] Top Pick / Danger / Value labels use explicit analysis roles; fallback selections are neutral.
+- [ ] Dedicated private `ElecplanElectrical/raceedge` repository exists and integration can access it.
+- [ ] Migrate current `raceedge/` folder to the dedicated repository root if/when approved.
 
 ## Railway
-- [ ] Connect one clean RaceEdge application service to the dedicated repository.
-- [ ] Reuse the existing RaceEdge PostgreSQL service.
-- [ ] Set `NODE_ENV=production`.
-- [ ] Set `DATABASE_URL` from Railway PostgreSQL.
-- [ ] Generate and set a strong `RACEEDGE_ADMIN_TOKEN` server-side.
+- [x] Canonical RaceEdge application service is connected and has successfully deployed.
+- [x] Existing RaceEdge PostgreSQL service is retained.
+- [x] `NODE_ENV=production` configured.
+- [x] `DATABASE_URL` configured from Railway PostgreSQL.
+- [x] `RACEEDGE_ADMIN_TOKEN` configured server-side.
+- [x] Health check path is `/health` with restart-on-failure policy.
+- [x] CI-only commits can be skipped by Railway rather than forcing unnecessary production rebuilds.
 - [ ] Set `PUNTERSEDGE_API_KEY` server-side only.
-- [ ] Verify `/health` returns database ok and expected provider/admin configuration states.
-- [ ] Verify `/api/v1/live/today` with real provider data.
-- [ ] Remove/retire failed duplicate app services only after the production service is verified.
+- [ ] Verify `/health` reports provider configured after the real key is added.
+- [ ] Verify `/api/v1/live/today` against real provider data.
+- [ ] Remove/retire duplicate app services only after explicit approval.
 
 ## Live racing data
-- [ ] Validate PuntersEdge events, acceptances, changes and results response shapes against normalizers.
-- [ ] Confirm horse, greyhound and harness code mapping.
-- [ ] Confirm runner/provider IDs remain stable enough for change matching.
-- [ ] Verify scratchings are applied before selections are presented.
-- [ ] Validate time zones and Australian meeting dates.
+- [x] Provider credentials remain server-side and are never returned by provider status endpoints.
+- [x] Provider requests have bounded timeout handling and safe invalid-JSON/HTTP failure handling.
+- [x] Normalized meeting, race, runner, change and analysis shapes have automated app-contract coverage.
+- [x] Scratchings are applied before live race enrichment/selections.
+- [ ] Validate PuntersEdge events, acceptances, changes and results using production responses.
+- [ ] Confirm horse, greyhound and harness code mapping using production responses.
+- [ ] Confirm runner/provider IDs remain stable enough for live change matching.
+- [ ] Validate Australian meeting dates/time zones from production data.
 - [ ] Confirm provider licensing, production plan and rate limits.
 
 ## Ratings and results
-- [ ] Keep ratings/fair prices/value edges marked prototype until historical validation is complete.
-- [ ] Ingest historical races/results into backtest pipeline.
-- [ ] Measure strike rate, top-3 hit rate and ROI by racing code, confidence bucket, rating bucket and price/value bucket.
+- [x] Ratings/fair prices/value edges remain identified as prototype estimates.
+- [x] Incomplete factor coverage suppresses fair price, value and confidence output.
+- [x] Scratched runners are excluded from selections.
+- [x] Historical performance copy states that past results do not guarantee future outcomes.
+- [ ] Ingest sufficient historical races/results for backtesting.
+- [ ] Measure strike rate, top-3 hit rate and ROI by racing code, confidence, rating and price/value buckets.
 - [ ] Use holdout/out-of-sample validation before describing the model as calibrated.
-- [ ] Do not claim guaranteed winners or proven predictive performance.
 
 ## iOS
+- [x] Primary navigation and screens use the locked RaceEdge navy/electric-blue design system.
+- [x] Home, Meetings/Races, Tips, Race Detail, Runner Detail, Results and More screens are implemented.
+- [x] Swift model assumptions for live meeting code and race start time match the current normalized backend contract.
 - [ ] Create/open the final Xcode project and include every Swift source file.
 - [ ] Set `RACEEDGE_API_BASE_URL` in Info.plist/build configuration to the production HTTPS API URL.
 - [ ] Build with the current supported iOS SDK and resolve compiler warnings/errors.
-- [ ] Test Home, Races, Race Detail, Runner Detail, Tips, Results and More on a physical iPhone.
-- [ ] Test offline/provider failure/fallback states.
-- [ ] Confirm no PuntersEdge key or RaceEdge admin token exists in the app bundle.
+- [ ] Test all primary screens on a physical iPhone.
+- [ ] Test offline/provider failure/fallback states on-device.
+- [ ] Confirm no PuntersEdge key or RaceEdge admin token exists in the built app bundle.
 - [ ] Add final icons, launch assets, privacy metadata and App Store copy.
 
 ## Production QA
-- [ ] Smoke-test API and web shell from mobile and desktop.
+- [x] Backend static/unit checks and dependency audit are automated in CI.
+- [x] API contracts consumed by the app have automated tests.
+- [ ] Smoke-test API and web shell after the next production backend deployment.
 - [ ] Confirm database migrations initialize on a clean database.
-- [ ] Confirm admin endpoints reject unauthenticated requests.
+- [ ] Confirm admin endpoints reject unauthenticated requests in production.
 - [ ] Confirm public endpoints do not leak environment variables, provider keys or admin credentials.
-- [ ] Confirm historical performance is clearly separated from forward-looking estimates.
 - [ ] Run a full race-day test including late scratchings and result settlement.
+
+## Current hard gates
+1. Add the real `PUNTERSEDGE_API_KEY` to Railway and validate production payloads.
+2. Perform a real Xcode build and physical-iPhone QA pass.
+3. Complete App Store/TestFlight signing, assets, privacy metadata and release configuration.
 
 V1 scope: form, analytics, tips and results. No wagering or bet placement.
