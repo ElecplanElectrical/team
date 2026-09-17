@@ -88,12 +88,27 @@ struct RaceDetailView: View {
                 }
             }.padding().background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 16))
         }
+
         Text("RaceEdge Selections").font(.title2.bold()).padding(.top, 2)
-        ForEach(Array(detail.selections.enumerated()), id: \.element.id) { index, runner in
-            NavigationLink(destination: RunnerDetailView(runner: runner)) {
-                selectionCard(runner, label: index == 0 ? "TOP PICK" : index == 1 ? "DANGER" : "VALUE")
-            }.buttonStyle(.plain)
+        if let analysis = detail.analysis, let top = analysis.topPick {
+            selectionLink(top, label: "TOP PICK")
+            ForEach(analysis.dangers) { runner in selectionLink(runner, label: "DANGER") }
+            if let value = analysis.valueSelection,
+               value.number != top.number,
+               !analysis.dangers.contains(where: { $0.number == value.number }) {
+                selectionLink(value, label: "VALUE")
+            }
+        } else {
+            ForEach(Array(detail.selections.enumerated()), id: \.element.id) { index, runner in
+                selectionLink(runner, label: "SELECTION \(index + 1)")
+            }
         }
+    }
+
+    private func selectionLink(_ runner: RaceRunner, label: String) -> some View {
+        NavigationLink(destination: RunnerDetailView(runner: runner)) {
+            selectionCard(runner, label: label)
+        }.buttonStyle(.plain)
     }
 
     private func fieldSection(_ runners: [RaceRunner]) -> some View {
@@ -110,6 +125,7 @@ struct RaceDetailView: View {
             Label("RaceEdge Analysis", systemImage: "chart.bar.xaxis").font(.title2.bold()).foregroundStyle(.raceEdgeBlue)
             if let analysis = detail.analysis {
                 metricRow("Confidence", analysis.confidence ?? "—")
+                if let top = analysis.topPick { metricRow("Top Pick", "#\(top.number) \(top.name)") }
                 if let value = analysis.valueSelection { metricRow("Value Selection", "#\(value.number) \(value.name)") }
                 if let note = analysis.note { Text(note).font(.subheadline).foregroundStyle(.secondary) }
             } else {
@@ -123,7 +139,7 @@ struct RaceDetailView: View {
             VStack(spacing: 2) {
                 Text(label).font(.system(size: 8, weight: .black)).foregroundStyle(.raceEdgeBlue)
                 Text("#\(runner.number)").font(.title.bold())
-            }.frame(width: 62)
+            }.frame(width: 70)
             VStack(alignment: .leading, spacing: 4) {
                 Text(runner.name).font(.headline)
                 HStack {
@@ -180,39 +196,45 @@ struct PaceMapView: View {
                 Image(systemName: "flag.checkered").foregroundStyle(.raceEdgeBlue)
             }
 
-            GeometryReader { geo in
-                ZStack {
-                    RoundedRectangle(cornerRadius: 22).fill(Color.raceEdgeCard)
-                    RoundedRectangle(cornerRadius: 22).stroke(Color.white.opacity(0.12), lineWidth: 1)
-                    VStack(spacing: 0) {
-                        paceLane("LEAD", Array(active.prefix(max(1, active.count / 3))))
-                        Divider().overlay(Color.white.opacity(0.10))
-                        paceLane("ON SPEED", Array(active.dropFirst(active.count / 3).prefix(max(1, active.count / 3))))
-                        Divider().overlay(Color.white.opacity(0.10))
-                        paceLane("MIDFIELD / BACK", Array(active.dropFirst((active.count / 3) * 2)))
-                    }.padding(12)
+            VStack(spacing: 0) {
+                emptyLane("LEAD")
+                Divider().overlay(Color.white.opacity(0.10))
+                emptyLane("ON SPEED")
+                Divider().overlay(Color.white.opacity(0.10))
+                emptyLane("MIDFIELD / BACK")
+            }
+            .padding(12)
+            .frame(height: 310)
+            .background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 22))
+            .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color.white.opacity(0.12), lineWidth: 1))
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Field").font(.headline)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(active) { runner in
+                            Text("#\(runner.number) \(runner.name)")
+                                .font(.caption.bold()).padding(.horizontal, 10).padding(.vertical, 7)
+                                .background(Color.raceEdgeCard, in: Capsule())
+                        }
+                    }
                 }
-            }.frame(height: 310)
+            }
 
             VStack(alignment: .leading, spacing: 7) {
                 Text("Pace Analysis").font(.headline)
-                Text("RaceEdge's final pace positions require sufficient live form and speed inputs. This map shows the field structure without presenting unvalidated positioning as fact.")
+                Text("Awaiting validated pace-position data. RaceEdge will only place runners into Lead, On Speed or Midfield/Back lanes when sufficient provider and form inputs support those positions.")
                     .font(.subheadline).foregroundStyle(.secondary)
             }.padding().background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 16))
         }
     }
 
-    private func paceLane(_ title: String, _ lane: [RaceRunner]) -> some View {
+    private func emptyLane(_ title: String) -> some View {
         VStack(spacing: 10) {
             Text(title).font(.caption2.bold()).foregroundStyle(.secondary)
-            HStack(spacing: 10) {
-                ForEach(lane.prefix(5)) { runner in
-                    ZStack {
-                        Circle().fill(Color.raceEdgeBlue)
-                        Text("\(runner.number)").font(.caption.bold()).foregroundStyle(.black)
-                    }.frame(width: 34, height: 34)
-                }
-                if lane.isEmpty { Text("Awaiting data").font(.caption).foregroundStyle(.secondary) }
+            HStack(spacing: 8) {
+                Image(systemName: "ellipsis.circle").foregroundStyle(.raceEdgeBlue)
+                Text("Awaiting validated data").font(.caption).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
         }.frame(maxHeight: .infinity)
