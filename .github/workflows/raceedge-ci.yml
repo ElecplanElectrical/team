@@ -1,0 +1,37 @@
+name: RaceEdge CI
+
+on:
+  push:
+    branches: [raceedge]
+    paths:
+      - 'raceedge/**'
+      - '.github/workflows/raceedge-ci.yml'
+  pull_request:
+    branches: [raceedge]
+    paths:
+      - 'raceedge/**'
+      - '.github/workflows/raceedge-ci.yml'
+
+jobs:
+  backend-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: raceedge
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Static and unit checks
+        run: npm run check
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
