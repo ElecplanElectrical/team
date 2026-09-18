@@ -15,7 +15,7 @@ type Kpi = {
   notes: string | null;
 };
 
-const UI = { panel: "#07192b", alt: "#09213a", border: "rgba(77,150,221,.24)", text: "#f5f9ff", mute: "#93a9c2", cyan: "#25c7ff", blue: "#168dff" };
+const UI = { panel: "#0a2038", alt: "#103152", border: "rgba(125,211,252,.28)", text: "#f5f9ff", mute: "#a8c3dd", cyan: "#7dd3fc", blue: "#38bdf8" };
 
 function mondayIso() {
   const d = new Date();
@@ -63,7 +63,7 @@ export default function KpisView({ employees, initialKpis }: { employees: Employ
 
   return <>
     <TopBar title="KPIs" subtitle="Weekly team performance" />
-    <main className="flex-1 overflow-auto p-4 md:p-6" style={{ background: "#03101f" }}>
+    <main className="flex-1 overflow-auto p-4 md:p-6" style={{ background: "radial-gradient(circle at 55% 0%,rgba(56,189,248,.14),transparent 38%),#061525" }}>
       <div className="mx-auto max-w-5xl space-y-4">
         <section className="rounded-xl p-4 md:p-5" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
           <div className="mb-4 flex items-center gap-2"><Target size={18} style={{ color: UI.cyan }} /><h2 className="font-semibold" style={{ color: UI.text }}>Weekly KPI entry</h2></div>
@@ -76,7 +76,7 @@ export default function KpisView({ employees, initialKpis }: { employees: Employ
             <label className="text-xs" style={{ color: UI.mute }}>Notes<input value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 h-11 w-full rounded-lg px-3 text-sm" style={field} placeholder="Optional" /></label>
           </div>
           {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
-          <div className="mt-4 flex justify-end"><button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={15} />{saving ? "Saving…" : "Save week"}</button></div>
+          <div className="mt-4 flex justify-end"><button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.blue, color: "#06213a" }}><Plus size={15} />{saving ? "Saving…" : "Save week"}</button></div>
         </section>
 
         <section className="rounded-xl p-4" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
