@@ -1,11 +1,12 @@
 import { requireAccess } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import ClientsView, { type ClientRow } from "@/components/ClientsView";
+import { xeroConfigStatus } from "@/lib/xero";
 
 export default async function ClientsPage() {
   const user = await requireAccess("clients");
 
-  const [clients, billedByClient, lastJobByClient, jobs, crew, inspections] = await Promise.all([
+  const [clients, billedByClient, lastJobByClient, jobs, crew, inspections, xeroConnection] = await Promise.all([
     prisma.client.findMany({
       select: {
         id: true,
@@ -34,6 +35,7 @@ export default async function ClientsPage() {
       select: { id: true, jobId: true, type: true, status: true, date: true },
       orderBy: { date: "desc" },
     }),
+    user.role === "ADMIN" ? prisma.xeroConnection.findUnique({ where: { id: "elecplan" }, select: { tenantName: true } }) : Promise.resolve(null),
   ]);
 
   const billed = new Map(billedByClient.filter((b) => b.clientId != null).map((b) => [b.clientId as string, Number(b._sum.amount ?? 0)]));
@@ -93,5 +95,5 @@ export default async function ClientsPage() {
 
   const totalBilled = rows.reduce((sum, r) => sum + r.billed, 0);
 
-  return <ClientsView clients={rows} totalBilled={totalBilled} crew={crew} currentUserRole={user.role} />;
+  return <ClientsView clients={rows} totalBilled={totalBilled} crew={crew} currentUserRole={user.role} xero={{ configured: xeroConfigStatus().configured, connected: Boolean(xeroConnection), tenantName: xeroConnection?.tenantName ?? null }} />;
 }

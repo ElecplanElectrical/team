@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Filter, Plus, Search } from "lucide-react";
+import { ExternalLink, Filter, Plus, Search } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import NewBillModal, { type BillClientOption, type BillJobOption } from "@/components/NewBillModal";
 
@@ -16,6 +16,7 @@ export type BillRow = {
   dueDate: string;
   status: string;
   createdAt: string;
+  hasDocument: boolean;
 };
 
 const STATUSES = ["UNPAID", "PAID", "OVERDUE"] as const;
@@ -54,7 +55,7 @@ function StatusPill({ status }: { status: BillStatus }) {
   return <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: style.bg, color: style.fg, border: `1px solid ${style.border}` }}>{status.charAt(0) + status.slice(1).toLowerCase()}</span>;
 }
 
-export default function BillsView({ bills, clients, jobs }: { bills: BillRow[]; clients: BillClientOption[]; jobs: BillJobOption[] }) {
+export default function BillsView({ bills, clients, jobs, storageReady, aiReady }: { bills: BillRow[]; clients: BillClientOption[]; jobs: BillJobOption[]; storageReady: boolean; aiReady: boolean }) {
   const router = useRouter();
   const [showNew, setShowNew] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -109,7 +110,7 @@ export default function BillsView({ bills, clients, jobs }: { bills: BillRow[]; 
 
             {filtered.map((bill) => {
               const status = (STATUSES.includes(bill.status as BillStatus) ? bill.status : "UNPAID") as BillStatus;
-              return <div key={bill.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[100px_minmax(180px,1.2fr)_minmax(180px,1fr)_120px_130px_150px] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><span className="text-xs font-semibold" style={{ color: UI.text }}>{bill.ref}</span><div className="min-w-0"><div className="truncate text-sm font-semibold" style={{ color: UI.text }}>{bill.client ?? bill.supplier ?? "—"}</div><div className="mt-1 text-[11px]" style={{ color: UI.faint }}>{bill.client ? "Client invoice" : "Supplier bill"}</div></div><span className="text-xs" style={{ color: UI.mute }}>{bill.job ?? "—"}</span><span className="text-sm font-semibold" style={{ color: UI.text }}>{money(bill.amount)}</span><span className="text-xs" style={{ color: status === "OVERDUE" ? UI.red : UI.mute }}>{dateLabel(bill.dueDate)}</span><div className="flex items-center gap-2"><StatusPill status={status} /><select aria-label={`Update ${bill.ref} status`} value={status} disabled={updatingId === bill.id} onChange={(e) => void updateStatus(bill.id, e.target.value as BillStatus)} className="min-w-0 rounded-lg px-2 py-1.5 text-[11px] outline-none disabled:opacity-60" style={field}>{STATUSES.map((item) => <option key={item} value={item}>{item.charAt(0) + item.slice(1).toLowerCase()}</option>)}</select></div></div>;
+              return <div key={bill.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 md:grid-cols-[100px_minmax(180px,1.2fr)_minmax(180px,1fr)_120px_130px_150px] md:items-center md:gap-4" style={{ borderColor: UI.borderSoft }}><span className="text-xs font-semibold" style={{ color: UI.text }}>{bill.ref}{bill.hasDocument&&<a href={`/api/bills/${bill.id}/file`} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-[10px]" style={{color:UI.cyan}}>Document <ExternalLink size={10}/></a>}</span><div className="min-w-0"><div className="truncate text-sm font-semibold" style={{ color: UI.text }}>{bill.client ?? bill.supplier ?? "—"}</div><div className="mt-1 text-[11px]" style={{ color: UI.faint }}>{bill.client ? "Client invoice" : "Supplier bill"}</div></div><span className="text-xs" style={{ color: UI.mute }}>{bill.job ?? "—"}</span><span className="text-sm font-semibold" style={{ color: UI.text }}>{money(bill.amount)}</span><span className="text-xs" style={{ color: status === "OVERDUE" ? UI.red : UI.mute }}>{dateLabel(bill.dueDate)}</span><div className="flex items-center gap-2"><StatusPill status={status} /><select aria-label={`Update ${bill.ref} status`} value={status} disabled={updatingId === bill.id} onChange={(e) => void updateStatus(bill.id, e.target.value as BillStatus)} className="min-w-0 rounded-lg px-2 py-1.5 text-[11px] outline-none disabled:opacity-60" style={field}>{STATUSES.map((item) => <option key={item} value={item}>{item.charAt(0) + item.slice(1).toLowerCase()}</option>)}</select></div></div>;
             })}
 
             {filtered.length === 0 && <div className="px-5 py-14 text-center text-sm" style={{ color: UI.faint }}>No bills or invoices match the current filters.</div>}
@@ -118,7 +119,7 @@ export default function BillsView({ bills, clients, jobs }: { bills: BillRow[]; 
         </div>
       </div>
 
-      {showNew && <NewBillModal clients={clients} jobs={jobs} onClose={() => setShowNew(false)} onDone={() => { setShowNew(false); router.refresh(); }} />}
+      {showNew && <NewBillModal clients={clients} jobs={jobs} storageReady={storageReady} aiReady={aiReady} onClose={() => setShowNew(false)} onDone={() => { setShowNew(false); router.refresh(); }} />}
     </>
   );
 }
