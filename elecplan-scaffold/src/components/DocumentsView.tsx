@@ -16,7 +16,7 @@ export type DocumentRow = {
 
 type UploadTicket = { uploadUrl: string; uploadHeaders: Record<string, string>; commitToken: string };
 
-const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72", orange: "#ff9f1c" };
+const UI = { panel: "#0a2038", panelAlt: "#103152", border: "rgba(125,211,252,.28)", borderSoft: "rgba(125,211,252,.14)", text: "#f5f9ff", mute: "#a8c3dd", faint: "#7392af", blue: "#38bdf8", cyan: "#7dd3fc", red: "#ff7185", orange: "#ffb454" };
 
 export default function DocumentsView({
   documents,
@@ -84,14 +84,14 @@ export default function DocumentsView({
 
   const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
   const uploadButton = storageReady ? (
-    <button type="button" onClick={() => setShowForm((value) => !value)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "white" }}><Plus size={16} /> Upload document</button>
+    <button type="button" onClick={() => setShowForm((value) => !value)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ background: UI.blue, color: "#06213a" }}><Plus size={16} /> Upload document</button>
   ) : (
     <button type="button" disabled className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold opacity-55" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}><Plus size={16} /> Upload unavailable</button>
   );
 
   return <>
     <TopBar title="Documents" subtitle="Securely manage company and job files" rightSlot={uploadButton} />
-    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(20,91,160,.12),transparent 35%),#03101f" }}>
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(56,189,248,.14),transparent 38%),#061525" }}>
       <div className="mx-auto w-full max-w-[1700px] space-y-3">
         <div className="grid gap-3 sm:grid-cols-3"><Metric label="Documents" value={String(documents.length)} /><Metric label="Job linked" value={String(documents.filter((doc) => doc.job).length)} /><Metric label="Global files" value={String(documents.filter((doc) => !doc.job).length)} /></div>
 
@@ -110,7 +110,7 @@ export default function DocumentsView({
           <input required type="file" accept="application/pdf,image/jpeg,image/png,image/webp,text/plain" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} />
           <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field}><option value="">No linked job</option>{jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}</select>
           {error && <p className="md:col-span-2 text-xs" style={{ color: UI.red }}>{error}</p>}
-          <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setShowForm(false)} className="rounded-lg px-4 py-2.5 text-sm" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button disabled={saving || !file} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Uploading…" : "Upload document"}</button></div>
+          <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setShowForm(false)} className="rounded-lg px-4 py-2.5 text-sm" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button disabled={saving || !file} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "#06213a" }}>{saving ? "Uploading…" : "Upload document"}</button></div>
         </form>}
 
         {error && !showForm && <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{error}</div>}
