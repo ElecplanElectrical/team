@@ -2,9 +2,11 @@
 
 This document defines the safe boundary for connecting Elecplan to Xero.
 
-## Hard security gate
+## Enabled boundary
 
-**Do not live-link Elecplan to Xero yet.** The current Xero work is foundation-only. No live OAuth connection, tenant binding, token persistence, background sync, or financial write-back should be enabled until:
+Elecplan now supports an admin-approved, read-only import of Xero customer contacts into the Elecplan Clients screen. The OAuth connection is bound to one Xero organisation, tokens are encrypted at rest, existing client edits are preserved, and imported contacts are deduplicated by Xero contact ID, email or name.
+
+Financial synchronization remains behind a hard security gate. No invoice, payment, quote, bill, bank, payroll, or financial write-back should be enabled until:
 
 1. the rest of the agreed Elecplan portal is built;
 2. authentication, role access, secret handling, auditability and deployment security have been reviewed;
@@ -12,15 +14,15 @@ This document defines the safe boundary for connecting Elecplan to Xero.
 4. financial sync mapping/idempotency rules have been reviewed; and
 5. the Elecplan owner explicitly approves turning on the live Xero connection.
 
-Until that sign-off, Xero credentials should remain unset in production and any future Xero UI must remain disabled/readiness-only.
+The contact-only import uses the `accounting.contacts` scope. It does not request `accounting.transactions` and does not write to Xero.
 
 ## Intended future flow
 
 1. Register an Elecplan OAuth 2.0 application in Xero Developer.
-2. Configure the redirect URI for the Elecplan portal.
+2. Configure the redirect URI as `https://team.elecplan.com.au/api/xero/callback`.
 3. Add `XERO_CLIENT_ID`, `XERO_CLIENT_SECRET`, `XERO_REDIRECT_URI`, and `XERO_TOKEN_ENCRYPTION_KEY` to Railway environment variables only after the security gate is cleared.
 4. Implement an admin-only Connect Xero action using the standard authorization-code flow.
-5. Request only the scopes Elecplan needs. The initial foundation is `openid profile email offline_access accounting.transactions`.
+5. Request only `openid profile email offline_access accounting.contacts` for client import.
 6. After callback, exchange the authorization code for tokens, query Xero connections, and bind Elecplan to the explicitly selected Xero organisation/tenant.
 7. Encrypt OAuth tokens before persistence. Never store a raw refresh token or client secret in source control, logs, browser storage, or a client component.
 8. Rotate and replace the stored refresh token every time Xero issues a new one.
@@ -31,9 +33,9 @@ Until that sign-off, Xero credentials should remain unset in production and any 
 
 See `.env.example` for the required names. Production values belong in Railway variables, not GitHub. Leave the Xero variables unset until the hard security gate above is cleared.
 
-## Data model follow-up
+## Connection storage
 
-Before live OAuth is enabled, add a dedicated connection model that stores:
+The dedicated connection model stores:
 
 - selected Xero tenant ID and organisation name
 - encrypted access token
@@ -44,7 +46,7 @@ Before live OAuth is enabled, add a dedicated connection model that stores:
 
 The connection record should be single-organisation initially unless Elecplan later needs multi-tenant accounting support.
 
-## Sync order
+## Future financial sync order
 
 Recommended implementation sequence after the security gate is cleared:
 

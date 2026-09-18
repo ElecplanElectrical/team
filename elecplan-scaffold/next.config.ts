@@ -13,7 +13,7 @@ const securityHeaders = [
   { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
   {
     key: "Permissions-Policy",
-    value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
+    value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), browsing-topics=()",
   },
   {
     key: "Strict-Transport-Security",

@@ -1,6 +1,7 @@
 import { requireAccess } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import BillsView, { type BillRow } from "@/components/BillsView";
+import { storageConfigured } from "@/lib/storage";
 
 function billRef(id: string): string {
   return "BL-" + id.slice(-4).toUpperCase();
@@ -37,7 +38,8 @@ export default async function BillsPage() {
     dueDate: invoice.dueDate.toISOString(),
     status: invoice.status,
     createdAt: invoice.createdAt.toISOString(),
+    hasDocument: Boolean(invoice.documentStorageKey),
   }));
 
-  return <BillsView bills={bills} clients={clients} jobs={jobs} />;
+  return <BillsView bills={bills} clients={clients} jobs={jobs} storageReady={storageConfigured()} aiReady={Boolean(process.env.OPENAI_API_KEY)} />;
 }

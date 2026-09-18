@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { verifyCommitToken } from "@/lib/storage";
 
 const billSchema = z.object({
   clientId: z.string().trim().optional().nullable(),
@@ -10,6 +11,10 @@ const billSchema = z.object({
   amount: z.coerce.number().positive().max(100000000),
   dueDate: z.string().datetime(),
   status: z.enum(["UNPAID", "PAID", "OVERDUE"]).default("UNPAID"),
+  invoiceNumber: z.string().trim().max(100).optional().nullable(),
+  subtotal: z.coerce.number().nonnegative().optional().nullable(),
+  gstAmount: z.coerce.number().nonnegative().optional().nullable(),
+  documentCommitToken: z.string().optional().nullable(),
 }).refine((d) => Boolean(d.clientId || d.supplier), {
   message: "A client or supplier is required",
   path: ["clientId"],
@@ -41,14 +46,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "A client or supplier is required" }, { status: 400 });
     }
 
+    const document = d.documentCommitToken ? verifyCommitToken(d.documentCommitToken, "invoice-documents") : null;
+    if (d.documentCommitToken && !document) return NextResponse.json({ error: "Invoice document upload expired. Choose the file again." }, { status: 400 });
+
+    const id = crypto.randomUUID();
     const invoice = await prisma.invoice.create({
       data: {
+        id,
         clientId: d.clientId || null,
         supplier: d.supplier || null,
         jobId: d.jobId || null,
         amount: d.amount,
         dueDate: new Date(d.dueDate),
         status: d.status,
+        invoiceNumber: d.invoiceNumber || null,
+        subtotal: d.subtotal ?? null,
+        gstAmount: d.gstAmount ?? null,
+        ...(document ? { documentUrl: `/api/bills/${id}/file`, documentStorageKey: document.key, documentMimeType: document.contentType, documentSizeBytes: document.sizeBytes } : {}),
       },
     });
     return NextResponse.json(invoice, { status: 201 });

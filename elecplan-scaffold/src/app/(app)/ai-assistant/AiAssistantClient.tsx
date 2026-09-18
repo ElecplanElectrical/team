@@ -1,7 +1,23 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- object URLs are used for a local, unsaved capture preview. */
 
-import { useMemo, useState } from "react";
-import { Camera, CheckCircle2, ImagePlus, Loader2, Sparkles, Upload, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Camera, CheckCircle2, ImagePlus, Loader2, Mic, MicOff, Sparkles, Upload, X } from "lucide-react";
+
+type RecognitionEvent = Event & {
+  results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }>;
+};
+
+type Recognition = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start(): void;
+  stop(): void;
+  onresult: ((event: RecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+};
 
 type Proposal = {
   kind: "event" | "reminder";
@@ -20,6 +36,8 @@ export default function AiAssistantClient() {
   const [items, setItems] = useState<Proposal[]>([]);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("");
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<Recognition | null>(null);
 
   const selected = useMemo(() => items.filter((x) => x.selected).length, [items]);
 
@@ -30,6 +48,41 @@ export default function AiAssistantClient() {
     setStatus("");
     if (preview) URL.revokeObjectURL(preview);
     setPreview(URL.createObjectURL(next));
+  }
+
+  function toggleVoice() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const browser = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
+    const RecognitionCtor = browser.SpeechRecognition || browser.webkitSpeechRecognition;
+    if (!RecognitionCtor) {
+      setStatus("Voice input is not available in this browser. You can still type the instruction.");
+      return;
+    }
+    const recognition = new RecognitionCtor();
+    recognition.lang = "en-AU";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognitionRef.current = recognition;
+    setListening(true);
+    setStatus("Listening — tell the assistant what to do.");
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let index = 0; index < event.results.length; index += 1) transcript += event.results[index][0].transcript;
+      setMessage(transcript.trim());
+    };
+    recognition.onerror = () => {
+      setListening(false);
+      setStatus("I couldn’t hear that clearly. Tap the microphone and try again.");
+    };
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+      setStatus((current) => current.startsWith("Listening") ? "Voice instruction ready. Check it, then read the whiteboard." : current);
+    };
+    recognition.start();
   }
 
   async function analyse() {
@@ -87,8 +140,11 @@ export default function AiAssistantClient() {
               {preview ? <img src={preview} alt="Whiteboard preview" className="max-h-[430px] w-full object-contain" /> : <div className="text-center text-slate-400"><ImagePlus className="mx-auto mb-2 h-10 w-10" /><div className="font-medium text-slate-200">Take photo or choose from library</div><div className="mt-1 text-xs">JPG, PNG or HEIC</div></div>}
               <input className="hidden" type="file" accept="image/*" capture="environment" onChange={(e) => choose(e.target.files?.[0])} />
             </label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Optional: e.g. Move Warrandyte to Friday, schedule around my exam..." className="mt-3 min-h-24 w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm outline-none" />
-            <button disabled={!file || busy} onClick={analyse} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-3 font-semibold text-slate-950 disabled:opacity-40">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}Read whiteboard</button>
+            <div className="relative mt-3">
+              <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Tell the assistant what to do, or tap the microphone…" className="min-h-28 w-full rounded-xl border border-sky-300/20 bg-sky-950/30 p-3 pr-16 text-sm outline-none focus:border-sky-300/50" />
+              <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop listening" : "Talk to AI assistant"} className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full border" style={{ background: listening ? "#fb7185" : "#38bdf8", borderColor: listening ? "#fda4af" : "#7dd3fc", color: "#06213a" }}>{listening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}</button>
+            </div>
+            <button disabled={!file || busy} onClick={analyse} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-sky-400 px-4 py-3 font-semibold text-sky-950 disabled:opacity-40">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}Read whiteboard</button>
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/[.04] p-4 md:p-5">

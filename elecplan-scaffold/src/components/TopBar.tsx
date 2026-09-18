@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { EVENT_COLOR } from "@/lib/theme";
 
-const UI = { bg: "rgba(3,16,31,.94)", panel: "#081b30", panelAlt: "#0a223b", border: "rgba(77,150,221,.23)", text: "#f6f9ff", mute: "#8fa5bf", faint: "#617993", blue: "#168dff", green: "#18d3a0", red: "#ff5e72" };
+const UI = { bg: "rgba(6,21,37,.95)", panel: "#0a2038", panelAlt: "#103152", border: "rgba(125,211,252,.26)", text: "#f6f9ff", mute: "#a8c3dd", faint: "#7392af", blue: "#38bdf8", green: "#18d3a0", red: "#ff7185" };
 const CALENDAR_KEY = [
   ["job-scheduled", "Scheduled"],
   ["job-in-progress", "In progress"],
@@ -89,7 +89,7 @@ export default function TopBar({ title, subtitle, rightSlot }: { title: string; 
       <div className="flex shrink-0 items-center gap-2">
         <div className="relative hidden lg:block"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.mute }} /><input aria-label="Search" placeholder="Search jobs, clients, quotes..." className="h-10 w-60 rounded-lg bg-transparent pl-9 pr-3 text-xs outline-none xl:w-72" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text }} /></div>
         {rightSlot}
-        <Link href="/jobs" aria-label="Open jobs" className="hidden h-10 w-10 items-center justify-center rounded-lg sm:flex" style={{ background: UI.blue, color: "white", boxShadow: "0 8px 24px rgba(22,141,255,.25)" }}><Plus size={18} /></Link>
+        <Link href="/jobs" aria-label="Open jobs" className="hidden h-10 w-10 items-center justify-center rounded-lg sm:flex" style={{ background: UI.blue, color: "#06213a", boxShadow: "0 8px 24px rgba(56,189,248,.22)" }}><Plus size={18} /></Link>
         <div className="relative" ref={dropdownRef}>
           <button type="button" aria-label="To do list" aria-expanded={open} onClick={() => { const next = !open; setOpen(next); setSelected(null); if (next) void loadReminders(); }} className="relative flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}><Bell size={17} />{activeCount > 0 && <span className="absolute right-1.5 top-1 min-w-4 rounded-full bg-rose-500 px-1 text-center text-[9px] font-bold leading-4 text-white">{activeCount > 9 ? "9+" : activeCount}</span>}</button>
           {open && <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl shadow-2xl" style={{background:UI.panel,border:`1px solid ${UI.border}`}}>
@@ -107,7 +107,7 @@ export default function TopBar({ title, subtitle, rightSlot }: { title: string; 
             {!selected && <Link href="/reminders" onClick={()=>setOpen(false)} className="block px-4 py-3 text-center text-xs font-semibold" style={{color:UI.blue,background:UI.panelAlt}}>Open full to do list</Link>}
           </div>}
         </div>
-        <div className="hidden h-10 w-10 items-center justify-center rounded-full text-xs font-semibold sm:flex" style={{ background: "linear-gradient(145deg,#0d3154,#071a2d)", border: `1px solid rgba(37,199,255,.35)`, color: "#d9f5ff" }}>EP</div>
+        <div className="hidden h-10 w-10 items-center justify-center rounded-full text-xs font-semibold sm:flex" style={{ background: "linear-gradient(145deg,#16466f,#0a2a47)", border: `1px solid rgba(125,211,252,.38)`, color: "#e0f7ff" }}>EP</div>
       </div>
     </div>
   </header>;

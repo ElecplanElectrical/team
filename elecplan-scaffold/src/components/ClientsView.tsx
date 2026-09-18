@@ -8,6 +8,7 @@ import TopBar from "@/components/TopBar";
 import NewClientModal from "@/components/NewClientModal";
 import EditClientModal from "@/components/EditClientModal";
 import NewJobModal, { type JobCrewOption } from "@/components/NewJobModal";
+import XeroImportButton from "@/components/XeroImportButton";
 
 export type SiteInspection = { id: string; type: string; status: string; date: string };
 export type SiteJob = { id: string; title: string; status: string; scheduledStart: string | null; createdAt: string; inspections: SiteInspection[] };
@@ -19,14 +20,14 @@ function money(n: number) { return "$" + Math.round(n).toLocaleString("en-AU"); 
 function lastJobLabel(iso: string | null) { return iso ? formatDistanceToNow(parseISO(iso), { addSuffix: true }) : "No jobs yet"; }
 function smsHref(client: ClientRow) { const phone=(client.phone??"").replace(/[^+\d]/g,""); return phone ? `sms:${phone}?&body=${encodeURIComponent(`Hi ${client.contactName||client.name},`)}` : null; }
 
-export default function ClientsView({ clients, totalBilled, crew, currentUserRole }: { clients: ClientRow[]; totalBilled: number; crew: JobCrewOption[]; currentUserRole: string }) {
+export default function ClientsView({ clients, totalBilled, crew, currentUserRole, xero }: { clients: ClientRow[]; totalBilled: number; crew: JobCrewOption[]; currentUserRole: string; xero: { configured: boolean; connected: boolean; tenantName: string | null } }) {
   const router = useRouter();
   const [q, setQ] = useState(""); const [showNew, setShowNew] = useState(false); const [editing, setEditing] = useState<ClientRow | null>(null); const [selectedId, setSelectedId] = useState<string | null>(null); const [openSites, setOpenSites] = useState<Record<string, boolean>>({}); const [newJobFor, setNewJobFor] = useState<{ clientId: string; address: string } | null>(null); const [inspectionJob, setInspectionJob] = useState<{ id: string; title: string; address: string } | null>(null);
   const filtered = useMemo(() => { const query=q.trim().toLowerCase(); if(!query)return clients; return clients.filter(c=>[c.name,c.contactName??"",c.email??"",c.phone??"",c.address??"",...c.sites.map(s=>s.address),...c.sites.flatMap(s=>s.jobs.flatMap(j=>[j.title,...j.inspections.map(i=>i.type)]))].join(" ").toLowerCase().includes(query)); },[clients,q]);
   const selected=filtered.find(c=>c.id===selectedId)??filtered[0]??null; const canCreateJobs=currentUserRole!=="EMPLOYEE"; const canManageInspections=currentUserRole==="ADMIN"; const clientOptions=clients.map(c=>({id:c.id,name:c.name,address:c.address}));
   function toggleSite(clientId:string,address:string){const key=`${clientId}:${address}`;setOpenSites(c=>({...c,[key]:!c[key]}));}
   return <>
-    <TopBar title="Clients & Sites" subtitle="Find work by client name or site address" rightSlot={<button type="button" onClick={()=>setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{background:UI.blue,color:"white"}}><Plus size={16}/> New client</button>}/>
+    <TopBar title="Clients & Sites" subtitle="Find work by client name or site address" rightSlot={<div className="flex items-center gap-2">{currentUserRole==="ADMIN"&&<XeroImportButton {...xero}/>}<button type="button" onClick={()=>setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{background:UI.blue,color:"white"}}><Plus size={16}/> New client</button></div>}/>
     <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{background:"#03101f"}}><div className="mx-auto w-full max-w-[1700px] space-y-3">
       <div className="grid gap-3 sm:grid-cols-3"><Metric label="Clients" value={String(clients.length)}/><Metric label="Sites / addresses" value={String(clients.reduce((n,c)=>n+c.sites.length,0))}/><Metric label="Total billed" value={money(totalBilled)}/></div>
       <section className="overflow-hidden rounded-xl" style={{background:UI.panel,border:`1px solid ${UI.border}`}}><div className="border-b p-3" style={{borderColor:UI.borderSoft}}><div className="relative max-w-2xl"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{color:UI.faint}}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search client, address, phone, email, job or inspection…" className="h-11 w-full rounded-lg pl-10 pr-3 text-sm outline-none" style={{background:"#041323",color:UI.text,border:`1px solid ${UI.border}`}}/></div></div>
