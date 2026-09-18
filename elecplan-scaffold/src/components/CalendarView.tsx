@@ -2,45 +2,246 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { parseISO,differenceInCalendarDays,getHours,getMinutes,format,addDays,addMinutes,addWeeks,isToday,isSameMonth } from "date-fns";
-import { CalendarDays,ChevronLeft,ChevronRight,Filter,MapPin,MessageSquareText,Mic,Plus,Users,UserRound } from "lucide-react";
+import { addDays, addMinutes, addWeeks, differenceInCalendarDays, format, getHours, getMinutes, isSameMonth, isToday, parseISO } from "date-fns";
+import { ChevronLeft, ChevronRight, Filter, MapPin, MessageSquareText, Mic, Plus, Users, UserRound, X } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { EVENT_COLOR } from "@/lib/theme";
-import { weekDays,weekKey,CAL_HOUR_START,CAL_HOUR_END,CAL_ROW_PX } from "@/lib/week";
+import { CAL_HOUR_END, CAL_HOUR_START, CAL_ROW_PX, weekDays, weekKey } from "@/lib/week";
 import TopBar from "@/components/TopBar";
 import NewEventModal from "@/components/NewEventModal";
-import EditEventModal,{type CalendarEvent}from"@/components/EditEventModal";
-import VoiceScheduler from"@/components/VoiceScheduler";
-import ClientSmsPanel from"@/components/ClientSmsPanel";
+import EditEventModal, { type CalendarEvent } from "@/components/EditEventModal";
+import VoiceScheduler from "@/components/VoiceScheduler";
+import ClientSmsPanel from "@/components/ClientSmsPanel";
 
-const UI={bg:"#03101f",panel:"#07192b",panelAlt:"#09213a",border:"rgba(77,150,221,.24)",borderSoft:"rgba(77,150,221,.12)",text:"#f5f9ff",mute:"#93a9c2",faint:"#617993",blue:"#168dff",cyan:"#25c7ff",green:"#18d3a0"};
-const HOURS=Array.from({length:CAL_HOUR_END-CAL_HOUR_START},(_,i)=>CAL_HOUR_START+i);
-const SNAP_MINUTES=15,MIN_DURATION_MINUTES=15;
-type DragState={eventId:string;mode:"move"|"resize";pointerId:number;startX:number;startY:number;columnWidth:number;originalStart:Date;originalEnd:Date;previewStart:Date;previewEnd:Date};
-type JobOption={id:string;title:string;client?:string|null;contactName?:string|null;phone?:string|null;address?:string|null;notes?:string|null;status?:string|null;crew?:string|null;scheduledStart?:string|null;scheduledEnd?:string|null};
-function hourLabel(h:number){const s=h<12?"AM":"PM",v=h%12===0?12:h%12;return`${v}:00 ${s}`}
-function timeRange(a:string,b:string){return`${format(parseISO(a),"h:mm a")} – ${format(parseISO(b),"h:mm a")}`}
-function floatHours(d:Date){return getHours(d)+getMinutes(d)/60}
+const UI = {
+  panel: "#0a2038",
+  panelAlt: "#103152",
+  border: "rgba(125,211,252,.28)",
+  borderSoft: "rgba(125,211,252,.14)",
+  text: "#f5f9ff",
+  mute: "#a8c3dd",
+  faint: "#7392af",
+  blue: "#38bdf8",
+  cyan: "#7dd3fc",
+  green: "#18d3a0",
+};
 
-export default function CalendarView({weekStart,events,jobs,employees,role,currentUserId}:{weekStart:string;events:CalendarEvent[];jobs:JobOption[];employees:{id:string;name:string}[];role:Role;currentUserId:string}){
- const router=useRouter();
- const[showModal,setShowModal]=useState(false),[showVoice,setShowVoice]=useState(false),[editingEvent,setEditingEvent]=useState<CalendarEvent|null>(null),[selectedEvent,setSelectedEvent]=useState<CalendarEvent|null>(null),[selectedCrew,setSelectedCrew]=useState<string[]>([]),[smsJobId,setSmsJobId]=useState<string|null>(null),[calendarEvents,setCalendarEvents]=useState(events),[dragError,setDragError]=useState<string|null>(null),[mobileDay,setMobileDay]=useState(()=>{const now=new Date(),s=parseISO(weekStart),i=differenceInCalendarDays(now,s);return i>=0&&i<7?i:0});
- const dragRef=useRef<DragState|null>(null),suppressClickRef=useRef(false);
- useEffect(()=>setCalendarEvents(events),[events]);
- const start=parseISO(weekStart),days=weekDays(start),label=`${format(days[0],"MMM d")} – ${format(days[6],isSameMonth(days[0],days[6])?"d, yyyy":"MMM d, yyyy")}`;
- const filteredEvents=useMemo(()=>selectedCrew.length===0?calendarEvents:calendarEvents.filter(e=>e.assignedToId&&selectedCrew.includes(e.assignedToId)),[calendarEvents,selectedCrew]);
- const selectedJob=selectedEvent?.jobId?jobs.find(j=>j.id===selectedEvent.jobId)??null:null;
- function go(d:number){router.push(`/calendar?week=${weekKey(addWeeks(start,d))}`)}
- function goToday(){router.push("/calendar")}
- function eventsForDay(i:number){return filteredEvents.filter(e=>differenceInCalendarDays(parseISO(e.startsAt),start)===i)}
- function refresh(){setShowModal(false);setEditingEvent(null);router.refresh()}
- function toggleCrew(id:string){setSelectedCrew(c=>c.includes(id)?c.filter(x=>x!==id):[...c,id])}
- function canDrag(e:CalendarEvent){if(role!=="EMPLOYEE")return true;return!e.jobId&&e.assignedToId===currentUserId}
- function singleClick(event:CalendarEvent){if(suppressClickRef.current)return;const desktop=window.matchMedia("(min-width:1280px)").matches;if(desktop){setSelectedEvent(event);return}if(event.jobId)router.push(`/jobs/${event.jobId}`);else setEditingEvent(event)}
- function doubleClick(event:CalendarEvent){if(suppressClickRef.current)return;const desktop=window.matchMedia("(min-width:1280px)").matches;if(!desktop){if(event.jobId)router.push(`/jobs/${event.jobId}`);else setEditingEvent(event);return}if(role==="EMPLOYEE"&&event.jobId){router.push(`/jobs/${event.jobId}`);return}setSelectedEvent(event);setEditingEvent(event)}
- function beginPointerAction(e:React.PointerEvent<HTMLDivElement>,event:CalendarEvent,mode:"move"|"resize"){if(!canDrag(event))return;e.preventDefault();e.stopPropagation();const col=e.currentTarget.closest("[data-day-column]")as HTMLElement|null,w=col?.getBoundingClientRect().width??135;e.currentTarget.setPointerCapture(e.pointerId);const a=parseISO(event.startsAt),b=parseISO(event.endsAt);dragRef.current={eventId:event.id,mode,pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,columnWidth:w,originalStart:a,originalEnd:b,previewStart:a,previewEnd:b};suppressClickRef.current=true;setDragError(null)}
- function movePointerAction(e:React.PointerEvent<HTMLDivElement>){const d=dragRef.current;if(!d||d.pointerId!==e.pointerId)return;e.preventDefault();const md=Math.round(((e.clientY-d.startY)/CAL_ROW_PX)*(60/SNAP_MINUTES))*SNAP_MINUTES,dd=d.mode==="move"?Math.round((e.clientX-d.startX)/d.columnWidth):0;let a=d.originalStart,b=d.originalEnd;if(d.mode==="move"){a=addMinutes(addDays(d.originalStart,dd),md);b=addMinutes(addDays(d.originalEnd,dd),md)}else{b=addMinutes(d.originalEnd,md);if(b.getTime()-a.getTime()<MIN_DURATION_MINUTES*60000)b=addMinutes(a,MIN_DURATION_MINUTES)}d.previewStart=a;d.previewEnd=b;setCalendarEvents(c=>c.map(x=>x.id===d.eventId?{...x,startsAt:a.toISOString(),endsAt:b.toISOString()}:x))}
- async function endPointerAction(e:React.PointerEvent<HTMLDivElement>,event:CalendarEvent){const d=dragRef.current;if(!d||d.pointerId!==e.pointerId||d.eventId!==event.id)return;e.preventDefault();dragRef.current=null;const moved=d.previewStart.getTime()!==d.originalStart.getTime()||d.previewEnd.getTime()!==d.originalEnd.getTime();if(!moved){suppressClickRef.current=false;return}try{const isJob=Boolean(event.jobId),url=isJob?`/api/jobs/${event.jobId}`:`/api/events/${event.id}`,payload=isJob?{scheduledStart:d.previewStart.toISOString(),scheduledEnd:d.previewEnd.toISOString()}:{startsAt:d.previewStart.toISOString(),endsAt:d.previewEnd.toISOString()};const res=await fetch(url,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});if(!res.ok){const body=await res.json().catch(()=>null);throw new Error(body?.error??"Could not move this calendar item")}router.refresh()}catch(error){setCalendarEvents(events);setDragError(error instanceof Error?error.message:"Could not update this calendar item")}finally{setTimeout(()=>{suppressClickRef.current=false},0)}}
- function eventBlock(event:CalendarEvent){const s=parseISO(event.startsAt),e=parseISO(event.endsAt),top=(floatHours(s)-CAL_HOUR_START)*CAL_ROW_PX,height=Math.max((floatHours(e)-floatHours(s))*CAL_ROW_PX-4,30);if(top<0||top>=(CAL_HOUR_END-CAL_HOUR_START)*CAL_ROW_PX)return null;const c=EVENT_COLOR[event.type]??EVENT_COLOR.job,draggable=canDrag(event),selected=selectedEvent?.id===event.id;return <div key={event.id} onPointerDown={p=>beginPointerAction(p,event,"move")} onPointerMove={movePointerAction} onPointerUp={p=>endPointerAction(p,event)} onPointerCancel={p=>endPointerAction(p,event)} onClick={()=>singleClick(event)} onDoubleClick={()=>doubleClick(event)} className="absolute overflow-hidden rounded-lg px-2 py-1.5 text-left shadow-lg" style={{top,height:Math.min(height,(CAL_HOUR_END-CAL_HOUR_START)*CAL_ROW_PX-top),left:5,right:5,background:c.bg,border:`${selected?2:1}px solid ${selected?UI.cyan:`${c.border}55`}`,borderLeft:`3px solid ${c.border}`,color:c.fg,cursor:draggable?"grab":"pointer",touchAction:draggable?"none":"auto",userSelect:"none"}}><div className="text-[10px] opacity-80">{timeRange(event.startsAt,event.endsAt)}</div><div className="mt-0.5 truncate text-[11px] font-semibold">{event.title}</div>{draggable&&<div aria-label="Resize calendar item" onPointerDown={p=>beginPointerAction(p,event,"resize")} className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize" style={{background:`linear-gradient(to bottom,transparent,${c.border}55)`,touchAction:"none"}}><div className="mx-auto mt-1 h-0.5 w-8 rounded-full" style={{background:c.border}}/></div>}</div>}
- return <><TopBar title="Calendar" subtitle="Schedule jobs, appointments and team availability" rightSlot={<div className="flex items-center gap-2"><button onClick={()=>setShowVoice(true)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold" style={{background:"rgba(22,141,255,.13)",color:UI.cyan,border:"1px solid rgba(37,199,255,.28)"}}><Mic size={17}/><span className="hidden sm:inline">Voice</span></button><button onClick={()=>setShowModal(true)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold" style={{background:UI.blue,color:"white"}}><Plus size={17}/><span className="hidden sm:inline">New event</span></button></div>}/><div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{background:"radial-gradient(circle at 55% 0%,rgba(20,91,160,.13),transparent 35%),#03101f"}}><div className="mx-auto grid w-full max-w-[1700px] gap-3 xl:grid-cols-[190px_minmax(0,1fr)_300px]"><aside className="hidden xl:flex flex-col rounded-xl p-3" style={{background:UI.panel,border:`1px solid ${UI.border}`}}><div className="flex items-center gap-2 px-1 py-2"><Users size={15} style={{color:UI.cyan}}/><h2 className="text-xs font-semibold uppercase" style={{color:UI.mute}}>Team / crew</h2></div><button onClick={()=>setSelectedCrew([])} className="mt-2 flex items-center justify-between rounded-lg px-3 py-2 text-xs" style={{background:selectedCrew.length===0?"rgba(22,141,255,.13)":UI.panelAlt,color:selectedCrew.length===0?UI.cyan:UI.mute}}><span>All team members</span><Filter size={12}/></button>{employees.map(x=><button key={x.id} onClick={()=>toggleCrew(x.id)} className="mt-1 rounded-lg px-2 py-2 text-left text-xs" style={{color:selectedCrew.includes(x.id)?UI.text:UI.mute}}>{x.name}</button>)}</aside><main className="min-w-0 rounded-xl" style={{background:UI.panel,border:`1px solid ${UI.border}`}}><div className="flex flex-wrap items-center justify-between gap-3 border-b p-3" style={{borderColor:UI.borderSoft}}><div className="flex items-center gap-2"><button onClick={goToday} className="rounded-lg px-3 py-2 text-xs font-semibold" style={{background:UI.panelAlt,color:UI.text,border:`1px solid ${UI.border}`}}>Today</button><NavButton onClick={()=>go(-1)} label="Previous week"><ChevronLeft size={15}/></NavButton><NavButton onClick={()=>go(1)} label="Next week"><ChevronRight size={15}/></NavButton><strong className="hidden text-sm sm:block" style={{color:UI.text}}>{label}</strong></div></div>{dragError&&<div className="mx-3 mt-3 rounded-lg px-3 py-2 text-xs" style={{color:"#ff7487"}}>{dragError}</div>}<div className="md:hidden"><div className="flex gap-1 overflow-x-auto border-b p-2" style={{borderColor:UI.borderSoft}}>{days.map((d,i)=><button key={d.toISOString()} onClick={()=>setMobileDay(i)} className="min-w-[52px] flex-1 rounded-lg px-2 py-2 text-center" style={{background:mobileDay===i?UI.blue:isToday(d)?"rgba(22,141,255,.10)":UI.panelAlt,color:mobileDay===i?"white":isToday(d)?UI.cyan:UI.mute}}><div className="text-[9px] font-semibold uppercase">{format(d,"EEE")}</div><div className="mt-1 text-sm font-bold">{format(d,"d")}</div></button>)}</div><div className="px-3 py-2 text-xs font-semibold" style={{color:UI.text}}>{format(days[mobileDay],"EEEE d MMMM")}</div><div className="overflow-y-auto" style={{maxHeight:"calc(100vh - 245px)"}}><div style={{display:"grid",gridTemplateColumns:"52px minmax(0,1fr)"}}><div style={{position:"relative",height:(CAL_HOUR_END-CAL_HOUR_START)*CAL_ROW_PX}}>{HOURS.map((h,i)=><div key={h} className="pr-2 text-right text-[9px]" style={{position:"absolute",top:i*CAL_ROW_PX-6,right:0,width:"100%",color:UI.faint}}>{hourLabel(h)}</div>)}</div><div data-day-column style={{position:"relative",height:(CAL_HOUR_END-CAL_HOUR_START)*CAL_ROW_PX,borderLeft:`1px solid ${UI.borderSoft}`,background:isToday(days[mobileDay])?"rgba(22,141,255,.025)":"transparent"}}>{HOURS.map((h,i)=><div key={h} style={{position:"absolute",top:i*CAL_ROW_PX,left:0,right:0,borderTop:`1px solid ${UI.borderSoft}`}}/>)}{eventsForDay(mobileDay).map(eventBlock)}</div></div></div></div><div className="hidden md:block overflow-x-auto"><div style={{minWidth:56+7*135}}><div style={{display:"grid",gridTemplateColumns:"56px repeat(7,minmax(135px,1fr))"}}><div/>{days.map(day=><div key={day.toISOString()} className="border-b px-2 py-3 text-center" style={{borderColor:UI.borderSoft,background:isToday(day)?"rgba(22,141,255,.05)":"transparent"}}><div className="text-[10px] font-semibold uppercase" style={{color:UI.faint}}>{format(day,"EEE")}</div><div className="mt-1 text-xs font-semibold" style={{color:isToday(day)?UI.cyan:UI.text}}>{format(day,"MMM d")}</div></div>)}</div><div style={{display:"grid",gridTemplateColumns:"56px repeat(7,minmax(135px,1fr))"}}><div style={{position:"relative",height:(CAL_HOUR_END-CAL_HOUR_START)*CAL_ROW_PX}}>{HOURS.map((h,i)=><div key={h} className="pr-2 text-right text-[10px]" style={{position:"absolute",top:i*CAL_ROW_PX-7,right:0,width:"100%",color:UI.faint}}>{hourLabel(h)}</div>)}</div>{days.map((day,i)=><div data-day-column key={day.toISOString()} style={{position:"relative",height:(CAL_HOUR_END-CAL_HOUR_START)*CAL_ROW_PX,borderLeft:`1px solid ${UI.borderSoft}`,background:isToday(day)?"rgba(22,141,255,.025)":"transparent"}}>{HOURS.map((h,j)=><div key={h} style={{position:"absolute",top:j*CAL_ROW_PX,left:0,right:0,borderTop:`1px solid ${UI.borderSoft}`}}/>)}{eventsForDay(i).map(eventBlock)}</div>)}</div></div></div></main><aside className="hidden xl:block rounded-xl p-4" style={{background:UI.panel,border:`1px solid ${UI.border}`}}>{selectedEvent?<><p className="text-[10px] font-semibold uppercase tracking-[.12em]" style={{color:UI.faint}}>{selectedJob?"Job details":"Event details"}</p><h2 className="mt-3 text-base font-semibold" style={{color:UI.text}}>{selectedEvent.title}</h2><p className="mt-2 text-xs" style={{color:UI.mute}}>{format(parseISO(selectedEvent.startsAt),"EEE d MMM yyyy")}<br/>{timeRange(selectedEvent.startsAt,selectedEvent.endsAt)}</p>{selectedJob&&<div className="mt-5 space-y-3 text-xs"><div><p style={{color:UI.faint}}>Client</p><p className="mt-1 font-semibold" style={{color:UI.text}}>{selectedJob.client??"—"}</p>{selectedJob.contactName&&<p className="mt-1" style={{color:UI.mute}}>{selectedJob.contactName}</p>}{selectedJob.phone&&<a href={`tel:${selectedJob.phone}`} className="mt-1 block" style={{color:UI.cyan}}>{selectedJob.phone}</a>}</div>{selectedJob.address&&<div className="flex gap-2"><MapPin size={14} className="mt-0.5 shrink-0" style={{color:UI.cyan}}/><p style={{color:UI.text}}>{selectedJob.address}</p></div>}<div className="flex gap-2"><UserRound size={14} className="mt-0.5 shrink-0" style={{color:UI.cyan}}/><p style={{color:UI.text}}>{selectedJob.crew??"Unassigned"}</p></div>{selectedJob.notes&&<div className="rounded-xl p-3" style={{background:UI.panelAlt,border:`1px solid ${UI.borderSoft}`}}><p className="text-[10px] font-semibold uppercase tracking-[.1em]" style={{color:UI.faint}}>Job notes</p><p className="mt-2 whitespace-pre-wrap leading-5" style={{color:UI.mute}}>{selectedJob.notes}</p></div>}</div>}<div className="mt-5 space-y-2">{selectedJob&&<button onClick={()=>router.push(`/jobs/${selectedJob.id}`)} className="w-full rounded-lg py-2.5 text-xs font-semibold" style={{background:"rgba(24,211,160,.10)",color:UI.green,border:"1px solid rgba(24,211,160,.28)"}}>Open full job</button>}{role!=="EMPLOYEE"&&<button onClick={()=>setEditingEvent(selectedEvent)} className="w-full rounded-lg py-2.5 text-xs font-semibold" style={{background:UI.blue,color:"white"}}>Edit booking</button>}{role!=="EMPLOYEE"&&selectedEvent.jobId&&<button onClick={()=>setSmsJobId(selectedEvent.jobId)} className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold" style={{color:UI.cyan,border:`1px solid ${UI.border}`}}><MessageSquareText size={15}/>Send SMS to client</button>}</div><p className="mt-4 text-[10px]" style={{color:UI.faint}}>Single-click shows details. Double-click edits the booking.</p></>:<div className="flex min-h-[320px] flex-col items-center justify-center text-center"><CalendarDays size={28} style={{color:UI.faint}}/><p className="mt-3 text-xs" style={{color:UI.mute}}>Click a calendar item to see its details here.</p></div>}</aside></div></div><button onClick={()=>setShowVoice(true)} aria-label="Voice schedule" className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full md:hidden" style={{background:"linear-gradient(145deg,#168dff,#075fd0)",color:"white"}}><Mic size={23}/></button>{showModal&&<NewEventModal jobs={jobs} employees={employees} role={role} currentUserId={currentUserId} defaultDate={weekKey(days[0])} onClose={()=>setShowModal(false)} onDone={refresh}/>} {editingEvent&&<EditEventModal event={editingEvent} jobs={jobs} employees={employees} role={role} currentUserId={currentUserId} onClose={()=>setEditingEvent(null)} onDone={refresh}/>}<VoiceScheduler open={showVoice} onClose={()=>setShowVoice(false)} onDone={()=>router.refresh()} jobs={jobs} employees={employees} role={role} currentUserId={currentUserId}/><ClientSmsPanel jobId={smsJobId} open={Boolean(smsJobId)} onClose={()=>setSmsJobId(null)}/></>}
-function NavButton({children,onClick,label}:{children:React.ReactNode;onClick:()=>void;label:string}){return <button onClick={onClick} aria-label={label} className="flex h-8 w-8 items-center justify-center rounded-lg" style={{background:UI.panelAlt,border:`1px solid ${UI.border}`,color:UI.mute}}>{children}</button>}
+const HOURS = Array.from({ length: CAL_HOUR_END - CAL_HOUR_START }, (_, index) => CAL_HOUR_START + index);
+const SNAP_MINUTES = 15;
+const MIN_DURATION_MINUTES = 15;
+
+type DragState = {
+  eventId: string;
+  mode: "move" | "resize";
+  pointerId: number;
+  startX: number;
+  startY: number;
+  columnWidth: number;
+  originalStart: Date;
+  originalEnd: Date;
+  previewStart: Date;
+  previewEnd: Date;
+};
+
+type JobOption = {
+  id: string;
+  title: string;
+  client?: string | null;
+  contactName?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  status?: string | null;
+  crew?: string | null;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+};
+
+function hourLabel(hour: number) {
+  const suffix = hour < 12 ? "AM" : "PM";
+  const value = hour % 12 === 0 ? 12 : hour % 12;
+  return `${value}:00 ${suffix}`;
+}
+
+function timeRange(start: string, end: string) {
+  return `${format(parseISO(start), "h:mm a")} – ${format(parseISO(end), "h:mm a")}`;
+}
+
+function floatHours(date: Date) {
+  return getHours(date) + getMinutes(date) / 60;
+}
+
+export default function CalendarView({ weekStart, events, jobs, employees, role, currentUserId }: {
+  weekStart: string;
+  events: CalendarEvent[];
+  jobs: JobOption[];
+  employees: { id: string; name: string }[];
+  role: Role;
+  currentUserId: string;
+}) {
+  const router = useRouter();
+  const [showModal, setShowModal] = useState(false);
+  const [showVoice, setShowVoice] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedCrew, setSelectedCrew] = useState<string[]>([]);
+  const [smsJobId, setSmsJobId] = useState<string | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState(events);
+  const [dragError, setDragError] = useState<string | null>(null);
+  const [mobileDay, setMobileDay] = useState(() => {
+    const index = differenceInCalendarDays(new Date(), parseISO(weekStart));
+    return index >= 0 && index < 7 ? index : 0;
+  });
+  const dragRef = useRef<DragState | null>(null);
+  const suppressClickRef = useRef(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setCalendarEvents(events));
+    return () => window.cancelAnimationFrame(frame);
+  }, [events]);
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setSelectedEvent(null); };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
+
+  const start = parseISO(weekStart);
+  const days = weekDays(start);
+  const label = `${format(days[0], "MMM d")} – ${format(days[6], isSameMonth(days[0], days[6]) ? "d, yyyy" : "MMM d, yyyy")}`;
+  const filteredEvents = useMemo(
+    () => selectedCrew.length === 0 ? calendarEvents : calendarEvents.filter((event) => event.assignedToId && selectedCrew.includes(event.assignedToId)),
+    [calendarEvents, selectedCrew],
+  );
+  const selectedJob = selectedEvent?.jobId ? jobs.find((job) => job.id === selectedEvent.jobId) ?? null : null;
+
+  function eventsForDay(index: number) {
+    return filteredEvents.filter((event) => differenceInCalendarDays(parseISO(event.startsAt), start) === index);
+  }
+
+  function refresh() {
+    setShowModal(false);
+    setEditingEvent(null);
+    setSelectedEvent(null);
+    router.refresh();
+  }
+
+  function toggleCrew(id: string) {
+    setSelectedCrew((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  function canDrag(event: CalendarEvent) {
+    return role !== "EMPLOYEE" || (!event.jobId && event.assignedToId === currentUserId);
+  }
+
+  function editFromCalendar(event: CalendarEvent) {
+    if (suppressClickRef.current) return;
+    if ((event.fallback || role === "EMPLOYEE") && event.jobId) {
+      router.push(`/jobs/${event.jobId}`);
+      return;
+    }
+    setSelectedEvent(event);
+    setEditingEvent(event);
+  }
+
+  function beginPointerAction(pointer: React.PointerEvent<HTMLDivElement>, event: CalendarEvent, mode: "move" | "resize") {
+    if (!canDrag(event)) return;
+    pointer.preventDefault();
+    pointer.stopPropagation();
+    const column = pointer.currentTarget.closest("[data-day-column]") as HTMLElement | null;
+    const startAt = parseISO(event.startsAt);
+    const endAt = parseISO(event.endsAt);
+    pointer.currentTarget.setPointerCapture(pointer.pointerId);
+    dragRef.current = { eventId: event.id, mode, pointerId: pointer.pointerId, startX: pointer.clientX, startY: pointer.clientY, columnWidth: column?.getBoundingClientRect().width ?? 135, originalStart: startAt, originalEnd: endAt, previewStart: startAt, previewEnd: endAt };
+    suppressClickRef.current = true;
+    setDragError(null);
+  }
+
+  function movePointerAction(pointer: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== pointer.pointerId) return;
+    pointer.preventDefault();
+    const minutes = Math.round(((pointer.clientY - drag.startY) / CAL_ROW_PX) * (60 / SNAP_MINUTES)) * SNAP_MINUTES;
+    const daysMoved = drag.mode === "move" ? Math.round((pointer.clientX - drag.startX) / drag.columnWidth) : 0;
+    let startsAt = drag.originalStart;
+    let endsAt = drag.originalEnd;
+    if (drag.mode === "move") {
+      startsAt = addMinutes(addDays(drag.originalStart, daysMoved), minutes);
+      endsAt = addMinutes(addDays(drag.originalEnd, daysMoved), minutes);
+    } else {
+      endsAt = addMinutes(drag.originalEnd, minutes);
+      if (endsAt.getTime() - startsAt.getTime() < MIN_DURATION_MINUTES * 60_000) endsAt = addMinutes(startsAt, MIN_DURATION_MINUTES);
+    }
+    drag.previewStart = startsAt;
+    drag.previewEnd = endsAt;
+    setCalendarEvents((current) => current.map((item) => item.id === drag.eventId ? { ...item, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() } : item));
+  }
+
+  async function endPointerAction(pointer: React.PointerEvent<HTMLDivElement>, event: CalendarEvent) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== pointer.pointerId || drag.eventId !== event.id) return;
+    pointer.preventDefault();
+    dragRef.current = null;
+    const moved = drag.previewStart.getTime() !== drag.originalStart.getTime() || drag.previewEnd.getTime() !== drag.originalEnd.getTime();
+    if (!moved) {
+      suppressClickRef.current = false;
+      return;
+    }
+    try {
+      const isJob = Boolean(event.jobId);
+      const url = isJob ? `/api/jobs/${event.jobId}` : `/api/events/${event.id}`;
+      const payload = isJob ? { scheduledStart: drag.previewStart.toISOString(), scheduledEnd: drag.previewEnd.toISOString() } : { startsAt: drag.previewStart.toISOString(), endsAt: drag.previewEnd.toISOString() };
+      const response = await fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? "Could not move this calendar item");
+      }
+      router.refresh();
+    } catch (error) {
+      setCalendarEvents(events);
+      setDragError(error instanceof Error ? error.message : "Could not update this calendar item");
+    } finally {
+      setTimeout(() => { suppressClickRef.current = false; }, 0);
+    }
+  }
+
+  function eventBlock(event: CalendarEvent) {
+    const startsAt = parseISO(event.startsAt);
+    const endsAt = parseISO(event.endsAt);
+    const top = (floatHours(startsAt) - CAL_HOUR_START) * CAL_ROW_PX;
+    const height = Math.max((floatHours(endsAt) - floatHours(startsAt)) * CAL_ROW_PX - 4, 30);
+    if (top < 0 || top >= (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX) return null;
+    const colour = EVENT_COLOR[event.type] ?? EVENT_COLOR.job;
+    const draggable = canDrag(event);
+    const selected = selectedEvent?.id === event.id;
+    return <div key={event.id} onPointerDown={(pointer) => beginPointerAction(pointer, event, "move")} onPointerMove={movePointerAction} onPointerUp={(pointer) => void endPointerAction(pointer, event)} onPointerCancel={(pointer) => void endPointerAction(pointer, event)} onClick={(click) => { click.stopPropagation(); if (!suppressClickRef.current) setSelectedEvent(event); }} onDoubleClick={(click) => { click.stopPropagation(); editFromCalendar(event); }} className="absolute overflow-hidden rounded-lg px-2 py-1.5 text-left shadow-lg" style={{ top, height: Math.min(height, (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX - top), left: 5, right: 5, background: colour.bg, border: `${selected ? 2 : 1}px solid ${selected ? UI.cyan : `${colour.border}55`}`, borderLeft: `3px solid ${colour.border}`, color: colour.fg, cursor: draggable ? "grab" : "pointer", touchAction: draggable ? "none" : "auto", userSelect: "none" }}><div className="text-[10px] opacity-80">{timeRange(event.startsAt, event.endsAt)}</div><div className="mt-0.5 truncate text-[11px] font-semibold">{event.title}</div>{draggable && <div aria-label="Resize calendar item" onPointerDown={(pointer) => beginPointerAction(pointer, event, "resize")} className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize" style={{ background: `linear-gradient(to bottom,transparent,${colour.border}55)`, touchAction: "none" }}><div className="mx-auto mt-1 h-0.5 w-8 rounded-full" style={{ background: colour.border }} /></div>}</div>;
+  }
+
+  return <>
+    <TopBar title="Calendar" subtitle="Schedule jobs, appointments and team availability" rightSlot={<div className="flex items-center gap-2"><button onClick={() => setShowVoice(true)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold" style={{ background: "rgba(56,189,248,.14)", color: UI.cyan, border: "1px solid rgba(125,211,252,.30)" }}><Mic size={17} /><span className="hidden sm:inline">Voice</span></button><button onClick={() => setShowModal(true)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold" style={{ background: UI.blue, color: "#06213a" }}><Plus size={17} /><span className="hidden sm:inline">New event</span></button></div>} />
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(56,189,248,.16),transparent 38%),#061525" }} onClick={() => setSelectedEvent(null)}>
+      <div className="grid w-full gap-3 xl:grid-cols-[180px_minmax(0,1fr)]">
+        <aside className="hidden xl:flex flex-col rounded-xl p-3" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="flex items-center gap-2 px-1 py-2"><Users size={15} style={{ color: UI.cyan }} /><h2 className="text-xs font-semibold uppercase" style={{ color: UI.mute }}>Team / crew</h2></div><button onClick={() => setSelectedCrew([])} className="mt-2 flex items-center justify-between rounded-lg px-3 py-2 text-xs" style={{ background: selectedCrew.length === 0 ? "rgba(56,189,248,.15)" : UI.panelAlt, color: selectedCrew.length === 0 ? UI.cyan : UI.mute }}><span>All team members</span><Filter size={12} /></button>{employees.map((employee) => <button key={employee.id} onClick={() => toggleCrew(employee.id)} className="mt-1 rounded-lg px-2 py-2 text-left text-xs" style={{ color: selectedCrew.includes(employee.id) ? UI.text : UI.mute }}>{employee.name}</button>)}</aside>
+        <main className="relative min-w-0 rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="flex items-center gap-2"><button onClick={() => router.push("/calendar")} className="rounded-lg px-3 py-2 text-xs font-semibold" style={{ background: UI.panelAlt, color: UI.text, border: `1px solid ${UI.border}` }}>Today</button><NavButton onClick={() => router.push(`/calendar?week=${weekKey(addWeeks(start, -1))}`)} label="Previous week"><ChevronLeft size={15} /></NavButton><NavButton onClick={() => router.push(`/calendar?week=${weekKey(addWeeks(start, 1))}`)} label="Next week"><ChevronRight size={15} /></NavButton><strong className="hidden text-sm sm:block" style={{ color: UI.text }}>{label}</strong></div></div>
+          {dragError && <div className="mx-3 mt-3 rounded-lg px-3 py-2 text-xs" style={{ color: "#ff7487" }}>{dragError}</div>}
+          <div className="md:hidden"><div className="flex gap-1 overflow-x-auto border-b p-2" style={{ borderColor: UI.borderSoft }}>{days.map((day, index) => <button key={day.toISOString()} onClick={() => setMobileDay(index)} className="min-w-[52px] flex-1 rounded-lg px-2 py-2 text-center" style={{ background: mobileDay === index ? UI.blue : isToday(day) ? "rgba(56,189,248,.12)" : UI.panelAlt, color: mobileDay === index ? "#06213a" : isToday(day) ? UI.cyan : UI.mute }}><div className="text-[9px] font-semibold uppercase">{format(day, "EEE")}</div><div className="mt-1 text-sm font-bold">{format(day, "d")}</div></button>)}</div><div className="px-3 py-2 text-xs font-semibold" style={{ color: UI.text }}>{format(days[mobileDay], "EEEE d MMMM")}</div><div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 245px)" }}><div style={{ display: "grid", gridTemplateColumns: "52px minmax(0,1fr)" }}><div style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX }}>{HOURS.map((hour, index) => <div key={hour} className="pr-2 text-right text-[9px]" style={{ position: "absolute", top: index * CAL_ROW_PX - 6, right: 0, width: "100%", color: UI.faint }}>{hourLabel(hour)}</div>)}</div><div data-day-column style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX, borderLeft: `1px solid ${UI.borderSoft}`, background: isToday(days[mobileDay]) ? "rgba(56,189,248,.035)" : "transparent" }}>{HOURS.map((hour, index) => <div key={hour} style={{ position: "absolute", top: index * CAL_ROW_PX, left: 0, right: 0, borderTop: `1px solid ${UI.borderSoft}` }} />)}{eventsForDay(mobileDay).map(eventBlock)}</div></div></div></div>
+          <div className="hidden overflow-x-auto md:block"><div style={{ minWidth: 56 + 7 * 135 }}><div style={{ display: "grid", gridTemplateColumns: "56px repeat(7,minmax(135px,1fr))" }}><div />{days.map((day) => <div key={day.toISOString()} className="border-b px-2 py-3 text-center" style={{ borderColor: UI.borderSoft, background: isToday(day) ? "rgba(56,189,248,.07)" : "transparent" }}><div className="text-[10px] font-semibold uppercase" style={{ color: UI.faint }}>{format(day, "EEE")}</div><div className="mt-1 text-xs font-semibold" style={{ color: isToday(day) ? UI.cyan : UI.text }}>{format(day, "MMM d")}</div></div>)}</div><div style={{ display: "grid", gridTemplateColumns: "56px repeat(7,minmax(135px,1fr))" }}><div style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX }}>{HOURS.map((hour, index) => <div key={hour} className="pr-2 text-right text-[10px]" style={{ position: "absolute", top: index * CAL_ROW_PX - 7, right: 0, width: "100%", color: UI.faint }}>{hourLabel(hour)}</div>)}</div>{days.map((day, dayIndex) => <div data-day-column key={day.toISOString()} style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX, borderLeft: `1px solid ${UI.borderSoft}`, background: isToday(day) ? "rgba(56,189,248,.035)" : "transparent" }}>{HOURS.map((hour, hourIndex) => <div key={hour} style={{ position: "absolute", top: hourIndex * CAL_ROW_PX, left: 0, right: 0, borderTop: `1px solid ${UI.borderSoft}` }} />)}{eventsForDay(dayIndex).map(eventBlock)}</div>)}</div></div></div>
+          {selectedEvent && <EventDetails event={selectedEvent} job={selectedJob} role={role} onClose={() => setSelectedEvent(null)} onEdit={() => setEditingEvent(selectedEvent)} onOpenJob={() => selectedJob && router.push(`/jobs/${selectedJob.id}`)} onSms={() => selectedEvent.jobId && setSmsJobId(selectedEvent.jobId)} />}
+        </main>
+      </div>
+    </div>
+    <button onClick={() => setShowVoice(true)} aria-label="Voice schedule" className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full md:hidden" style={{ background: "linear-gradient(145deg,#38bdf8,#0ea5e9)", color: "#06213a" }}><Mic size={23} /></button>
+    {showModal && <NewEventModal jobs={jobs} employees={employees} role={role} currentUserId={currentUserId} defaultDate={weekKey(days[0])} onClose={() => setShowModal(false)} onDone={refresh} />}
+    {editingEvent && <EditEventModal event={editingEvent} jobs={jobs} employees={employees} role={role} currentUserId={currentUserId} onClose={() => setEditingEvent(null)} onDone={refresh} />}
+    <VoiceScheduler open={showVoice} onClose={() => setShowVoice(false)} onDone={() => router.refresh()} jobs={jobs} employees={employees} role={role} currentUserId={currentUserId} />
+    <ClientSmsPanel jobId={smsJobId} open={Boolean(smsJobId)} onClose={() => setSmsJobId(null)} />
+  </>;
+}
+
+function EventDetails({ event, job, role, onClose, onEdit, onOpenJob, onSms }: { event: CalendarEvent; job: JobOption | null; role: Role; onClose: () => void; onEdit: () => void; onOpenJob: () => void; onSms: () => void }) {
+  return <section className="fixed inset-x-3 bottom-20 z-50 max-h-[72vh] overflow-auto rounded-2xl p-4 shadow-2xl md:absolute md:inset-x-auto md:bottom-auto md:right-4 md:top-16 md:w-[340px]" style={{ background: "rgba(10,32,56,.98)", border: `1px solid ${UI.border}`, boxShadow: "0 24px 70px rgba(0,0,0,.48)" }} onClick={(click) => click.stopPropagation()}><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: UI.faint }}>{job ? "Job details" : "Event details"}</p><h2 className="mt-2 text-base font-semibold" style={{ color: UI.text }}>{event.title}</h2></div><button type="button" aria-label="Close details" onClick={onClose} className="rounded-lg p-1.5" style={{ color: UI.mute, background: UI.panelAlt }}><X size={16} /></button></div><p className="mt-2 text-xs" style={{ color: UI.mute }}>{format(parseISO(event.startsAt), "EEE d MMM yyyy")}<br />{timeRange(event.startsAt, event.endsAt)}</p>{job && <div className="mt-5 space-y-3 text-xs"><div><p style={{ color: UI.faint }}>Client</p><p className="mt-1 font-semibold" style={{ color: UI.text }}>{job.client ?? "—"}</p>{job.contactName && <p className="mt-1" style={{ color: UI.mute }}>{job.contactName}</p>}{job.phone && <a href={`tel:${job.phone}`} className="mt-1 block" style={{ color: UI.cyan }}>{job.phone}</a>}</div>{job.address && <div className="flex gap-2"><MapPin size={14} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><p style={{ color: UI.text }}>{job.address}</p></div>}<div className="flex gap-2"><UserRound size={14} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><p style={{ color: UI.text }}>{job.crew ?? "Unassigned"}</p></div>{job.notes && <div className="rounded-xl p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><p className="text-[10px] font-semibold uppercase tracking-[.1em]" style={{ color: UI.faint }}>Job notes</p><p className="mt-2 whitespace-pre-wrap leading-5" style={{ color: UI.mute }}>{job.notes}</p></div>}</div>}<div className="mt-5 space-y-2">{job && <button onClick={onOpenJob} className="w-full rounded-lg py-2.5 text-xs font-semibold" style={{ background: "rgba(24,211,160,.10)", color: UI.green, border: "1px solid rgba(24,211,160,.28)" }}>Open full job</button>}{role !== "EMPLOYEE" && !event.fallback && <button onClick={onEdit} className="w-full rounded-lg py-2.5 text-xs font-semibold" style={{ background: UI.blue, color: "#06213a" }}>Edit booking</button>}{role !== "EMPLOYEE" && event.jobId && <button onClick={onSms} className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold" style={{ color: UI.cyan, border: `1px solid ${UI.border}` }}><MessageSquareText size={15} />Send SMS to client</button>}</div></section>;
+}
+
+function NavButton({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
+  return <button onClick={onClick} aria-label={label} className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: UI.panelAlt, border: `1px solid ${UI.border}`, color: UI.mute }}>{children}</button>;
+}

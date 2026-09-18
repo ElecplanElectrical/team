@@ -115,6 +115,7 @@ model PasswordToken {
 model Client {
   id           String   @id @default(cuid())
   name         String
+  xeroContactId String?  @unique
   contactName  String?
   phone        String?
   email        String?
@@ -221,10 +222,27 @@ model Invoice {
   dueDate       DateTime
   status        InvoiceStatus @default(UNPAID)
   xeroId        String?
+  documentUrl        String?
+  documentStorageKey String?
+  documentMimeType   String?
+  documentSizeBytes  Int?
   createdAt     DateTime      @default(now())
   sourceQuote   Quote?        @relation("ConvertedQuote", fields: [sourceQuoteId], references: [id])
   sourceQuoteId String?       @unique
   lineItems     InvoiceLineItem[]
+}
+
+model XeroConnection {
+  id                     String   @id @default("elecplan")
+  tenantId               String   @unique
+  tenantName             String
+  accessTokenCiphertext  String
+  refreshTokenCiphertext String
+  tokenExpiresAt         DateTime
+  scopes                 String
+  lastSyncAt             DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 model InvoiceLineItem {

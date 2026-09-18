@@ -3,7 +3,15 @@ import {useEffect,useRef,useState} from "react";
 import Link from "next/link";
 import {ArrowLeft,Barcode,Check,Pencil} from "lucide-react";
 
-declare global{interface Window{Quagga?:any}}
+type QuaggaDetection={codeResult?:{code?:string|number}};
+type QuaggaApi={
+  init:(config:unknown,callback:(error?:unknown)=>void)=>void;
+  start:()=>void;
+  stop:()=>void;
+  offDetected:()=>void;
+  onDetected:(callback:(result:QuaggaDetection)=>void)=>void;
+};
+declare global{interface Window{Quagga?:QuaggaApi}}
 
 const BUILD="scanner-r10-2026-08-27";
 const Q="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js";
@@ -108,19 +116,21 @@ export default function ScannerR10(){
     try{
       await script();
       if(!cam.current||!mounted.current)return;
-      try{window.Quagga?.offDetected();window.Quagga?.stop()}catch{}
+      const quagga=window.Quagga;
+      if(!quagga)throw new Error("Barcode scanner did not load");
+      try{quagga.offDetected();quagga.stop()}catch{}
       cam.current.innerHTML="";
-      window.Quagga.init({
+      quagga.init({
         inputStream:{type:"LiveStream",target:cam.current,constraints:{facingMode:"environment",width:{ideal:1920},height:{ideal:1080}},area:{top:"8%",right:"3%",left:"3%",bottom:"8%"}},
         locator:{patchSize:"medium",halfSample:true},numOfWorkers:0,frequency:18,
         decoder:{readers:["code_128_reader","ean_reader","ean_8_reader","upc_reader","upc_e_reader","code_39_reader","code_93_reader","i2of5_reader"]},locate:true
-      },(e:any)=>{
+      },(e?:unknown)=>{
         if(e){setStatus("Camera failed — reopen scanner");return}
-        window.Quagga.start();
+        quagga.start();
         armedAt.current=Date.now()+700;
         setStatus("READY — barcode + full label in frame");
       });
-      window.Quagga.onDetected((d:any)=>{
+      quagga.onDetected((d:QuaggaDetection)=>{
         const c=String(d?.codeResult?.code||"").trim();
         if(!c||busy.current||reviewing.current||Date.now()<armedAt.current)return;
         void capture(c);
@@ -130,8 +140,8 @@ export default function ScannerR10(){
 
   useEffect(()=>{
     mounted.current=true;
-    void start();
-    return()=>{mounted.current=false;try{window.Quagga?.offDetected();window.Quagga?.stop()}catch{}};
+    const timer=window.setTimeout(()=>void start(),0);
+    return()=>{window.clearTimeout(timer);mounted.current=false;try{window.Quagga?.offDetected();window.Quagga?.stop()}catch{}};
   },[]);
 
   return <div className="min-h-screen bg-[#03101f] p-4 text-white"><div className="mx-auto max-w-xl space-y-4">
