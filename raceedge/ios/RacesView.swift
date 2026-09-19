@@ -106,14 +106,20 @@ struct RacesView: View {
                 Spacer()
                 Text(meeting.state).font(.caption).foregroundStyle(.secondary)
             }
-            ForEach(1...meeting.races, id: \.self) { raceNo in
-                NavigationLink { RaceDetailView(meeting: meeting, raceNo: raceNo) } label: {
-                    HStack {
-                        Text("R\(raceNo)").fontWeight(.bold).foregroundStyle(.raceEdgeBlue)
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
-                    }.padding(.vertical, 5)
-                }.buttonStyle(.plain)
+            if meeting.races > 0 {
+                ForEach(1...meeting.races, id: \.self) { raceNo in
+                    NavigationLink { RaceDetailView(meeting: meeting, raceNo: raceNo) } label: {
+                        HStack {
+                            Text("R\(raceNo)").fontWeight(.bold).foregroundStyle(.raceEdgeBlue)
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                        }.padding(.vertical, 5)
+                    }.buttonStyle(.plain)
+                }
+            } else {
+                Text("Race list unavailable")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }.padding().background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 18))
     }
