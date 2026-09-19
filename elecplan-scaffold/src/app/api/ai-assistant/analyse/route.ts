@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   if (!apiKey) return NextResponse.json({ error: "AI Assistant needs OPENAI_API_KEY configured in Railway." }, { status: 503 });
 
   const form = await req.formData();
-  const image = form.get("image");
+  const upload = form.get("file");
   const instruction = String(form.get("instruction") || "Organise this whiteboard into my calendar and reminders.").slice(0, 1000);
 
   if (!(image instanceof File) || !image.type.startsWith("image/")) return NextResponse.json({ error: "Please upload a whiteboard image." }, { status: 400 });
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     required: ["summary", "proposals"],
   } as const;
 
-  const prompt = `You are Elecplan's scheduling assistant for an electrical contractor in Melbourne, Australia. Local time is ${localNow}.\n\nUSER INSTRUCTION: ${instruction}\n\nPRIVACY BOUNDARY:\n- You receive only this uploaded image and the instruction above.\n- You do not have access to Elecplan pages, clients, jobs, reminders, documents, users, or any other portal data.\n- Do not assume or request hidden portal context.\n\nWHITEBOARD LAYOUT RULES:\n- Bottom Monday-Friday row usually contains jobs for those weekdays.\n- Right-side checklist contains reminders/tasks.\n- Left calendar contains dated/timed commitments or jobs.\n- Crossed-out or clearly completed items should not be proposed.\n\nReturn proposals only. Do not write data. Do not invent unreadable handwriting. If wording is uncertain, preserve the uncertainty in notes and reduce confidence. For an event with a reliable day but no written time, use 08:00-16:00 Melbourne time and state that the time was assumed. For reminders with no reliable date, set dueDate to null so the UI leaves them unselected.`;
+  const prompt = `You are Elecplan's scheduling assistant for an electrical contractor in Melbourne, Australia. Read any supplied whiteboard photo, screenshot, message, email screenshot, document text or typed/voice instruction. Local time is ${localNow}.\n\nUSER INSTRUCTION: ${instruction}\n\nPRIVACY BOUNDARY:\n- You receive only this uploaded image and the instruction above.\n- You do not have access to Elecplan pages, clients, jobs, reminders, documents, users, or any other portal data.\n- Do not assume or request hidden portal context.\n\nWHEN THE INPUT IS A WHITEBOARD, USE THESE LAYOUT RULES:\n- Bottom Monday-Friday row usually contains jobs for those weekdays.\n- Right-side checklist contains reminders/tasks.\n- Left calendar contains dated/timed commitments or jobs.\n- Crossed-out or clearly completed items should not be proposed.\n\nReturn proposals only. Do not write data. Do not invent unreadable handwriting. If wording is uncertain, preserve the uncertainty in notes and reduce confidence. For an event with a reliable day but no written time, use 08:00-16:00 Melbourne time and state that the time was assumed. For reminders with no reliable date, set dueDate to null so the UI leaves them unselected.`;
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({
         model: process.env.OPENAI_VISION_MODEL || "gpt-5.6-luna",
-        input: [{ role: "user", content: [{ type: "input_text", text: prompt }, { type: "input_image", image_url: `data:${image.type};base64,${base64}`, detail: "high" }] }],
+        input: [{ role: "user", content: [{ type: "input_text", text: prompt }, ...(attachmentContent ? [attachmentContent] : [])] }],
         text: { format: { type: "json_schema", name: "elecplan_whiteboard_plan", strict: true, schema } },
       }),
     });
@@ -107,6 +107,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ summary: parsed.summary || "Board read. Check every item before applying.", proposals });
   } catch (error) {
     console.error("AI_ASSISTANT_ANALYSE_FAILED", error);
-    return NextResponse.json({ error: "Could not analyse whiteboard image." }, { status: 502 });
+    return NextResponse.json({ error: "Could not analyse the supplied content." }, { status: 502 });
   }
 }

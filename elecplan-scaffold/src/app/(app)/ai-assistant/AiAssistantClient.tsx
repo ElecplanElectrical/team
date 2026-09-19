@@ -63,7 +63,7 @@ export default function AiAssistantClient() {
     }
     const recognition = new RecognitionCtor();
     recognition.lang = "en-AU";
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognitionRef.current = recognition;
     setListening(true);
@@ -80,19 +80,19 @@ export default function AiAssistantClient() {
     recognition.onend = () => {
       setListening(false);
       recognitionRef.current = null;
-      setStatus((current) => current.startsWith("Listening") ? "Voice instruction ready. Check it, then read the whiteboard." : current);
+      setStatus((current) => current.startsWith("Listening") ? "Voice instruction ready. Check it, then analyse it." : current);
     };
     recognition.start();
   }
 
   async function analyse() {
-    if (!file) return;
+    if (!file && !message.trim()) return;
     setBusy(true);
     setStatus("");
     try {
       const fd = new FormData();
-      fd.append("image", file);
-      fd.append("instruction", message || "Organise this whiteboard into my calendar and reminders.");
+      if (file) fd.append("file", file);
+      fd.append("instruction", message || "Read this and turn anything actionable into Elecplan calendar events and reminders.");
       const response = await fetch("/api/ai-assistant/analyse", { method: "POST", body: fd });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not analyse board");
@@ -130,14 +130,14 @@ export default function AiAssistantClient() {
       <div className="mx-auto max-w-5xl space-y-5">
         <div>
           <div className="flex items-center gap-2 text-2xl font-semibold"><Sparkles className="h-6 w-6" />AI Assistant</div>
-          <p className="mt-1 text-sm text-slate-400">Photograph the weekly whiteboard. Elecplan reads it, proposes calendar events and reminders, then waits for your approval.</p>
+          <p className="mt-1 text-sm text-slate-400">Send a photo, screenshot, document or pasted text. Elecplan reads it, proposes calendar events and reminders, then waits for your approval.</p>
         </div>
 
         <div className="grid gap-5 lg:grid-cols-2">
           <section className="rounded-2xl border border-white/10 bg-white/[.04] p-4 md:p-5">
-            <h2 className="font-semibold">1. Add whiteboard photo</h2>
+            <h2 className="font-semibold">1. Add anything to read</h2>
             <div className="mt-4 flex min-h-64 items-center justify-center overflow-hidden rounded-xl border border-dashed border-white/20 bg-black/20">
-              {preview ? <img src={preview} alt="Whiteboard preview" className="max-h-[430px] w-full object-contain" /> : <div className="text-center text-slate-400"><ImagePlus className="mx-auto mb-2 h-10 w-10" /><div className="font-medium text-slate-200">Add a whiteboard photo</div><div className="mt-1 text-xs">JPG, PNG or HEIC</div></div>}
+              {preview ? <img src={preview} alt="Whiteboard preview" className="max-h-[430px] w-full object-contain" /> : <div className="text-center text-slate-400"><ImagePlus className="mx-auto mb-2 h-10 w-10" /><div className="font-medium text-slate-200">Add a photo, screenshot or document</div><div className="mt-1 text-xs">Whiteboard, message, email screenshot, PDF, JPG, PNG or HEIC</div></div>}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[.06] px-3 py-3 text-sm font-medium text-slate-100">
@@ -145,15 +145,15 @@ export default function AiAssistantClient() {
                 <input className="hidden" type="file" accept="image/*" capture="environment" onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
               </label>
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-sky-300/25 bg-sky-950/30 px-3 py-3 text-sm font-medium text-slate-100">
-                <ImagePlus className="h-4 w-4" />Photo library
-                <input className="hidden" type="file" accept="image/*" onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+                <ImagePlus className="h-4 w-4" />Add from library
+                <input className="hidden" type="file" accept="image/*,application/pdf,text/plain" onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
               </label>
             </div>
             <div className="relative mt-3">
               <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Tell the assistant what to do, or tap the microphone…" className="min-h-28 w-full rounded-xl border border-sky-300/20 bg-sky-950/30 p-3 pr-16 text-sm outline-none focus:border-sky-300/50" />
               <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop listening" : "Talk to AI assistant"} className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full border" style={{ background: listening ? "#fb7185" : "#38bdf8", borderColor: listening ? "#fda4af" : "#7dd3fc", color: "#06213a" }}>{listening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}</button>
             </div>
-            <button disabled={!file || busy} onClick={analyse} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-sky-400 px-4 py-3 font-semibold text-sky-950 disabled:opacity-40">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}Read whiteboard</button>
+            <button disabled={(!file && !message.trim()) || busy} onClick={analyse} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-sky-400 px-4 py-3 font-semibold text-sky-950 disabled:opacity-40">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}Analyse & organise</button>
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/[.04] p-4 md:p-5">
@@ -164,7 +164,7 @@ export default function AiAssistantClient() {
         </div>
 
         {status && <div className="rounded-xl border border-white/10 bg-white/[.05] p-3 text-sm">{status}</div>}
-        <div className="rounded-2xl border border-white/10 bg-white/[.03] p-4"><div className="flex items-center gap-2 text-sm font-medium"><Upload className="h-4 w-4" />Examples</div><p className="mt-2 text-sm text-slate-400">“Organise this board into my calendar and tasks” · “Move Warrandyte to Friday” · “Schedule these five jobs around my exam” · “Remind me about insurance Monday”</p></div>
+        <div className="rounded-2xl border border-white/10 bg-white/[.03] p-4"><div className="flex items-center gap-2 text-sm font-medium"><Upload className="h-4 w-4" />Examples</div><p className="mt-2 text-sm text-slate-400">“Read this and organise the calendar and tasks” · “Move Warrandyte to Friday” · “Schedule these five jobs around my exam” · “Remind me about insurance Monday”</p></div>
       </div>
     </div>
   );
