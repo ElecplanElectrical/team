@@ -18,10 +18,20 @@ export async function POST(req: Request) {
   const upload = form.get("file");
   const instruction = String(form.get("instruction") || "Organise this whiteboard into my calendar and reminders.").slice(0, 1000);
 
-  if (!(image instanceof File) || !image.type.startsWith("image/")) return NextResponse.json({ error: "Please upload a whiteboard image." }, { status: 400 });
-  if (image.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: "Image is too large. Maximum is 12 MB." }, { status: 413 });
+  if (!(upload instanceof File) && !instruction.trim()) return NextResponse.json({ error: "Add a photo, screenshot, TXT file or some text to analyse." }, { status: 400 });
+  if (upload instanceof File && upload.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: "File is too large. Maximum is 12 MB." }, { status: 413 });
 
-  const base64 = Buffer.from(await image.arrayBuffer()).toString("base64");
+  let attachmentContent: { type: "input_image"; image_url: string; detail: "high" } | { type: "input_text"; text: string } | null = null;
+  if (upload instanceof File) {
+    if (upload.type.startsWith("image/")) {
+      const base64 = Buffer.from(await upload.arrayBuffer()).toString("base64");
+      attachmentContent = { type: "input_image", image_url: `data:${upload.type};base64,${base64}`, detail: "high" };
+    } else if (upload.type === "text/plain") {
+      attachmentContent = { type: "input_text", text: (await upload.text()).slice(0, 50000) };
+    } else {
+      return NextResponse.json({ error: "Use a photo/screenshot, pasted text or TXT file for now." }, { status: 415 });
+    }
+  }
   const localNow = new Intl.DateTimeFormat("en-AU", { dateStyle: "full", timeStyle: "long", timeZone: "Australia/Melbourne" }).format(new Date());
 
   const schema = {
