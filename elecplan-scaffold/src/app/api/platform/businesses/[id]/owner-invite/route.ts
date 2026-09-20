@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getPlatformAdmin } from "@/lib/platform-admin";
 import { expiryFromNow, generateToken, INVITE_TTL_HOURS, RESET_TTL_HOURS, setPasswordUrl } from "@/lib/tokens";
 
+function setupOrigin(requestOrigin:string,slug:string){return slug==="qls"?"https://qls.your-plan.com.au":requestOrigin}
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await getPlatformAdmin();
   if (!admin) return NextResponse.json({ error: "Platform owner access required" }, { status: 403 });
@@ -13,6 +15,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     select: {
       id: true,
       name: true,
+      slug: true,
       active: true,
       users: {
         where: { role: "ADMIN", active: true },
@@ -52,6 +55,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     owner: { id: owner.id, name: owner.name, email: owner.email },
     type,
     expiresInHours: ttlHours,
-    setupUrl: setPasswordUrl(new URL(req.url).origin, raw),
+    setupUrl: setPasswordUrl(setupOrigin(new URL(req.url).origin,business.slug), raw),
   });
 }
