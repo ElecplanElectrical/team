@@ -8,7 +8,7 @@ struct MoreView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("RACEEDGE").font(.caption.bold()).tracking(2).foregroundStyle(.raceEdgeBlue)
+                            Text("RACEEDGE").font(.caption.bold()).tracking(2).foregroundStyle(Color.raceEdgeBlue)
                             Text("More").font(.largeTitle.bold())
                             Text("Racing coverage, product information and analysis notes.").foregroundStyle(.secondary)
                         }
@@ -26,7 +26,7 @@ struct MoreView: View {
                         ])
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Label("About Ratings", systemImage: "info.circle.fill").font(.headline).foregroundStyle(.raceEdgeBlue)
+                            Label("About Ratings", systemImage: "info.circle.fill").font(.headline).foregroundStyle(Color.raceEdgeBlue)
                             Text("Current RaceEdge weighting remains a prototype until historical back-testing and calibration are completed.")
                             Text("Selections are analytical estimates, not guaranteed winners.")
                         }
@@ -43,10 +43,10 @@ struct MoreView: View {
 
     private func infoCard(title: String, icon: String, rows: [String]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(title, systemImage: icon).font(.headline).foregroundStyle(.raceEdgeBlue)
+            Label(title, systemImage: icon).font(.headline).foregroundStyle(Color.raceEdgeBlue)
             ForEach(rows, id: \.self) { row in
                 HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "checkmark.circle.fill").font(.caption).foregroundStyle(.raceEdgeBlue).padding(.top, 2)
+                    Image(systemName: "checkmark.circle.fill").font(.caption).foregroundStyle(Color.raceEdgeBlue).padding(.top, 2)
                     Text(row).font(.subheadline)
                 }
             }
