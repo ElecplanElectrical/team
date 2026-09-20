@@ -1,0 +1,186 @@
+// !$*UTF8*$!
+{
+  archiveVersion = 1;
+  classes = {};
+  objectVersion = 56;
+  objects = {
+
+/* Begin PBXBuildFile section */
+    A00000000000000000000001 /* RaceEdgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000001 /* RaceEdgeApp.swift */; };
+    A00000000000000000000002 /* RaceEdgeAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000002 /* RaceEdgeAPI.swift */; };
+    A00000000000000000000003 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000003 /* HomeView.swift */; };
+    A00000000000000000000004 /* LiveTodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000004 /* LiveTodayView.swift */; };
+    A00000000000000000000005 /* RacesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000005 /* RacesView.swift */; };
+    A00000000000000000000006 /* TipsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000006 /* TipsView.swift */; };
+    A00000000000000000000007 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000007 /* ResultsView.swift */; };
+    A00000000000000000000008 /* RaceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000008 /* RaceDetailView.swift */; };
+    A00000000000000000000009 /* RunnerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000009 /* RunnerDetailView.swift */; };
+    A0000000000000000000000A /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000A /* MoreView.swift */; };
+    A0000000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B0000000000000000000000B /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+    B00000000000000000000001 /* RaceEdgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceEdgeApp.swift; sourceTree = "<group>"; };
+    B00000000000000000000002 /* RaceEdgeAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceEdgeAPI.swift; sourceTree = "<group>"; };
+    B00000000000000000000003 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+    B00000000000000000000004 /* LiveTodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTodayView.swift; sourceTree = "<group>"; };
+    B00000000000000000000005 /* RacesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RacesView.swift; sourceTree = "<group>"; };
+    B00000000000000000000006 /* TipsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipsView.swift; sourceTree = "<group>"; };
+    B00000000000000000000007 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
+    B00000000000000000000008 /* RaceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceDetailView.swift; sourceTree = "<group>"; };
+    B00000000000000000000009 /* RunnerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerDetailView.swift; sourceTree = "<group>"; };
+    B0000000000000000000000A /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
+    B0000000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = RaceEdge/Assets.xcassets; sourceTree = "<group>"; };
+    B0000000000000000000000C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = RaceEdge/Info.plist; sourceTree = "<group>"; };
+    B0000000000000000000000D /* RaceEdge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RaceEdge.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+    C00000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+    D00000000000000000000001 = {
+      isa = PBXGroup;
+      children = (
+        D00000000000000000000002 /* RaceEdge */,
+        D00000000000000000000003 /* Products */,
+      );
+      sourceTree = "<group>";
+    };
+    D00000000000000000000002 /* RaceEdge */ = {
+      isa = PBXGroup;
+      children = (
+        B00000000000000000000001 /* RaceEdgeApp.swift */,
+        B00000000000000000000002 /* RaceEdgeAPI.swift */,
+        B00000000000000000000003 /* HomeView.swift */,
+        B00000000000000000000004 /* LiveTodayView.swift */,
+        B00000000000000000000005 /* RacesView.swift */,
+        B00000000000000000000006 /* TipsView.swift */,
+        B00000000000000000000007 /* ResultsView.swift */,
+        B00000000000000000000008 /* RaceDetailView.swift */,
+        B00000000000000000000009 /* RunnerDetailView.swift */,
+        B0000000000000000000000A /* MoreView.swift */,
+        B0000000000000000000000B /* Assets.xcassets */,
+        B0000000000000000000000C /* Info.plist */,
+      );
+      path = "";
+      sourceTree = "<group>";
+    };
+    D00000000000000000000003 /* Products */ = {isa = PBXGroup; children = (B0000000000000000000000D /* RaceEdge.app */); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+    E00000000000000000000001 /* RaceEdge */ = {
+      isa = PBXNativeTarget;
+      buildConfigurationList = F00000000000000000000002 /* Build configuration list for PBXNativeTarget "RaceEdge" */;
+      buildPhases = (
+        C00000000000000000000002 /* Sources */,
+        C00000000000000000000001 /* Frameworks */,
+        C00000000000000000000003 /* Resources */,
+      );
+      buildRules = ();
+      dependencies = ();
+      name = RaceEdge;
+      productName = RaceEdge;
+      productReference = B0000000000000000000000D /* RaceEdge.app */;
+      productType = "com.apple.product-type.application";
+    };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+    E00000000000000000000002 /* Project object */ = {
+      isa = PBXProject;
+      attributes = {
+        BuildIndependentTargetsInParallel = 1;
+        LastSwiftUpdateCheck = 1600;
+        LastUpgradeCheck = 1600;
+        TargetAttributes = { E00000000000000000000001 = { CreatedOnToolsVersion = 16.0; }; };
+      };
+      buildConfigurationList = F00000000000000000000001 /* Build configuration list for PBXProject "RaceEdge" */;
+      compatibilityVersion = "Xcode 14.0";
+      developmentRegion = en;
+      hasScannedForEncodings = 0;
+      knownRegions = (en, Base);
+      mainGroup = D00000000000000000000001;
+      productRefGroup = D00000000000000000000003 /* Products */;
+      projectDirPath = "";
+      projectRoot = "";
+      targets = (E00000000000000000000001 /* RaceEdge */);
+    };
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+    C00000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A0000000000000000000000B /* Assets.xcassets in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+    C00000000000000000000002 /* Sources */ = {
+      isa = PBXSourcesBuildPhase;
+      buildActionMask = 2147483647;
+      files = (
+        A00000000000000000000001 /* RaceEdgeApp.swift in Sources */,
+        A00000000000000000000002 /* RaceEdgeAPI.swift in Sources */,
+        A00000000000000000000003 /* HomeView.swift in Sources */,
+        A00000000000000000000004 /* LiveTodayView.swift in Sources */,
+        A00000000000000000000005 /* RacesView.swift in Sources */,
+        A00000000000000000000006 /* TipsView.swift in Sources */,
+        A00000000000000000000007 /* ResultsView.swift in Sources */,
+        A00000000000000000000008 /* RaceDetailView.swift in Sources */,
+        A00000000000000000000009 /* RunnerDetailView.swift in Sources */,
+        A0000000000000000000000A /* MoreView.swift in Sources */,
+      );
+      runOnlyForDeploymentPostprocessing = 0;
+    };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+    F00000000000000000000003 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0;}; name = Debug;};
+    F00000000000000000000004 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0;}; name = Release;};
+    F00000000000000000000005 /* Debug */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+        CODE_SIGN_STYLE = Automatic;
+        CURRENT_PROJECT_VERSION = 1;
+        GENERATE_INFOPLIST_FILE = NO;
+        INFOPLIST_FILE = RaceEdge/Info.plist;
+        IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+        MARKETING_VERSION = 1.0;
+        PRODUCT_BUNDLE_IDENTIFIER = au.com.raceedge.app;
+        PRODUCT_NAME = "$(TARGET_NAME)";
+        SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+        SWIFT_EMIT_LOC_STRINGS = YES;
+        SWIFT_VERSION = 5.0;
+        TARGETED_DEVICE_FAMILY = 1;
+      };
+      name = Debug;
+    };
+    F00000000000000000000006 /* Release */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+        CODE_SIGN_STYLE = Automatic;
+        CURRENT_PROJECT_VERSION = 1;
+        GENERATE_INFOPLIST_FILE = NO;
+        INFOPLIST_FILE = RaceEdge/Info.plist;
+        IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+        MARKETING_VERSION = 1.0;
+        PRODUCT_BUNDLE_IDENTIFIER = au.com.raceedge.app;
+        PRODUCT_NAME = "$(TARGET_NAME)";
+        SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+        SWIFT_EMIT_LOC_STRINGS = YES;
+        SWIFT_VERSION = 5.0;
+        TARGETED_DEVICE_FAMILY = 1;
+      };
+      name = Release;
+    };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+    F00000000000000000000001 /* Build configuration list for PBXProject "RaceEdge" */ = {isa = XCConfigurationList; buildConfigurations = (F00000000000000000000003 /* Debug */, F00000000000000000000004 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+    F00000000000000000000002 /* Build configuration list for PBXNativeTarget "RaceEdge" */ = {isa = XCConfigurationList; buildConfigurations = (F00000000000000000000005 /* Debug */, F00000000000000000000006 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+/* End XCConfigurationList section */
+  };
+  rootObject = E00000000000000000000002 /* Project object */;
+}
