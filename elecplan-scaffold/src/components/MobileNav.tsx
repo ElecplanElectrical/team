@@ -10,10 +10,10 @@ import { navGroupsFor } from "@/lib/nav";
 import { LOGO_WORDMARK } from "@/lib/logo";
 
 const UI = {
-  bg: "rgba(2,14,27,.97)",
-  panel: "#07192b",
-  border: "rgba(73,145,214,.22)",
-  mute: "#93a8c1",
+  bg: "rgba(11,13,16,.97)",
+  panel: "#181e26",
+  border: "rgba(67,210,255,.28)",
+  mute: "#c0c7d0",
 };
 
 export default function MobileNav({ role }: { role: Role }) {
@@ -40,7 +40,7 @@ export default function MobileNav({ role }: { role: Role }) {
       {open && (
         <div className="fixed inset-0 z-[60] md:hidden">
           <button type="button" aria-label="Close navigation overlay" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-[82%] max-w-[320px] overflow-y-auto p-4 shadow-2xl" style={{ background: "linear-gradient(180deg,#02101f,#031321)", borderRight: `1px solid ${UI.border}` }}>
+          <aside className="absolute inset-y-0 left-0 w-[82%] max-w-[320px] overflow-y-auto p-4 shadow-2xl" style={{ background: "linear-gradient(180deg,#0b0d10,#15191f)", borderRight: `1px solid ${UI.border}` }}>
             <div className="mb-6 flex items-center justify-between">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: 126, height: "auto", objectFit: "contain", display: "block" }} />
@@ -49,15 +49,15 @@ export default function MobileNav({ role }: { role: Role }) {
             <nav className="space-y-5">
               {groups.map((group, gi) => (
                 <div key={group.heading ?? gi}>
-                  {group.heading && <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.13em]" style={{ color: "#58718c" }}>{group.heading}</p>}
+                  {group.heading && <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.13em]" style={{ color: "#7f8b9b" }}>{group.heading}</p>}
                   <div className="space-y-1">
                     {group.items.map((item) => {
                       const href = SCREEN_PATH[item.screen];
                       const active = pathname === href || pathname.startsWith(href + "/");
                       const Icon = item.icon;
                       return (
-                        <Link key={item.screen} href={href} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" style={{ background: active ? "linear-gradient(90deg,rgba(17,112,255,.58),rgba(19,93,205,.18))" : "transparent", color: active ? "#f4f8ff" : UI.mute }}>
-                          <Icon size={17} style={{ color: active ? "#25c7ff" : undefined }} />
+                        <Link key={item.screen} href={href} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" style={{ background: active ? "linear-gradient(90deg,rgba(67,210,255,.26),rgba(67,210,255,.08))" : "transparent", color: active ? "#ffffff" : UI.mute }}>
+                          <Icon size={17} style={{ color: active ? "#43d2ff" : undefined }} />
                           {item.label}
                         </Link>
                       );
