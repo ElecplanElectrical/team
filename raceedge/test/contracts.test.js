@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { enrichLiveRace, enrichLiveEvents } from '../lib/liveAnalysis.js';
-import { normalizeMeeting, normalizeRace, normalizeRunner, normalizeChanges } from '../lib/normalizers.js';
+import { normalizeMeeting, normalizeRace, normalizeRunner, normalizeChanges, normalizeProviderPayload } from '../lib/normalizers.js';
 
 const completeRunner = (overrides = {}) => ({
   providerId:'runner-1',
@@ -74,4 +74,34 @@ test('normalized racing changes match iOS RacingChange contract', () => {
     assert.ok(Object.hasOwn(change,key), `missing ${key}`);
   }
   assert.equal(change.scratched,true);
+});
+
+
+test('flat PuntersEdge events are grouped into meetings with races', () => {
+  const events = normalizeProviderPayload([
+    { race_id:'r1', venue:'Flemington', venue_id:'v1', race_number:1, category:'R', start_time:'2026-09-20T02:00:00Z', race_name:'Race 1', distance_m:1200, status:'OPEN' },
+    { race_id:'r2', venue:'Flemington', venue_id:'v1', race_number:2, category:'R', start_time:'2026-09-20T02:30:00Z', race_name:'Race 2', distance_m:1400, status:'OPEN' }
+  ]);
+  assert.equal(events.length,1);
+  assert.equal(events[0].meeting.name,'Flemington');
+  assert.equal(events[0].meeting.code,'R');
+  assert.equal(events[0].races.length,2);
+  assert.equal(events[0].races[0].providerId,'r1');
+});
+
+test('PuntersEdge changes race envelopes normalize scratchings', () => {
+  const changes = normalizeChanges({
+    server_time:'2026-09-20T02:01:00Z',
+    races:[{ race_id:'race-1', race_number:3, scratchings:[{ runner_ref:'runner-1', number:4, name:'Northern Edge', scratched_at:'2026-09-20T02:00:30Z' }] }]
+  });
+  assert.equal(changes.length,1);
+  assert.equal(changes[0].raceId,'race-1');
+  assert.equal(changes[0].runnerId,'runner-1');
+  assert.equal(changes[0].scratched,true);
+});
+
+test('PuntersEdge bookmaker prices map to runner price', () => {
+  const runner=normalizeRunner({runner_ref:'runner-1',number:4,name:'Northern Edge',bookmakers:[{win_price:3.2,stale:false},{win_price:3.5,stale:false},{win_price:9,stale:true}]});
+  assert.equal(runner.providerId,'runner-1');
+  assert.equal(runner.price,3.5);
 });

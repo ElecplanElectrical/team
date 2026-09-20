@@ -14,7 +14,31 @@ const demoTips=[{rank:1,runner:'Northern Edge',meeting:'Flemington',race:5,numbe
 const demoField=[{number:4,name:'Northern Edge',barrierRating:90,price:3.4,scratched:false,form:94,speed:91,classRating:88,pace:92,conditions:90},{number:7,name:'Ocean State',barrierRating:76,price:6.5,scratched:false,form:86,speed:84,classRating:87,pace:82,conditions:88},{number:2,name:'Capital Run',barrierRating:94,price:4.8,scratched:false,form:83,speed:87,classRating:82,pace:84,conditions:80},{number:9,name:'Trackside',barrierRating:62,price:9,scratched:true,form:89,speed:86,classRating:81,pace:79,conditions:85}];
 const homePayload=()=>({updatedAt:new Date().toISOString(),source:'demo',meetings:demoMeetings,tips:demoTips,disclaimer:'RaceEdge ratings are analytical estimates, not guaranteed outcomes.'});const countRecords=data=>Array.isArray(data)?data.length:0;
 async function providerResponse(res,loader,label){try{const data=await withCache(`provider:${label}`,30000,loader);return res.json({provider:'PuntersEdge',normalized:true,type:label,updatedAt:new Date().toISOString(),data});}catch(error){if(error.code==='PROVIDER_NOT_CONFIGURED')return res.status(503).json({connected:false,message:error.message});console.error(`Provider ${label} failed`,error.message);return res.status(502).json({connected:false,error:'Provider request failed'});}}
-async function buildLivePayload(){const [rawEvents,changes]=await Promise.all([getNormalizedEvents(),getNormalizedChanges()]);const changedEvents=applyChangesToEvents(rawEvents,changes);const events=enrichLiveEvents(changedEvents);const analysisReadyRaces=events.reduce((sum,event)=>sum+(event.races??[]).filter(race=>race.analysisReady).length,0);const totalRaces=events.reduce((sum,event)=>sum+(event.races??[]).length,0);return {updatedAt:new Date().toISOString(),source:'PuntersEdge',live:true,events,changes,scratchingsChecked:true,analysisSummary:{readyRaces:analysisReadyRaces,totalRaces,waitingRaces:Math.max(0,totalRaces-analysisReadyRaces)},disclaimer:'RaceEdge ratings are analytical estimates, not guaranteed outcomes.'};}
+function mergeLiveFeeds(scheduleEvents=[],pricedEvents=[]){
+  const pricedByRace=new Map();
+  for(const event of pricedEvents) for(const race of event.races??[]) if(race.providerId) pricedByRace.set(race.providerId,race);
+  const seen=new Set();
+  const merged=scheduleEvents.map(event=>({...event,races:(event.races??[]).map(race=>{
+    const priced=race.providerId?pricedByRace.get(race.providerId):null;
+    if(race.providerId) seen.add(race.providerId);
+    return priced?{...race,...priced,runners:priced.runners??race.runners}:race;
+  })}));
+  for(const event of pricedEvents){
+    const extras=(event.races??[]).filter(race=>race.providerId&&!seen.has(race.providerId));
+    if(extras.length) merged.push({...event,races:extras});
+  }
+  return merged;
+}
+async function buildLivePayload(){
+  const [scheduleEvents,pricedEvents,changes]=await Promise.all([getNormalizedEvents(),getNormalizedNextToGo(),getNormalizedChanges()]);
+  const mergedEvents=mergeLiveFeeds(scheduleEvents,pricedEvents);
+  const changedEvents=applyChangesToEvents(mergedEvents,changes);
+  const events=enrichLiveEvents(changedEvents);
+  const analysisReadyRaces=events.reduce((sum,event)=>sum+(event.races??[]).filter(race=>race.analysisReady).length,0);
+  const totalRaces=events.reduce((sum,event)=>sum+(event.races??[]).length,0);
+  const pricedRaces=events.reduce((sum,event)=>sum+(event.races??[]).filter(race=>(race.runners??[]).some(r=>r.price!=null)).length,0);
+  return {updatedAt:new Date().toISOString(),source:'PuntersEdge',live:true,events,changes,scratchingsChecked:true,analysisSummary:{readyRaces:analysisReadyRaces,totalRaces,pricedRaces,waitingRaces:Math.max(0,totalRaces-analysisReadyRaces)},disclaimer:'RaceEdge ratings are analytical estimates, not guaranteed outcomes.'};
+}
 function summarizeProviderPayload(payload){
   const kind=Array.isArray(payload)?'array':payload===null?'null':typeof payload;
   const topLevelKeys=payload&&typeof payload==='object'&&!Array.isArray(payload)?Object.keys(payload).slice(0,20):[];

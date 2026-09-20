@@ -66,11 +66,18 @@ export async function puntersEdgeRequest(path) {
   }
 }
 
-export const getNextToGo = () => puntersEdgeRequest('/v1/racing/next-to-go');
-export const getEvents = () => puntersEdgeRequest('/v1/racing/events');
+export const getNextToGo = () => puntersEdgeRequest('/v1/racing/next-to-go?num_races=200');
+export const getEvents = () => puntersEdgeRequest('/v1/racing/events?hours_ahead=24');
 export const getResults = () => puntersEdgeRequest('/v1/racing/results');
 export const getAcceptances = () => puntersEdgeRequest('/v1/racing/acceptances');
-export const getChanges = () => puntersEdgeRequest('/v1/racing/changes');
+let changesCursor = null;
+function freshChangesCursor() { return new Date(Date.now() - 5 * 60 * 1000).toISOString(); }
+export async function getChanges() {
+  const since = changesCursor || freshChangesCursor();
+  const payload = await puntersEdgeRequest(`/v1/racing/changes?since=${encodeURIComponent(since)}`);
+  if (payload?.server_time) changesCursor = payload.server_time;
+  return payload;
+}
 export async function getNormalizedNextToGo() { return normalizeProviderPayload(await getNextToGo()); }
 export async function getNormalizedEvents() { return normalizeProviderPayload(await getEvents()); }
 export async function getNormalizedAcceptances() { return normalizeProviderPayload(await getAcceptances()); }
