@@ -19,7 +19,7 @@ struct RaceDetailView: View {
                     if let detail {
                         if detail.scratchingsChecked {
                             Label("Scratchings checked", systemImage: "checkmark.shield.fill")
-                                .font(.caption.bold()).foregroundStyle(.raceEdgeBlue)
+                                .font(.caption.bold()).foregroundStyle(Color.raceEdgeBlue)
                         }
                         switch selectedTab {
                         case "Pace Map": PaceMapView(runners: detail.runners)
@@ -33,7 +33,7 @@ struct RaceDetailView: View {
                     } else if let errorMessage {
                         Text(errorMessage).foregroundStyle(.secondary)
                     } else {
-                        ProgressView().tint(.raceEdgeBlue).frame(maxWidth: .infinity).padding(.top, 40)
+                        ProgressView().tint(Color.raceEdgeBlue).frame(maxWidth: .infinity).padding(.top, 40)
                     }
                 }.padding()
             }
@@ -47,7 +47,7 @@ struct RaceDetailView: View {
     private var raceHeader: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack {
-                Text("RACE \(raceNo)").font(.caption.bold()).tracking(1.5).foregroundStyle(.raceEdgeBlue)
+                Text("RACE \(raceNo)").font(.caption.bold()).tracking(1.5).foregroundStyle(Color.raceEdgeBlue)
                 Spacer()
                 Text(meeting.condition).font(.caption.bold()).foregroundStyle(.secondary)
             }
@@ -77,7 +77,7 @@ struct RaceDetailView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("CONFIDENCE").font(.caption2.bold()).foregroundStyle(.secondary)
-                    Text(analysis.confidence ?? "—").font(.title2.bold()).foregroundStyle(.raceEdgeBlue)
+                    Text(analysis.confidence ?? "—").font(.title2.bold()).foregroundStyle(Color.raceEdgeBlue)
                 }
                 Spacer()
                 if let value = analysis.valueSelection {
@@ -122,7 +122,7 @@ struct RaceDetailView: View {
 
     private func analysisSection(_ detail: RaceDetail) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("RaceEdge Analysis", systemImage: "chart.bar.xaxis").font(.title2.bold()).foregroundStyle(.raceEdgeBlue)
+            Label("RaceEdge Analysis", systemImage: "chart.bar.xaxis").font(.title2.bold()).foregroundStyle(Color.raceEdgeBlue)
             if let analysis = detail.analysis {
                 metricRow("Confidence", analysis.confidence ?? "—")
                 if let top = analysis.topPick { metricRow("Top Pick", "#\(top.number) \(top.name)") }
@@ -137,7 +137,7 @@ struct RaceDetailView: View {
     private func selectionCard(_ runner: RaceRunner, label: String) -> some View {
         HStack(spacing: 12) {
             VStack(spacing: 2) {
-                Text(label).font(.system(size: 8, weight: .black)).foregroundStyle(.raceEdgeBlue)
+                Text(label).font(.system(size: 8, weight: .black)).foregroundStyle(Color.raceEdgeBlue)
                 Text("#\(runner.number)").font(.title.bold())
             }.frame(width: 70)
             VStack(alignment: .leading, spacing: 4) {
@@ -150,7 +150,7 @@ struct RaceDetailView: View {
             }
             Spacer()
             if let rating = runner.raceEdgeRating {
-                VStack(spacing: 0) { Text("\(rating)").font(.title.bold()).foregroundStyle(.raceEdgeBlue); Text("RATING").font(.system(size: 7, weight: .bold)).foregroundStyle(.secondary) }
+                VStack(spacing: 0) { Text("\(rating)").font(.title.bold()).foregroundStyle(Color.raceEdgeBlue); Text("RATING").font(.system(size: 7, weight: .bold)).foregroundStyle(.secondary) }
             }
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
         }
@@ -171,7 +171,7 @@ struct RaceDetailView: View {
             }
             Spacer()
             if runner.scratched { Text("SCR").font(.caption.bold()).foregroundStyle(.red) }
-            else if let rating = runner.raceEdgeRating { Text("\(rating)").font(.title3.bold()).foregroundStyle(.raceEdgeBlue) }
+            else if let rating = runner.raceEdgeRating { Text("\(rating)").font(.title3.bold()).foregroundStyle(Color.raceEdgeBlue) }
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
         }.padding().background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 14))
     }
@@ -189,11 +189,11 @@ struct PaceMapView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("PACE MAP").font(.caption.bold()).tracking(1.5).foregroundStyle(.raceEdgeBlue)
+                    Text("PACE MAP").font(.caption.bold()).tracking(1.5).foregroundStyle(Color.raceEdgeBlue)
                     Text("Visual race shape").font(.title2.bold())
                 }
                 Spacer()
-                Image(systemName: "flag.checkered").foregroundStyle(.raceEdgeBlue)
+                Image(systemName: "flag.checkered").foregroundStyle(Color.raceEdgeBlue)
             }
 
             VStack(spacing: 0) {
@@ -233,7 +233,7 @@ struct PaceMapView: View {
         VStack(spacing: 10) {
             Text(title).font(.caption2.bold()).foregroundStyle(.secondary)
             HStack(spacing: 8) {
-                Image(systemName: "ellipsis.circle").foregroundStyle(.raceEdgeBlue)
+                Image(systemName: "ellipsis.circle").foregroundStyle(Color.raceEdgeBlue)
                 Text("Awaiting validated data").font(.caption).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)

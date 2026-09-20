@@ -18,7 +18,7 @@ struct RacesView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("MEETINGS").font(.caption.bold()).tracking(2).foregroundStyle(.raceEdgeBlue)
+                            Text("MEETINGS").font(.caption.bold()).tracking(2).foregroundStyle(Color.raceEdgeBlue)
                             Text("Australian Racing").font(.largeTitle.bold())
                             Text("Today's meetings and race fields.").foregroundStyle(.secondary)
                         }
@@ -46,7 +46,7 @@ struct RacesView: View {
                         } else if let message = api.errorMessage {
                             Text(message).foregroundStyle(.secondary)
                         } else {
-                            ProgressView().tint(.raceEdgeBlue).frame(maxWidth: .infinity).padding(.top, 40)
+                            ProgressView().tint(Color.raceEdgeBlue).frame(maxWidth: .infinity).padding(.top, 40)
                         }
                     }
                     .padding()
@@ -68,7 +68,7 @@ struct RacesView: View {
             HStack {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10).fill(Color.raceEdgeBlue.opacity(0.15))
-                    Text(event.meeting.code ?? "R").font(.headline.bold()).foregroundStyle(.raceEdgeBlue)
+                    Text(event.meeting.code ?? "R").font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue)
                 }.frame(width: 42, height: 42)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(event.meeting.name ?? "Meeting").font(.headline)
@@ -81,7 +81,7 @@ struct RacesView: View {
             ForEach(event.races) { race in
                 NavigationLink { LiveRaceDetailView(meeting: event.meeting, race: race) } label: {
                     HStack {
-                        Text("R\(race.raceNo ?? 0)").font(.headline.bold()).foregroundStyle(.raceEdgeBlue).frame(width: 40, alignment: .leading)
+                        Text("R\(race.raceNo ?? 0)").font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue).frame(width: 40, alignment: .leading)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(race.name ?? "Race").foregroundStyle(.white)
                             if let start = race.startTime { Text(start).font(.caption2).foregroundStyle(.secondary).lineLimit(1) }
@@ -101,7 +101,7 @@ struct RacesView: View {
     private func demoMeetingCard(_ meeting: RaceMeeting) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(meeting.code).font(.headline.bold()).foregroundStyle(.raceEdgeBlue)
+                Text(meeting.code).font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue)
                 Text(meeting.name).font(.headline)
                 Spacer()
                 Text(meeting.state).font(.caption).foregroundStyle(.secondary)
@@ -110,7 +110,7 @@ struct RacesView: View {
                 ForEach(1...meeting.races, id: \.self) { raceNo in
                     NavigationLink { RaceDetailView(meeting: meeting, raceNo: raceNo) } label: {
                         HStack {
-                            Text("R\(raceNo)").fontWeight(.bold).foregroundStyle(.raceEdgeBlue)
+                            Text("R\(raceNo)").fontWeight(.bold).foregroundStyle(Color.raceEdgeBlue)
                             Spacer()
                             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
                         }.padding(.vertical, 5)
@@ -135,7 +135,7 @@ struct LiveRaceDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("RACE \(race.raceNo ?? 0)").font(.caption.bold()).tracking(1.5).foregroundStyle(.raceEdgeBlue)
+                        Text("RACE \(race.raceNo ?? 0)").font(.caption.bold()).tracking(1.5).foregroundStyle(Color.raceEdgeBlue)
                         Text(race.name ?? "Race").font(.largeTitle.bold())
                         HStack {
                             Text(meeting.name ?? "Meeting")
@@ -144,7 +144,7 @@ struct LiveRaceDetailView: View {
                         }.font(.subheadline).foregroundStyle(.secondary)
                     }.padding().background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 18))
 
-                    Text("FIELD").font(.caption.bold()).tracking(1.5).foregroundStyle(.raceEdgeBlue)
+                    Text("FIELD").font(.caption.bold()).tracking(1.5).foregroundStyle(Color.raceEdgeBlue)
                     ForEach(race.runners) { runner in
                         NavigationLink { LiveRunnerDetailView(runner: runner) } label: {
                             HStack(spacing: 12) {
@@ -158,7 +158,7 @@ struct LiveRaceDetailView: View {
                                 }
                                 Spacer()
                                 if runner.scratched == true { Text("SCR").font(.caption.bold()).foregroundStyle(.red) }
-                                else if let price = runner.price { Text("$\(price, specifier: "%.2f")").font(.headline.bold()).foregroundStyle(.raceEdgeBlue) }
+                                else if let price = runner.price { Text("$\(price, specifier: "%.2f")").font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue) }
                                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
                             }
                             .padding()
@@ -183,7 +183,7 @@ struct LiveRunnerDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        ZStack { RoundedRectangle(cornerRadius: 14).fill(Color.raceEdgeBlue.opacity(0.16)); Text("#\(runner.number ?? 0)").font(.title.bold()).foregroundStyle(.raceEdgeBlue) }.frame(width: 64, height: 64)
+                        ZStack { RoundedRectangle(cornerRadius: 14).fill(Color.raceEdgeBlue.opacity(0.16)); Text("#\(runner.number ?? 0)").font(.title.bold()).foregroundStyle(Color.raceEdgeBlue) }.frame(width: 64, height: 64)
                         VStack(alignment: .leading, spacing: 3) { Text(runner.name ?? "Runner").font(.title2.bold()); Text(runner.scratched == true ? "SCRATCHED" : "ACTIVE").font(.caption.bold()).foregroundStyle(runner.scratched == true ? .red : .raceEdgeBlue) }
                     }.padding().background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 18))
 

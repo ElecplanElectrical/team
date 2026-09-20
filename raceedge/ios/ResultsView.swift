@@ -10,7 +10,7 @@ struct ResultsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         VStack(alignment:.leading,spacing:4) {
-                            Text("RESULTS").font(.caption.bold()).tracking(2).foregroundStyle(.raceEdgeBlue)
+                            Text("RESULTS").font(.caption.bold()).tracking(2).foregroundStyle(Color.raceEdgeBlue)
                             Text("Performance").font(.largeTitle.bold())
                             Text("Recorded RaceEdge selection history.").foregroundStyle(.secondary)
                         }
@@ -38,7 +38,7 @@ struct ResultsView: View {
                                     Text("\(result.meeting) · Race \(result.race_no)").font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                if result.result_position == 1 { Text("WIN").font(.caption.bold()).foregroundStyle(.raceEdgeBlue) }
+                                if result.result_position == 1 { Text("WIN").font(.caption.bold()).foregroundStyle(Color.raceEdgeBlue) }
                             }.padding().background(Color.raceEdgeCard,in:RoundedRectangle(cornerRadius:16))
                         }
 
@@ -56,7 +56,7 @@ struct ResultsView: View {
     private func metric(_ title:String,_ value:String) -> some View {
         VStack(alignment:.leading,spacing:5) {
             Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.title2.bold()).foregroundStyle(.raceEdgeBlue)
+            Text(value).font(.title2.bold()).foregroundStyle(Color.raceEdgeBlue)
         }.frame(maxWidth:.infinity,alignment:.leading).padding().background(Color.raceEdgeCard,in:RoundedRectangle(cornerRadius:16))
     }
 }

@@ -24,7 +24,7 @@ struct RaceEdgeApp: App {
                 MoreView()
                     .tabItem { Label("More", systemImage: "ellipsis") }
             }
-            .tint(.raceEdgeBlue)
+            .tint(Color.raceEdgeBlue)
             .preferredColorScheme(.dark)
             .task { if api.home == nil && api.liveToday == nil { await api.loadHome() } }
         }
