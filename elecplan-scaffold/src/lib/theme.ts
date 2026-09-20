@@ -10,6 +10,7 @@ export const COLORS = {
 export const ON_ACCENT = "#06222C";
 export const FONTS = { display: "'Sora', sans-serif", body: "'Inter', sans-serif", mono: "'IBM Plex Mono', monospace" } as const;
 export const EVENT_COLOR: Record<string,{ bg:string;border:string;fg:string }> = {
+  event:{bg:"rgba(148,163,184,0.18)",border:"#94A3B8",fg:"#E2E8F0"},
   job:{bg:"rgba(61,197,240,0.22)",border:COLORS.accent,fg:"#BFEBFA"},
   "job-history":{bg:"rgba(61,197,240,0.16)",border:COLORS.accent,fg:"#BFEBFA"},
   "job-scheduled":{bg:"#BFE8E4",border:"#72C9C1",fg:"#000000"},
@@ -22,7 +23,7 @@ export const EVENT_COLOR: Record<string,{ bg:string;border:string;fg:string }> =
   material:{bg:"rgba(240,178,61,0.22)",border:COLORS.amber,fg:"#FBE3B8"},
   personal:{bg:"rgba(236,72,153,0.22)",border:"#EC4899",fg:"#FFD1E8"},
 };
-export const EVENT_TYPES=["job","call","admin","material","personal"] as const;
+export const EVENT_TYPES=["event","job","call","admin","material","personal"] as const;
 export type EventType=(typeof EVENT_TYPES)[number];
 export const STATUS_STYLE:Record<string,{label:string;bg:string;fg:string}>={QUOTED:{label:"Quoted",bg:COLORS.amberBg,fg:COLORS.amber},SCHEDULED:{label:"Scheduled",bg:COLORS.accentDim,fg:COLORS.accent},IN_PROGRESS:{label:"In progress",bg:COLORS.amberBg,fg:COLORS.amber},COMPLETE:{label:"Complete",bg:COLORS.tealBg,fg:COLORS.teal},INVOICED:{label:"Invoiced",bg:COLORS.tealBg,fg:COLORS.teal}};
 export const JOB_STAGES=["QUOTED","SCHEDULED","IN_PROGRESS","COMPLETE","INVOICED"] as const;
