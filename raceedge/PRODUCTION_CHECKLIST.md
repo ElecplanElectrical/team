@@ -44,6 +44,9 @@ Last reviewed: 2026-09-18
 - [ ] Use holdout/out-of-sample validation before describing the model as calibrated.
 
 ## iOS
+- [x] Unsigned Release archive succeeds for generic iPhone hardware in Xcode CI.
+- [x] iOS source secret scan passes with no provider/admin credential references.
+
 - [x] Xcode CI simulator build passes on the `raceedge` branch.
 - [x] Xcode project, shared scheme, production API URL and privacy manifest are committed.
 
