@@ -6,18 +6,7 @@ import { signIn } from "next-auth/react";
 import { AlertTriangle, LockKeyhole, LogIn, ShieldCheck } from "lucide-react";
 import { LOGO_WORDMARK } from "@/lib/logo";
 
-const UI = {
-  panel: "#07192b",
-  panelAlt: "#09213a",
-  border: "rgba(77,150,221,.24)",
-  borderSoft: "rgba(77,150,221,.12)",
-  text: "#f5f9ff",
-  mute: "#93a9c2",
-  faint: "#617993",
-  blue: "#168dff",
-  cyan: "#25c7ff",
-  red: "#ff5e72",
-};
+import { PORTAL_UI as UI } from "@/lib/carbon-theme";
 
 export default function LoginForm({
   callbackUrl,
@@ -51,13 +40,13 @@ export default function LoginForm({
   }
 
   const inputStyle: React.CSSProperties = {
-    background: "#041323",
+    ...{boxShadow:"var(--ep-inset-shadow)"}, background: "var(--ep-input)",
     border: `1px solid ${UI.border}`,
     color: UI.text,
   };
 
   return (
-    <div className="grid w-full max-w-5xl overflow-hidden rounded-2xl shadow-[0_28px_90px_rgba(0,0,0,.35)] lg:grid-cols-[1.05fr_.95fr]" style={{ border: `1px solid ${UI.border}`, background: UI.panel }}>
+    <div className="grid w-full max-w-5xl overflow-hidden rounded-2xl shadow-[0_28px_90px_rgba(0,0,0,.35)] lg:grid-cols-[1.05fr_.95fr]" style={{ border: `1px solid ${UI.border}`, ...UI.raised, background: UI.panel }}>
       <section className="hidden min-h-[590px] flex-col justify-between p-8 lg:flex" style={{ background: "linear-gradient(145deg, rgba(13,53,91,.95), rgba(5,24,43,.98))", borderRight: `1px solid ${UI.borderSoft}` }}>
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -98,13 +87,13 @@ export default function LoginForm({
 
             {error && <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} />{error}</div>}
 
-            <button type="submit" disabled={loading} className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white", boxShadow: "0 10px 28px rgba(22,141,255,.24)" }}><LogIn size={16} />{loading ? "Signing in…" : "Sign in"}</button>
+            <button type="submit" disabled={loading} className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:opacity-60" style={{ ...UI.primary, color: UI.activeText, boxShadow: "0 10px 28px rgba(67,210,255,.24)" }}><LogIn size={16} />{loading ? "Signing in…" : "Sign in"}</button>
           </form>
 
           <p className="mt-5 text-xs leading-5" style={{ color: UI.faint }}>Forgot your password? Ask an Elecplan admin to issue a secure reset link.</p>
 
           {demoLogins && demoLogins.length > 0 && (
-            <div className="mt-6 rounded-xl p-3 text-xs" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}`, color: UI.faint }}>
+            <div className="mt-6 rounded-xl p-3 text-xs" style={{ ...UI.inset, background: UI.panelAlt, border: `1px solid ${UI.borderSoft}`, color: UI.faint }}>
               <p className="mb-2 font-semibold" style={{ color: UI.mute }}>Demo logins · password: password123</p>
               <div className="space-y-1.5">
                 {demoLogins.map((demo) => <button key={demo.email} type="button" onClick={() => { setEmail(demo.email); setPassword("password123"); }} className="block text-left hover:underline" style={{ color: UI.cyan }}>{demo.role}: {demo.email}</button>)}

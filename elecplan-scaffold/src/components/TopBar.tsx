@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { EVENT_COLOR } from "@/lib/theme";
 
-const UI = { bg: "rgba(12,15,19,.96)", panel: "#181e26", panelAlt: "#222a35", border: "rgba(255,255,255,.12)", text: "#ffffff", mute: "#c0c7d0", faint: "#7f8b9b", blue: "#43d2ff", green: "#3be6b7", red: "#ff756b" };
+import { PORTAL_UI as UI } from "@/lib/carbon-theme";
 const CALENDAR_KEY = [
   ["job-scheduled", "Scheduled"],
   ["job-in-progress", "In progress"],
@@ -79,7 +79,7 @@ export default function TopBar({ title, subtitle, rightSlot }: { title: string; 
 
   const activeCount = reminders.filter(reminder => !reminder.completed).length;
 
-  return <header className="shrink-0 px-4 py-4 md:px-6 xl:px-7" style={{ background: UI.bg, borderBottom: `1px solid ${UI.border}`, backdropFilter: "blur(18px)" }}>
+  return <header className="ep-carbon-topbar shrink-0 px-4 py-4 md:px-6 xl:px-7" style={{ background: UI.bg, borderBottom: `1px solid ${UI.border}`, backdropFilter: "blur(18px)" }}>
     <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between gap-4">
       <div className="min-w-0">
         <h1 className="truncate text-xl font-semibold tracking-[-0.02em] md:text-2xl" style={{ color: UI.text }}>{title}</h1>
@@ -87,27 +87,27 @@ export default function TopBar({ title, subtitle, rightSlot }: { title: string; 
         {title === "Calendar" && <div className="mt-2 flex max-w-full flex-wrap gap-x-4 gap-y-1.5">{CALENDAR_KEY.map(([type,label]) => { const c=EVENT_COLOR[type]; return <span key={type} className="inline-flex items-center gap-1.5 text-[10px] font-medium md:text-[11px]" style={{color:UI.mute}}><span className="h-2.5 w-2.5 rounded-full" style={{background:c.border}}/>{label}</span>; })}</div>}
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <div className="relative hidden lg:block"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.mute }} /><input aria-label="Search" placeholder="Search jobs, clients, quotes..." className="h-10 w-60 rounded-lg bg-transparent pl-9 pr-3 text-xs outline-none xl:w-72" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text }} /></div>
+        <div className="relative hidden lg:block"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.mute }} /><input aria-label="Search" placeholder="Search jobs, clients, quotes..." className="h-10 w-60 rounded-lg bg-transparent pl-9 pr-3 text-xs outline-none xl:w-72" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text }} /></div>
         {rightSlot}
-        <Link href="/jobs" aria-label="Open jobs" className="hidden h-10 w-10 items-center justify-center rounded-lg sm:flex" style={{ background: UI.blue, color: "#06213a", boxShadow: "0 8px 24px rgba(56,189,248,.22)" }}><Plus size={18} /></Link>
+        <Link href="/jobs" aria-label="Open jobs" className="hidden h-10 w-10 items-center justify-center rounded-lg sm:flex" style={{ ...UI.primary, color: "#06213a", boxShadow: "0 8px 24px rgba(67,210,255,.22)" }}><Plus size={18} /></Link>
         <div className="relative" ref={dropdownRef}>
-          <button type="button" aria-label="To do list" aria-expanded={open} onClick={() => { const next = !open; setOpen(next); setSelected(null); if (next) void loadReminders(); }} className="relative flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}><Bell size={17} />{activeCount > 0 && <span className="absolute right-1.5 top-1 min-w-4 rounded-full bg-rose-500 px-1 text-center text-[9px] font-bold leading-4 text-white">{activeCount > 9 ? "9+" : activeCount}</span>}</button>
-          {open && <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl shadow-2xl" style={{background:UI.panel,border:`1px solid ${UI.border}`}}>
+          <button type="button" aria-label="To do list" aria-expanded={open} onClick={() => { const next = !open; setOpen(next); setSelected(null); if (next) void loadReminders(); }} className="relative flex h-10 w-10 items-center justify-center rounded-lg" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}><Bell size={17} />{activeCount > 0 && <span className="absolute right-1.5 top-1 min-w-4 rounded-full bg-rose-500 px-1 text-center text-[9px] font-bold leading-4 text-white">{activeCount > 9 ? "9+" : activeCount}</span>}</button>
+          {open && <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl shadow-2xl" style={{...UI.raised, background: UI.panel,border:`1px solid ${UI.border}`}}>
             <div className="flex items-center justify-between border-b px-4 py-3" style={{borderColor:UI.border}}><div><p className="text-sm font-semibold" style={{color:UI.text}}>To Do List</p><p className="text-[11px]" style={{color:UI.faint}}>{activeCount} to do</p></div>{selected && <button type="button" aria-label="Back to tasks" onClick={()=>setSelected(null)} className="rounded-md p-1.5" style={{color:UI.mute}}><X size={17}/></button>}</div>
             {selected ? <div className="space-y-3 p-4">
-              <label className="block text-[11px] font-medium" style={{color:UI.mute}}>Task<input value={editTitle} onChange={event=>setEditTitle(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg px-3 text-sm outline-none" style={{background:"#041323",border:`1px solid ${UI.border}`,color:UI.text}}/></label>
+              <label className="block text-[11px] font-medium" style={{color:UI.mute}}>Task<input value={editTitle} onChange={event=>setEditTitle(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg px-3 text-sm outline-none" style={{...{boxShadow:"var(--ep-inset-shadow)"}, background: "var(--ep-input)",border:`1px solid ${UI.border}`,color:UI.text}}/></label>
               {error && <p className="text-xs" style={{color:UI.red}}>{error}</p>}
-              <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} onClick={()=>void saveReminder()} className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-semibold disabled:opacity-50" style={{background:UI.blue,color:"white"}}><Pencil size={14}/>Save changes</button><button type="button" disabled={busy} onClick={async()=>{const done=await patchReminder(selected.id,{completed:!selected.completed});if(done)setSelected(null)}} className="flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold disabled:opacity-50" style={{background:"rgba(24,211,160,.12)",color:UI.green}}><Check size={14}/>{selected.completed?"Reopen":"Complete"}</button><button type="button" disabled={busy} onClick={()=>void deleteReminder()} className="flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold disabled:opacity-50" style={{background:"rgba(255,94,114,.12)",color:UI.red}}><Trash2 size={14}/>Delete</button></div>
+              <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} onClick={()=>void saveReminder()} className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-semibold disabled:opacity-50" style={{...UI.primary,color: UI.activeText}}><Pencil size={14}/>Save changes</button><button type="button" disabled={busy} onClick={async()=>{const done=await patchReminder(selected.id,{completed:!selected.completed});if(done)setSelected(null)}} className="flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold disabled:opacity-50" style={{background:"rgba(24,211,160,.12)",color:UI.green}}><Check size={14}/>{selected.completed?"Reopen":"Complete"}</button><button type="button" disabled={busy} onClick={()=>void deleteReminder()} className="flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold disabled:opacity-50" style={{background:"rgba(255,94,114,.12)",color:UI.red}}><Trash2 size={14}/>Delete</button></div>
             </div> : <div className="max-h-80 overflow-y-auto">
               {loading && <p className="px-4 py-8 text-center text-sm" style={{color:UI.faint}}>Loading tasks…</p>}
               {!loading && error && <p className="px-4 py-8 text-center text-sm" style={{color:UI.red}}>{error}</p>}
               {!loading && !error && reminders.length === 0 && <p className="px-4 py-8 text-center text-sm" style={{color:UI.faint}}>Nothing on the list.</p>}
               {!loading && reminders.map(reminder=><div key={reminder.id} className="flex items-center gap-2 border-b px-3 py-2" style={{borderColor:UI.border,opacity:reminder.completed?.58:1}}><button type="button" aria-label={reminder.completed?"Mark task not done":"Mark task done"} onClick={()=>void patchReminder(reminder.id,{completed:!reminder.completed})} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{color:reminder.completed?UI.green:UI.mute,border:`1px solid ${reminder.completed?UI.green:UI.border}`}}>{reminder.completed&&<Check size={15}/>}</button><button type="button" onClick={()=>openReminder(reminder)} className="min-w-0 flex-1 px-1 py-2 text-left"><span className="block truncate text-sm font-medium" style={{color:UI.text,textDecoration:reminder.completed?"line-through":"none"}}>{reminder.title}</span></button><button type="button" aria-label={`Edit ${reminder.title}`} onClick={()=>openReminder(reminder)} className="rounded-md p-2" style={{color:UI.mute}}><Pencil size={14}/></button></div>)}
             </div>}
-            {!selected && <Link href="/reminders" onClick={()=>setOpen(false)} className="block px-4 py-3 text-center text-xs font-semibold" style={{color:UI.blue,background:UI.panelAlt}}>Open full to do list</Link>}
+            {!selected && <Link href="/reminders" onClick={()=>setOpen(false)} className="block px-4 py-3 text-center text-xs font-semibold" style={{color:UI.blue,...UI.inset, background: UI.panelAlt}}>Open full to do list</Link>}
           </div>}
         </div>
-        <div className="hidden h-10 w-10 items-center justify-center rounded-full text-xs font-semibold sm:flex" style={{ background: "linear-gradient(145deg,#16466f,#0a2a47)", border: `1px solid rgba(125,211,252,.38)`, color: "#e0f7ff" }}>EP</div>
+        <div className="hidden h-10 w-10 items-center justify-center rounded-full text-xs font-semibold sm:flex" style={{ background: "linear-gradient(145deg,#29323d,#20272f)", border: `1px solid rgba(197,205,215,.38)`, color: "#e0f7ff" }}>EP</div>
       </div>
     </div>
   </header>;

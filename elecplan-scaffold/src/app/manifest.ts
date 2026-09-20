@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Elecplan job and field operations portal",
     start_url: "/calendar",
     display: "standalone",
-    background_color: "#07131f",
-    theme_color: "#07131f",
+    background_color: "#0d1117",
+    theme_color: "#0d1117",
     orientation: "portrait-primary",
     icons: [
       {

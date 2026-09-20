@@ -52,7 +52,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       ]);
 
   return (
-    <div className="flex-1 overflow-auto" style={{ background: "#03101f" }}>
+    <div className="flex-1 overflow-auto" style={{ background: "#0d1117" }}>
       <JobDetailView
         canEdit={user.role !== "EMPLOYEE"}
         canDelete={user.role === "ADMIN"}
@@ -73,7 +73,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         }}
       />
       <div className="relative z-10 mx-auto -mt-24 max-w-2xl px-3 pb-3 md:px-5">
-        {totalMinutes > 0 && <div className="mb-3 flex items-center gap-3 rounded-2xl p-4" style={{ background: "#09213a", border: "1px solid rgba(77,150,221,.24)" }}><Clock3 size={20} style={{ color: "#25c7ff" }} /><div><p className="text-[11px] font-semibold uppercase tracking-[.12em]" style={{ color: "#25c7ff" }}>Time on job</p><p className="mt-1 text-xl font-bold" style={{ color: "#f5f9ff" }}>{formatDuration(totalMinutes)}</p></div></div>}
+        {totalMinutes > 0 && <div className="mb-3 flex items-center gap-3 rounded-2xl p-4" style={{ ...{boxShadow:"var(--ep-inset-shadow)"}, background: "var(--ep-tray)", border: "1px solid rgba(197,205,215,.24)" }}><Clock3 size={20} style={{ color: "#43D2FF" }} /><div><p className="text-[11px] font-semibold uppercase tracking-[.12em]" style={{ color: "#43D2FF" }}>Time on job</p><p className="mt-1 text-xl font-bold" style={{ color: "#f4f7fa" }}>{formatDuration(totalMinutes)}</p></div></div>}
         <JobTasksPanel jobId={job.id} canManage={user.role !== "EMPLOYEE"} />
         <JobOperationsPanel jobId={job.id} canManage={user.role !== "EMPLOYEE"} />
       </div>
