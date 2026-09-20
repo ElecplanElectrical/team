@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { DOCUMENT_MAX_BYTES, DOCUMENT_TYPES, verifyCommitToken } from "@/lib/storage";
+import { recordAudit } from "@/lib/audit";
 
 const billSchema = z.object({
   clientId: z.string().trim().optional().nullable(),
@@ -94,6 +95,24 @@ export async function POST(req: Request) {
         } : {}),
       },
       select: { id: true, amount: true, dueDate: true, status: true },
+    });
+
+    await recordAudit({
+      actor: user,
+      action: "INVOICE_CREATED",
+      entityType: "Invoice",
+      entityId: invoice.id,
+      details: {
+        kind: d.clientId ? "client_invoice" : "supplier_bill",
+        clientId: d.clientId || null,
+        supplier: d.supplier || null,
+        jobId: d.jobId || null,
+        invoiceNumber: d.invoiceNumber || null,
+        amount: d.amount,
+        dueDate: d.dueDate,
+        status: d.status,
+        hasDocument,
+      },
     });
 
     return NextResponse.json({ ...invoice, hasDocument }, { status: 201 });
