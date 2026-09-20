@@ -3,15 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#050806">
-  <meta name="description" content="RACEEDGE — Australian racing intelligence, live form, analysis, tips and results.">
-  <title>RACEEDGE — Smarter Form. Better Tips. More Winners.</title>
+  <meta name="theme-color" content="#071426">
+  <meta name="description" content="RACEEDGE — Horse & Greyhound Tips. Smarter Form. Better Tips. More Winners.">
+  <title>RACEEDGE — Horse & Greyhound Tips</title>
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
   <header class="site-header">
     <div class="shell header-inner">
-      <a class="brand" href="/" aria-label="RACEEDGE home"><span>RACE</span><b>EDGE</b></a>
+      <div class="brand-wrap">
+        <div class="brand-mark">RE</div>
+        <div>
+          <div class="brand"><span>RACE</span><b>EDGE</b></div>
+          <div class="brand-sub">HORSE &amp; GREYHOUND TIPS</div>
+        </div>
+      </div>
       <div class="header-actions">
         <div class="live-pill"><span class="status-dot" id="statusDot"></span><span id="statusText">CONNECTING</span></div>
       </div>
@@ -19,55 +25,71 @@
   </header>
 
   <main>
-    <section class="hero shell">
-      <div class="hero-copy">
-        <div class="eyebrow">AUSTRALIAN RACING INTELLIGENCE</div>
-        <h1>Smarter Form.<br><span>Better Tips.</span><br>More Winners.</h1>
-        <p>Live Australian thoroughbred and greyhound racing, RaceEdge ratings, scratchings, selections and results — in one focused platform.</p>
-        <div class="hero-stats">
-          <div><strong id="meetingCount">—</strong><span>Meetings</span></div>
-          <div><strong id="raceCount">—</strong><span>Races</span></div>
-          <div><strong id="runnerCount">—</strong><span>Runners</span></div>
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow">AUSTRALIA'S COMPLETE RACING APP</div>
+          <h1>Smarter Form.<br><span>Better Tips.</span><br>More Winners.</h1>
+          <p>Live Australian horse and greyhound racing, RaceEdge analysis, scratchings, selections and results.</p>
+
+          <div class="feature-row">
+            <div><i>⚡</i><span>Real-time data</span></div>
+            <div><i>▥</i><span>AI-powered analysis</span></div>
+            <div><i>◆</i><span>All Australian meetings</span></div>
+          </div>
+
+          <div class="hero-stats">
+            <div><strong id="meetingCount">—</strong><span>Meetings</span></div>
+            <div><strong id="raceCount">—</strong><span>Races</span></div>
+            <div><strong id="runnerCount">—</strong><span>Runners</span></div>
+          </div>
         </div>
-      </div>
-      <div class="hero-panel">
-        <div class="panel-kicker">RACEEDGE LIVE</div>
-        <h2>Today’s racing</h2>
-        <div id="nextRaces" class="next-races">
-          <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+
+        <div class="phone-stage">
+          <div class="phone phone-left">
+            <div class="phone-top">9:41 <span>•••</span></div>
+            <div class="app-head"><div class="mini-logo">RE</div><b>RACE<span>EDGE</span></b></div>
+            <div class="segmented"><button class="selected">Horse Racing</button><button>Greyhounds</button></div>
+            <div class="app-section-title">Today's Meetings</div>
+            <div id="phoneMeetings" class="phone-list"></div>
+          </div>
+          <div class="phone phone-main">
+            <div class="phone-top">9:41 <span>•••</span></div>
+            <div class="app-title">RaceEdge Tips</div>
+            <div id="phoneTips" class="phone-tips"></div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="shell content-section">
+    <section class="shell main-section">
       <div class="section-head">
         <div>
-          <div class="eyebrow">LIVE FORM</div>
-          <h2>Today’s meetings</h2>
+          <div class="eyebrow">LIVE RACING</div>
+          <h2>Today's Meetings</h2>
         </div>
-        <div class="filters" role="tablist">
+        <div class="filters">
           <button class="filter active" data-filter="ALL">All</button>
-          <button class="filter" data-filter="R">Thoroughbreds</button>
+          <button class="filter" data-filter="R">Horse Racing</button>
           <button class="filter" data-filter="G">Greyhounds</button>
         </div>
       </div>
-      <div id="meetings" class="meetings-grid">
-        <div class="loading-card">Loading live racing…</div>
-      </div>
+      <div id="meetings" class="meetings-grid"><div class="loading-card">Loading live racing…</div></div>
     </section>
 
     <section class="shell two-col">
       <section class="glass-card">
         <div class="section-head compact">
-          <div><div class="eyebrow">RACEEDGE PICKS</div><h2>Top selections</h2></div>
-          <span class="analysis-badge">ANALYSIS READY</span>
+          <div><div class="eyebrow">RACEEDGE PICKS</div><h2>Today's Best Bets</h2></div>
+          <span class="analysis-badge">AI ANALYSIS</span>
         </div>
         <div id="tips" class="tips-list"><div class="empty-state">Loading selections…</div></div>
       </section>
 
       <section class="glass-card">
         <div class="eyebrow">PLATFORM STATUS</div>
-        <h2>Production V1.0</h2>
+        <h2>RaceEdge V1.0</h2>
         <div class="status-list">
           <div><span>Live racing feed</span><b id="feedState">Checking…</b></div>
           <div><span>Scratchings</span><b id="scratchState">Checking…</b></div>
@@ -81,9 +103,12 @@
 
   <footer>
     <div class="shell footer-inner">
-      <div class="brand small"><span>RACE</span><b>EDGE</b></div>
+      <div>
+        <div class="brand small"><span>RACE</span><b>EDGE</b></div>
+        <div class="brand-sub">HORSE &amp; GREYHOUND TIPS</div>
+      </div>
       <div class="footer-links"><a href="/privacy.html">Privacy</a><a href="/support.html">Support</a></div>
-      <div class="footer-copy">© 2026 RACEEDGE</div>
+      <div class="footer-copy">Smarter Form. Better Tips. More Winners.</div>
     </div>
   </footer>
 
