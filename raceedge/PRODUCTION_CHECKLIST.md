@@ -29,7 +29,7 @@ Last reviewed: 2026-09-20
 - [x] Normalized meeting, race, runner, change and analysis shapes have automated app-contract coverage.
 - [x] Scratchings are applied before live race enrichment/selections.
 - [x] Validate PuntersEdge events, acceptances, changes and results using production responses.
-- [ ] Confirm horse, greyhound and harness code mapping using production responses.
+- [x] Confirm production code mapping: R=thoroughbred, G=greyhound, H=harness; V1 intentionally exposes only R/G in iOS.
 - [x] Confirm live runners remain matchable for changes using provider ID when present, with number+name fallback when PuntersEdge omits runner_ref.
 - [x] Validate production race start timestamps are consistently present and parse as timezone-aware ISO timestamps.
 - [x] Confirm current PuntersEdge public rate-limit/credit rules and display-licence requirements.
@@ -74,8 +74,9 @@ Last reviewed: 2026-09-20
 - [ ] Complete a physical/live race-day observation pass on iPhone.
 
 ## Current hard gates
-1. Perform a real Xcode build and physical-iPhone QA pass.
-2. Complete App Store/TestFlight signing, final icon/screenshots, App Store Connect privacy details and release configuration.
+1. Complete physical-iPhone QA pass.
+2. Complete Apple Developer/App Store Connect signing, final icon/screenshots and submission.
+3. Upgrade/confirm PuntersEdge public price-display entitlement only if market prices are to be shown.
 
 V1 scope: form, analytics, tips and results. No wagering or bet placement.
 
@@ -104,3 +105,5 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 - [x] PuntersEdge runner provider IDs are not universal; production QA reports provider-ID coverage separately from effective change-matching identity coverage.
 
 - [x] Public API abuse protection limits each client to 120 requests/minute and returns Retry-After on 429 responses.
+
+- [x] Machine-readable release status endpoint reports V1 scope, backend readiness, provider entitlement state and remaining external gates.
