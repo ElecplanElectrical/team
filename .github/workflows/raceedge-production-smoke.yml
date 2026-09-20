@@ -74,7 +74,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/live/today -o /tmp/live.json
-          python3 -c 'import json; d=json.load(open("/tmp/live.json")); e=d.get("events"); assert isinstance(e,list) and e; r=[x for m in e for x in (m.get("races") or [])]; assert r; ms=[m.get("meeting") or {} for m in e]; assert any(x.get("providerId") and x.get("name") and x.get("code") for x in ms); assert any(x.get("providerId") and x.get("raceNo") and x.get("startTime") for x in r); u=[x for rr in r for x in (rr.get("runners") or [])]; assert u; assert any((x.get("number") is not None) and x.get("name") for x in u); print(json.dumps({"events":len(e),"races":len(r),"runners":len(u),"pricedRunners":sum(1 for x in u if x.get("price") is not None),"scratchingsChecked":d.get("scratchingsChecked")}))'
+          python3 -c 'import json; d=json.load(open("/tmp/live.json")); e=d.get("events"); assert isinstance(e,list) and e; r=[x for m in e for x in (m.get("races") or [])]; assert r; ms=[m.get("meeting") or {} for m in e]; assert any(x.get("providerId") and x.get("name") and x.get("code") for x in ms); assert any(x.get("providerId") and x.get("raceNo") and x.get("startTime") for x in r); u=[x for rr in r for x in (rr.get("runners") or [])]; assert u; assert any((x.get("number") is not None) and x.get("name") for x in u); print(json.dumps({"events":len(e),"races":len(r),"runners":len(u),"pricedRunners":sum(1 for x in u if x.get("price") is not None),"analysisReadyRaces":sum(1 for x in r if x.get("analysisReady") is True),"analysisSummary":d.get("analysisSummary"),"scratchingsChecked":d.get("scratchingsChecked")}))'
 
       - name: Verify protected routes reject anonymous access
         shell: bash
