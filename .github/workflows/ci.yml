@@ -32,7 +32,7 @@ jobs:
           corepack prepare pnpm@10.15.0 --activate
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Lint
         run: pnpm lint

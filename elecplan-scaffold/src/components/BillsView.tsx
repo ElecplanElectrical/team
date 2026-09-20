@@ -55,7 +55,7 @@ function StatusPill({ status }: { status: BillStatus }) {
   return <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: style.bg, color: style.fg, border: `1px solid ${style.border}` }}>{status.charAt(0) + status.slice(1).toLowerCase()}</span>;
 }
 
-export default function BillsView({ bills, clients, jobs, storageReady, aiReady }: { bills: BillRow[]; clients: BillClientOption[]; jobs: BillJobOption[]; storageReady: boolean; aiReady: boolean }) {
+export default function BillsView({ bills, clients, jobs, storageReady }: { bills: BillRow[]; clients: BillClientOption[]; jobs: BillJobOption[]; storageReady: boolean }) {
   const router = useRouter();
   const [showNew, setShowNew] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -119,7 +119,7 @@ export default function BillsView({ bills, clients, jobs, storageReady, aiReady 
         </div>
       </div>
 
-      {showNew && <NewBillModal clients={clients} jobs={jobs} storageReady={storageReady} aiReady={aiReady} onClose={() => setShowNew(false)} onDone={() => { setShowNew(false); router.refresh(); }} />}
+      {showNew && <NewBillModal clients={clients} jobs={jobs} storageReady={storageReady} onClose={() => setShowNew(false)} onDone={() => { setShowNew(false); router.refresh(); }} />}
     </>
   );
 }

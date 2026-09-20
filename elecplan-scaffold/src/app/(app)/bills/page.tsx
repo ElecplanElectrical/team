@@ -12,7 +12,15 @@ export default async function BillsPage() {
 
   const [invoiceRows, clients, jobs] = await Promise.all([
     prisma.invoice.findMany({
-      include: {
+      select: {
+        id: true,
+        supplier: true,
+        amount: true,
+        dueDate: true,
+        status: true,
+        createdAt: true,
+        documentStorageKey: true,
+        documentSizeBytes: true,
         client: { select: { name: true } },
         job: { select: { title: true } },
       },
@@ -38,8 +46,8 @@ export default async function BillsPage() {
     dueDate: invoice.dueDate.toISOString(),
     status: invoice.status,
     createdAt: invoice.createdAt.toISOString(),
-    hasDocument: Boolean(invoice.documentStorageKey),
+    hasDocument: Boolean(invoice.documentStorageKey || invoice.documentSizeBytes),
   }));
 
-  return <BillsView bills={bills} clients={clients} jobs={jobs} storageReady={storageConfigured()} aiReady={Boolean(process.env.OPENAI_API_KEY)} />;
+  return <BillsView bills={bills} clients={clients} jobs={jobs} storageReady={storageConfigured()} />;
 }

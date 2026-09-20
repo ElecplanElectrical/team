@@ -226,6 +226,8 @@ model Invoice {
   documentStorageKey String?
   documentMimeType   String?
   documentSizeBytes  Int?
+  documentFileName   String?
+  documentData       Bytes?
   createdAt     DateTime      @default(now())
   sourceQuote   Quote?        @relation("ConvertedQuote", fields: [sourceQuoteId], references: [id])
   sourceQuoteId String?       @unique
