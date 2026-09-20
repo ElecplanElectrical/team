@@ -48,8 +48,23 @@ jobs:
           xcrun simctl install "$SIMULATOR_UDID" "$app"
           launch_output="$(xcrun simctl launch "$SIMULATOR_UDID" au.com.raceedge.app)"
           echo "$launch_output"
+          echo "$launch_output" | grep -Eq '^au\.com\.raceedge\.app: [0-9]+
+
+      - name: Capture launch screenshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/raceedge-runtime"
+          xcrun simctl io "$SIMULATOR_UDID" screenshot "$RUNNER_TEMP/raceedge-runtime/raceedge-launch.png"
+
+      - name: Upload runtime screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: raceedge-ios-runtime-screenshot
+          path: ${{ runner.temp }}/raceedge-runtime/raceedge-launch.png
+          if-no-files-found: error
+
           sleep 12
-          xcrun simctl spawn "$SIMULATOR_UDID" ps -A | grep -F 'RaceEdge'
 
       - name: Capture launch screenshot
         shell: bash
