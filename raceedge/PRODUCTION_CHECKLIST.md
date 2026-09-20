@@ -98,3 +98,5 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 
 - [x] Public provider prices are automatically suppressed when the active PuntersEdge plan does not permit public price display.
 - [x] Provider plan/credit diagnostics are key-safe and admin-protected; health exposes only safe plan/display status.
+
+- [x] Provider-credit safeguard: shared live snapshot cache defaults to 60 seconds with a bounded server-side override.
