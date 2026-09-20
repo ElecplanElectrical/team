@@ -123,14 +123,49 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     return role !== "EMPLOYEE" || (!event.jobId && event.assignedToId === currentUserId);
   }
 
-  function editFromCalendar(event: CalendarEvent) {
-    if (suppressClickRef.current) return;
-    if ((event.fallback || role === "EMPLOYEE") && event.jobId) {
-      router.push(`/jobs/${event.jobId}`);
-      return;
+  async function duplicateEvent(event: CalendarEvent) {
+    if (suppressClickRef.current || event.fallback || event.id.startsWith("inspection:")) return;
+    if (!canDrag(event)) return;
+
+    const startsAt = addDays(parseISO(event.startsAt), 1);
+    const endsAt = addDays(parseISO(event.endsAt), 1);
+    const payload = {
+      title: event.customTitle ?? null,
+      notes: event.notes ?? null,
+      type: event.jobId ? "job" : event.type,
+      jobId: event.jobId ?? null,
+      assignedToId: event.assignedToId ?? null,
+      startsAt: startsAt.toISOString(),
+      endsAt: endsAt.toISOString(),
+    };
+
+    setDragError(null);
+    try {
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? "Could not duplicate this calendar item");
+      }
+
+      const created = await response.json();
+      const copy: CalendarEvent = {
+        ...event,
+        id: created.id,
+        customTitle: created.title ?? event.customTitle,
+        startsAt: startsAt.toISOString(),
+        endsAt: endsAt.toISOString(),
+        fallback: false,
+      };
+      setCalendarEvents((current) => [...current, copy]);
+      setSelectedEvent(copy);
+      router.refresh();
+    } catch (error) {
+      setDragError(error instanceof Error ? error.message : "Could not duplicate this calendar item");
     }
-    setSelectedEvent(event);
-    setEditingEvent(event);
   }
 
   function beginPointerAction(pointer: React.PointerEvent<HTMLDivElement>, event: CalendarEvent, mode: "move" | "resize") {
@@ -203,7 +238,7 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     const colour = EVENT_COLOR[event.type] ?? EVENT_COLOR.job;
     const draggable = canDrag(event);
     const selected = selectedEvent?.id === event.id;
-    return <div key={event.id} onPointerDown={(pointer) => beginPointerAction(pointer, event, "move")} onPointerMove={movePointerAction} onPointerUp={(pointer) => void endPointerAction(pointer, event)} onPointerCancel={(pointer) => void endPointerAction(pointer, event)} onClick={(click) => { click.stopPropagation(); if (!suppressClickRef.current) setSelectedEvent(event); }} onDoubleClick={(click) => { click.stopPropagation(); editFromCalendar(event); }} className="absolute overflow-hidden rounded-lg px-2 py-1.5 text-left shadow-lg" style={{ top, height: Math.min(height, (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX - top), left: 5, right: 5, background: colour.bg, border: `${selected ? 2 : 1}px solid ${selected ? UI.cyan : `${colour.border}55`}`, borderLeft: `3px solid ${colour.border}`, color: colour.fg, cursor: draggable ? "grab" : "pointer", touchAction: draggable ? "none" : "auto", userSelect: "none" }}><div className="text-[10px] opacity-80">{timeRange(event.startsAt, event.endsAt)}</div><div className="mt-0.5 truncate text-[11px] font-semibold">{event.title}</div>{draggable && <div aria-label="Resize calendar item" onPointerDown={(pointer) => beginPointerAction(pointer, event, "resize")} className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize" style={{ background: `linear-gradient(to bottom,transparent,${colour.border}55)`, touchAction: "none" }}><div className="mx-auto mt-1 h-0.5 w-8 rounded-full" style={{ background: colour.border }} /></div>}</div>;
+    return <div key={event.id} title={!event.fallback && !event.id.startsWith("inspection:") ? "Double-click to duplicate to the next day" : undefined} onPointerDown={(pointer) => beginPointerAction(pointer, event, "move")} onPointerMove={movePointerAction} onPointerUp={(pointer) => void endPointerAction(pointer, event)} onPointerCancel={(pointer) => void endPointerAction(pointer, event)} onClick={(click) => { click.stopPropagation(); if (!suppressClickRef.current) setSelectedEvent(event); }} onDoubleClick={(click) => { click.preventDefault(); click.stopPropagation(); void duplicateEvent(event); }} className="absolute overflow-hidden rounded-lg px-2 py-1.5 text-left shadow-lg" style={{ top, height: Math.min(height, (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX - top), left: 5, right: 5, background: colour.bg, border: `${selected ? 2 : 1}px solid ${selected ? UI.cyan : `${colour.border}55`}`, borderLeft: `3px solid ${colour.border}`, color: colour.fg, cursor: draggable ? "grab" : "pointer", touchAction: draggable ? "none" : "auto", userSelect: "none" }}><div className="text-[10px] opacity-80">{timeRange(event.startsAt, event.endsAt)}</div><div className="mt-0.5 truncate text-[11px] font-semibold">{event.title}</div>{draggable && <div aria-label="Resize calendar item" onPointerDown={(pointer) => beginPointerAction(pointer, event, "resize")} className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize" style={{ background: `linear-gradient(to bottom,transparent,${colour.border}55)`, touchAction: "none" }}><div className="mx-auto mt-1 h-0.5 w-8 rounded-full" style={{ background: colour.border }} /></div>}</div>;
   }
 
   return <>
