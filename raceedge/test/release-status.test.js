@@ -8,6 +8,8 @@ test('release status exposes safe V1 readiness without secrets',()=>{
   assert.match(source,/\/api\/v1\/release-status/);
   assert.match(source,/harnessExposed:false/);
   assert.match(source,/wagering:false/);
+  assert.match(source,/runtimeSmoke:true/);
+  assert.match(source,/runtimeScreenshotArtifact:true/);
   assert.match(source,/physicalIphoneQa:true/);
   assert.doesNotMatch(source,/release-status.*PUNTERSEDGE_API_KEY/);
 });
