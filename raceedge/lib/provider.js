@@ -33,6 +33,16 @@ export async function puntersEdgeRequest(path) {
       const error = new Error(`PuntersEdge returned HTTP ${response.status}`);
       error.status = response.status;
       error.code = 'PROVIDER_HTTP_ERROR';
+      // Keep a short provider validation detail for server-side diagnostics only.
+      // Never include request headers, credentials, or the full upstream payload.
+      if (body) {
+        try {
+          const detail = JSON.parse(body);
+          error.providerDetail = detail?.detail ?? detail?.message ?? detail?.error ?? null;
+        } catch {
+          error.providerDetail = body.slice(0, 300);
+        }
+      }
       throw error;
     }
 
