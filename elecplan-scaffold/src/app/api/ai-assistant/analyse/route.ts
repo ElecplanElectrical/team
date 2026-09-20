@@ -5,14 +5,14 @@ import { canAccess } from "@/lib/access";
 
 export const runtime = "nodejs";
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canAccess(user.role, "aiAssistant")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "AI Assistant needs OPENAI_API_KEY configured in Railway." }, { status: 503 });
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
 
   const form = await req.formData();
   const upload = form.get("file");
@@ -23,13 +23,20 @@ export async function POST(req: Request) {
 
   let attachmentContent: { type: "input_image"; image_url: string; detail: "high" } | { type: "input_text"; text: string } | null = null;
   if (upload instanceof File) {
-    if (upload.type.startsWith("image/")) {
+    if (ALLOWED_IMAGE_TYPES.has(upload.type)) {
       const base64 = Buffer.from(await upload.arrayBuffer()).toString("base64");
       attachmentContent = { type: "input_image", image_url: `data:${upload.type};base64,${base64}`, detail: "high" };
     } else if (upload.type === "text/plain") {
       attachmentContent = { type: "input_text", text: (await upload.text()).slice(0, 50000) };
+    } else if (upload.type === "application/pdf") {
+      const mod = await import("pdf-parse");
+      const pdfParse = (mod.default ?? mod) as unknown as (input: Buffer) => Promise<{ text?: string }>;
+      const parsedPdf = await pdfParse(Buffer.from(await upload.arrayBuffer()));
+      const text = parsedPdf.text?.trim();
+      if (!text) return NextResponse.json({ error: "The PDF did not contain readable text. Try a screenshot or clearer copy." }, { status: 422 });
+      attachmentContent = { type: "input_text", text: text.slice(0, 50000) };
     } else {
-      return NextResponse.json({ error: "Use a photo/screenshot, pasted text or TXT file for now." }, { status: 415 });
+      return NextResponse.json({ error: "Use PDF, JPG, PNG, WebP or TXT." }, { status: 415 });
     }
   }
   const localNow = new Intl.DateTimeFormat("en-AU", { dateStyle: "full", timeStyle: "long", timeZone: "Australia/Melbourne" }).format(new Date());
@@ -61,6 +68,13 @@ export async function POST(req: Request) {
   } as const;
 
   const prompt = `You are Elecplan's scheduling assistant for an electrical contractor in Melbourne, Australia. Read any supplied whiteboard photo, screenshot, message, email screenshot, document text or typed/voice instruction. Local time is ${localNow}.\n\nUSER INSTRUCTION: ${instruction}\n\nPRIVACY BOUNDARY:\n- You receive only this uploaded image and the instruction above.\n- You do not have access to Elecplan pages, clients, jobs, reminders, documents, users, or any other portal data.\n- Do not assume or request hidden portal context.\n\nWHEN THE INPUT IS A WHITEBOARD, USE THESE LAYOUT RULES:\n- Bottom Monday-Friday row usually contains jobs for those weekdays.\n- Right-side checklist contains reminders/tasks.\n- Left calendar contains dated/timed commitments or jobs.\n- Crossed-out or clearly completed items should not be proposed.\n\nReturn proposals only. Do not write data. Do not invent unreadable handwriting. If wording is uncertain, preserve the uncertainty in notes and reduce confidence. For an event with a reliable day but no written time, use 08:00-16:00 Melbourne time and state that the time was assumed. For reminders with no reliable date, set dueDate to null so the UI leaves them unselected.`;
+
+  if (!apiKey) {
+    return NextResponse.json({
+      error: "AI Assistant is ready, but the OpenAI API key has not been connected in Railway yet.",
+      code: "AI_NOT_CONFIGURED",
+    }, { status: 503 });
+  }
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
