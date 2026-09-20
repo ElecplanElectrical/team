@@ -227,6 +227,10 @@ struct LiveRunnerDetailView: View {
                         if let weight = runner.weight { liveMetric("Weight", "\(String(format: "%.1f", weight))") }
                         if let price = runner.price { liveMetric("Market", "$\(String(format: "%.2f", price))") }
                         if let jockey = runner.jockey { liveMetric("Jockey / Driver", jockey) }
+                        if runner.analysisReady == true, let rating = runner.raceEdgeRating { liveMetric("RaceEdge Rating", "\(rating)") }
+                        if runner.analysisReady == true, let fair = runner.estimatedFairPrice { liveMetric("Fair Price", "$\(String(format: "%.2f", fair))") }
+                        if runner.analysisReady == true, let probability = runner.estimatedProbability { liveMetric("Est. Probability", "\(String(format: "%.1f", probability))%") }
+                        if runner.analysisReady == true, let edge = runner.valueEdge { liveMetric("Value Edge", "\(String(format: "%+.1f", edge))%") }
                     }
                     if let trainer = runner.trainer { liveMetric("Trainer", trainer) }
                 }.padding()
