@@ -137,16 +137,16 @@ export default function AiAssistantClient() {
           <section className="rounded-2xl border border-white/10 bg-white/[.04] p-4 md:p-5">
             <h2 className="font-semibold">1. Add anything to read</h2>
             <div className="mt-4 flex min-h-64 items-center justify-center overflow-hidden rounded-xl border border-dashed border-white/20 bg-black/20">
-              {preview ? <img src={preview} alt="Whiteboard preview" className="max-h-[430px] w-full object-contain" /> : <div className="text-center text-slate-400"><ImagePlus className="mx-auto mb-2 h-10 w-10" /><div className="font-medium text-slate-200">Add a photo, screenshot or document</div><div className="mt-1 text-xs">Whiteboard, message, email screenshot, PDF, JPG, PNG or HEIC</div></div>}
+              {preview ? <img src={preview} alt="Whiteboard preview" className="max-h-[430px] w-full object-contain" /> : <div className="text-center text-slate-400"><ImagePlus className="mx-auto mb-2 h-10 w-10" /><div className="font-medium text-slate-200">Add a photo, screenshot or document</div><div className="mt-1 text-xs">Whiteboard, message, email screenshot, PDF, JPG, PNG, WebP or TXT</div></div>}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[.06] px-3 py-3 text-sm font-medium text-slate-100">
                 <Camera className="h-4 w-4" />Take photo
-                <input className="hidden" type="file" accept="image/*" capture="environment" onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+                <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
               </label>
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-sky-300/25 bg-sky-950/30 px-3 py-3 text-sm font-medium text-slate-100">
                 <ImagePlus className="h-4 w-4" />Add from library
-                <input className="hidden" type="file" accept="image/*,application/pdf,text/plain" onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+                <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
               </label>
             </div>
             <div className="relative mt-3">
