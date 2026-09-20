@@ -38,7 +38,7 @@ form,racing,tips,horse,greyhound,scratchings,fields,odds,runner,meetings
 ## What's New — Version 1.0
 Welcome to RACEEDGE.
 
-Version 1.0 introduces live Australian racing data, meeting and race views, scratchings, RaceEdge selections, runner information and recorded performance results.
+Version 1.0 introduces live Australian racing data, meeting and race views, scratchings, analysis-ready RaceEdge selections, runner ratings and value metrics when data coverage is sufficient, plus recorded performance results.
 
 ## URLs
 - Privacy Policy: https://raceedge-v1-production.up.railway.app/privacy.html
