@@ -13,20 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Wait for production deployment
+      - name: Wait for exact production deployment
         shell: bash
         run: |
           set -euo pipefail
           base="https://raceedge-v1-production.up.railway.app"
           for i in {1..30}; do
             if body="$(curl -fsS --max-time 10 "$base/health" 2>/dev/null)"; then
-              if python3 - "$GITHUB_SHA" "$body" <<'PY'
-import json,sys
-expected=sys.argv[1]
-data=json.loads(sys.argv[2])
-raise SystemExit(0 if data.get('ok') is True and data.get('releaseSha') == expected else 1)
-PY
-              then
+              if python3 -c 'import json,os,sys; d=json.loads(sys.argv[1]); sys.exit(0 if d.get("ok") is True and d.get("releaseSha")==os.environ["GITHUB_SHA"] else 1)' "$body"; then
                 echo "Production is running commit $GITHUB_SHA"
                 exit 0
               fi
@@ -50,19 +44,9 @@ PY
         shell: bash
         run: |
           set -euo pipefail
-          home="$(curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/home)"
-          tips="$(curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/tips)"
-          python3 - "$home" "$tips" <<'PY'
-          import json,sys
-          home=json.loads(sys.argv[1])
-          tips=json.loads(sys.argv[2])
-          assert home.get('source') == 'production', home
-          assert home.get('meetings') == [], home
-          assert home.get('tips') == [], home
-          assert tips.get('source') in ('production','published'), tips
-          if tips.get('source') == 'production':
-              assert tips.get('tips') == [], tips
-          PY
+          curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/home -o /tmp/home.json
+          curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/tips -o /tmp/tips.json
+          python3 -c 'import json; h=json.load(open("/tmp/home.json")); t=json.load(open("/tmp/tips.json")); assert h.get("source")=="production"; assert h.get("meetings")==[]; assert h.get("tips")==[]; assert t.get("source") in ("production","published"); assert t.get("source")!="production" or t.get("tips")==[]'
 
       - name: Verify public release pages
         shell: bash
@@ -76,28 +60,7 @@ PY
         run: |
           set -euo pipefail
           curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/live/today -o /tmp/live.json
-          python3 - <<'PY'
-          import json
-          with open('/tmp/live.json') as f:
-              data=json.load(f)
-          events=data.get('events')
-          assert isinstance(events,list) and len(events)>0, 'live events must be non-empty'
-          races=[r for e in events for r in (e.get('races') or [])]
-          assert races, 'live races must be non-empty'
-          meetings=[e.get('meeting') or {} for e in events]
-          assert any(m.get('providerId') and m.get('name') and m.get('code') for m in meetings), 'meeting identity missing'
-          assert any(r.get('providerId') and r.get('raceNo') and r.get('startTime') for r in races), 'race identity missing'
-          runners=[runner for r in races for runner in (r.get('runners') or [])]
-          assert runners, 'live runner fields must be non-empty'
-          assert any((runner.get('number') is not None) and runner.get('name') for runner in runners), 'runner identity missing'
-          print(json.dumps({
-              'events':len(events),
-              'races':len(races),
-              'runners':len(runners),
-              'pricedRunners':sum(1 for x in runners if x.get('price') is not None),
-              'scratchingsChecked':data.get('scratchingsChecked')
-          }))
-          PY
+          python3 -c 'import json; d=json.load(open("/tmp/live.json")); e=d.get("events"); assert isinstance(e,list) and e; r=[x for m in e for x in (m.get("races") or [])]; assert r; ms=[m.get("meeting") or {} for m in e]; assert any(x.get("providerId") and x.get("name") and x.get("code") for x in ms); assert any(x.get("providerId") and x.get("raceNo") and x.get("startTime") for x in r); u=[x for rr in r for x in (rr.get("runners") or [])]; assert u; assert any((x.get("number") is not None) and x.get("name") for x in u); print(json.dumps({"events":len(e),"races":len(r),"runners":len(u),"pricedRunners":sum(1 for x in u if x.get("price") is not None),"scratchingsChecked":d.get("scratchingsChecked")}))'
 
       - name: Verify protected routes reject anonymous access
         shell: bash
