@@ -10,7 +10,7 @@ import { navGroupsFor, ROLE_TITLE, initialsOf } from "@/lib/nav";
 import { LOGO_WORDMARK } from "@/lib/logo";
 
 const UI = {
-  sidebar: "linear-gradient(135deg,rgba(67,210,255,.045) 0 1px,transparent 1px 22px),linear-gradient(45deg,rgba(255,255,255,.035) 0 1px,transparent 1px 22px),linear-gradient(180deg,#242A31 0%,#1D232A 52%,#181D23 100%)",
+  sidebar: "radial-gradient(circle at 20% 10%,rgba(255,255,255,.055) 0 1px,transparent 1.5px),radial-gradient(circle at 75% 35%,rgba(67,210,255,.055) 0 1px,transparent 1.5px),repeating-linear-gradient(118deg,rgba(255,255,255,.018) 0 1px,transparent 1px 7px),linear-gradient(180deg,#2A3037 0%,#22282F 48%,#1B2026 100%)",
   border: "rgba(67,210,255,.16)",
   text: "#ffffff",
   mute: "#c0c7d0",
