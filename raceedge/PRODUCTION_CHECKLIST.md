@@ -95,3 +95,6 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 - [x] Live runner detail exposes rating/fair-price/value metrics only for analysis-ready runners.
 
 - [x] Backend and iOS release versions are aligned at V1.0 / 1.0.0.
+
+- [x] Public provider prices are automatically suppressed when the active PuntersEdge plan does not permit public price display.
+- [x] Provider plan/credit diagnostics are key-safe and admin-protected; health exposes only safe plan/display status.
