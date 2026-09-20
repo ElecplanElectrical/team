@@ -210,7 +210,7 @@ model QuoteLineItem {
 
 model Invoice {
   id            String        @id @default(cuid())
-  invoiceNumber String?       @unique
+  invoiceNumber String?
   job           Job?          @relation(fields: [jobId], references: [id])
   jobId         String?
   client        Client?       @relation(fields: [clientId], references: [id])
@@ -232,6 +232,8 @@ model Invoice {
   sourceQuote   Quote?        @relation("ConvertedQuote", fields: [sourceQuoteId], references: [id])
   sourceQuoteId String?       @unique
   lineItems     InvoiceLineItem[]
+
+  @@index([invoiceNumber])
 }
 
 model XeroConnection {
