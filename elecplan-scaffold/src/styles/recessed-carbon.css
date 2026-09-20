@@ -5,7 +5,7 @@
   --ep-shell:linear-gradient(135deg,#272d34,#14181e);
   --ep-tray:linear-gradient(135deg,#181d23,#20272f);
   --ep-text:#f4f7fa; --ep-muted:#c5cdd7; --ep-faint:#a5b0bd;
-  --ep-line:rgba(255,255,255,.14); --ep-line-soft:rgba(255,255,255,.08);
+  --ep-line:rgba(67,210,255,.34); --ep-line-soft:rgba(67,210,255,.18);
   --ep-sky:#43D2FF; --ep-active-text:#062531;
   --ep-active:linear-gradient(110deg,#78e5ff 0%,#43D2FF 55%,#25b5e7 100%);
   --ep-raised-shadow:8px 8px 20px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.055);
@@ -68,3 +68,11 @@
 @media(min-width:1280px){.ep-carbon-sidebar{width:264px}.ep-carbon-sidebar .ep-carbon-navigation{padding:18px 16px 14px}.ep-carbon-sidebar .ep-carbon-brand{padding:8px 12px}.ep-carbon-sidebar .ep-carbon-brand img{width:168px}.ep-carbon-sidebar .ep-carbon-search{display:flex}.ep-carbon-sidebar :is(.ep-carbon-heading,.ep-carbon-label,.ep-carbon-arrow,.ep-carbon-identity){display:block}.ep-carbon-sidebar .ep-carbon-link{justify-content:flex-start;padding:0 11px}.ep-carbon-sidebar .ep-carbon-account{padding:11px 10px;flex-direction:row}.ep-carbon-sidebar .ep-carbon-group{margin-bottom:15px}}
 @media(prefers-reduced-motion:reduce){.ep-carbon *{scroll-behavior:auto!important;transition:none!important}.ep-carbon .hover-glow:hover{transform:none}}
 @media print{.ep-carbon{color-scheme:light;background:white;color:black}.ep-carbon :is(.ep-carbon-sidebar,.ep-carbon-mobilebar,.ep-carbon-drawer){display:none!important}}
+
+/* Sky-blue framing shared across Elecplan pages. Keeps carbon surfaces dominant while making section geometry read as Elecplan. */
+.ep-carbon :where(section.rounded-xl,section.rounded-2xl,.rounded-xl)[style*="border"]{border-color:var(--ep-line)!important}
+.ep-carbon :where(section.rounded-xl,section.rounded-2xl){position:relative}
+.ep-carbon :where(section.rounded-xl,section.rounded-2xl)::before{content:"";position:absolute;left:14px;right:14px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,#43d2ff99,transparent);pointer-events:none}
+.ep-carbon :where(section.rounded-xl,section.rounded-2xl){box-shadow:var(--ep-raised-shadow),0 0 0 1px #43d2ff12,0 0 24px #43d2ff0c}
+.ep-carbon :where(.ep-inset,.ep-carbon-link){border-color:#43d2ff24}
+.ep-carbon-topbar{border-bottom-color:#43d2ff45!important}
