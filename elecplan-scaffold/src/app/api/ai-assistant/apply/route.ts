@@ -58,7 +58,7 @@ export async function POST(req: Request) {
             output.push({ kind: "event", id: row.id });
           } else {
             const row = await tx.jobEvent.create({
-              data: { title: item.title, notes: item.notes?.trim() || null, type: "admin", startsAt, endsAt },
+              data: { title: item.title, notes: item.notes?.trim() || null, type: "event", startsAt, endsAt },
             });
             output.push({ kind: "event", id: row.id });
           }
