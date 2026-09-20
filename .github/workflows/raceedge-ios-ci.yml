@@ -31,3 +31,24 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild             -project raceedge/ios/RaceEdge.xcodeproj             -scheme RaceEdge             -configuration Debug             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             CODE_SIGNING_ALLOWED=NO             build | xcpretty
+
+
+  archive-release:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate no secrets are embedded in iOS source
+        run: |
+          set -e
+          if grep -R -n -E 'PUNTERSEDGE_API_KEY|RACEEDGE_ADMIN_TOKEN|API-Key:|X-API-Key:' raceedge/ios; then
+            echo "Potential secret reference found in iOS source"
+            exit 1
+          fi
+
+      - name: Archive unsigned Release build
+        run: |
+          set -o pipefail
+          xcodebuild             -project raceedge/ios/RaceEdge.xcodeproj             -scheme RaceEdge             -configuration Release             -sdk iphoneos             -destination 'generic/platform=iOS'             -archivePath "$RUNNER_TEMP/RaceEdge.xcarchive"             CODE_SIGNING_ALLOWED=NO             archive | xcpretty
