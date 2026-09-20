@@ -9,6 +9,8 @@ type UploadTicket = { uploadUrl: string; uploadHeaders: Record<string, string>; 
 type ExtractedInvoice = { supplier: string | null; invoiceNumber: string | null; invoiceDate: string | null; dueDate: string | null; subtotal: number | null; gstAmount: number | null; total: number | null; confidence: number };
 
 const UI = { panel: "#0a2038", panelAlt: "#103152", border: "rgba(125,211,252,.28)", borderSoft: "rgba(125,211,252,.14)", text: "#f5f9ff", mute: "#a8c3dd", faint: "#7392af", blue: "#38bdf8", cyan: "#7dd3fc", red: "#ff7185" };
+const MAX_DOCUMENT_BYTES = 15 * 1024 * 1024;
+const ALLOWED_DOCUMENT_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
 
 async function fileBase64(file: File): Promise<string> {
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -44,30 +46,47 @@ export default function NewBillModal({ clients, jobs, storageReady, onClose, onD
   }
 
   async function readInvoice(next: File) {
-    setFile(next);
     setError(null);
     setExtractNote(null);
-    setExtracting(true);
 
-    const form = new FormData();
-    form.append("file", next);
-    const response = await fetch("/api/bills/extract", { method: "POST", body: form });
-    const body = await response.json().catch(() => null) as ExtractedInvoice | { error?: string } | null;
-    setExtracting(false);
-
-    if (!response.ok || !body || !("confidence" in body)) {
-      setExtractNote("Automatic reading did not get enough from this file. You can still enter the numbers manually and the document will be saved with the bill.");
+    if (!ALLOWED_DOCUMENT_TYPES.has(next.type)) {
+      setFile(null);
+      setError("Upload a PDF, JPG, PNG or WebP document.");
+      return;
+    }
+    if (next.size <= 0 || next.size > MAX_DOCUMENT_BYTES) {
+      setFile(null);
+      setError("Document must be between 1 byte and 15 MB.");
       return;
     }
 
-    setKind("supplier");
-    if (body.supplier) setSupplier(body.supplier);
-    if (body.invoiceNumber) setInvoiceNumber(body.invoiceNumber);
-    if (typeof body.subtotal === "number") setSubtotal(body.subtotal.toFixed(2));
-    if (typeof body.gstAmount === "number") setGstAmount(body.gstAmount.toFixed(2));
-    if (typeof body.total === "number") setAmount(body.total.toFixed(2));
-    if (body.dueDate) setDueDate(body.dueDate);
-    setExtractNote(`Document read at ${Math.round(body.confidence * 100)}% confidence. Check the filled numbers before saving.`);
+    setFile(next);
+    setExtracting(true);
+    try {
+      const form = new FormData();
+      form.append("file", next);
+      const response = await fetch("/api/bills/extract", { method: "POST", body: form });
+      const body = await response.json().catch(() => null) as ExtractedInvoice | { error?: string } | null;
+
+      if (!response.ok || !body || !("confidence" in body)) {
+        const reason = body && "error" in body && body.error ? ` (${body.error})` : "";
+        setExtractNote(`Automatic reading did not get enough from this file${reason}. You can still enter the numbers manually and the document will be saved with the bill.`);
+        return;
+      }
+
+      setKind("supplier");
+      if (body.supplier) setSupplier(body.supplier);
+      if (body.invoiceNumber) setInvoiceNumber(body.invoiceNumber);
+      if (typeof body.subtotal === "number") setSubtotal(body.subtotal.toFixed(2));
+      if (typeof body.gstAmount === "number") setGstAmount(body.gstAmount.toFixed(2));
+      if (typeof body.total === "number") setAmount(body.total.toFixed(2));
+      if (body.dueDate) setDueDate(body.dueDate);
+      setExtractNote(`Document read at ${Math.round(body.confidence * 100)}% confidence. Check the filled numbers before saving.`);
+    } catch {
+      setExtractNote("Automatic reading could not connect. You can still enter the numbers manually and the document will be saved with the bill.");
+    } finally {
+      setExtracting(false);
+    }
   }
 
   async function uploadToPrivateStorage(): Promise<string | null> {
@@ -95,6 +114,7 @@ export default function NewBillModal({ clients, jobs, storageReady, onClose, onD
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (saving || extracting) return;
     setError(null);
 
     const numericAmount = Number(amount);
@@ -145,7 +165,7 @@ export default function NewBillModal({ clients, jobs, storageReady, onClose, onD
     <section className="w-full max-w-3xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(event) => event.stopPropagation()}>
       <header className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(56,189,248,.13)", color: UI.cyan }}><ReceiptText size={18} /></span><div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>New bill / invoice</h2><p className="mt-1 text-xs" style={{ color: UI.faint }}>Upload the document and Elecplan will read what it can. You can correct anything before saving.</p></div><button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button></header>
       <form onSubmit={submit} className="max-h-[84vh] overflow-auto p-5">
-        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed p-4" style={{ background: "rgba(56,189,248,.06)", borderColor: "rgba(125,211,252,.32)" }}><span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: "rgba(56,189,248,.14)", color: UI.cyan }}>{extracting ? <Loader2 size={20} className="animate-spin" /> : file ? <FileScan size={20} /> : <Upload size={20} />}</span><span className="min-w-0 flex-1"><strong className="block truncate text-sm" style={{ color: UI.text }}>{file?.name || "Upload invoice, statement, receipt or photo"}</strong><span className="mt-1 block text-xs" style={{ color: UI.mute }}>{extracting ? "Reading supplier, dates, GST and total…" : "PDF, JPG, PNG or WebP · up to 15 MB"}</span></span><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const next = event.target.files?.[0]; if (next) void readInvoice(next); }} /></label>
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed p-4" style={{ background: "rgba(56,189,248,.06)", borderColor: "rgba(125,211,252,.32)" }}><span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: "rgba(56,189,248,.14)", color: UI.cyan }}>{extracting ? <Loader2 size={20} className="animate-spin" /> : file ? <FileScan size={20} /> : <Upload size={20} />}</span><span className="min-w-0 flex-1"><strong className="block truncate text-sm" style={{ color: UI.text }}>{file?.name || "Upload invoice, statement, receipt or photo"}</strong><span className="mt-1 block text-xs" style={{ color: UI.mute }}>{extracting ? "Reading supplier, dates, GST and total…" : "PDF, JPG, PNG or WebP · up to 15 MB"}</span></span><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const next = event.target.files?.[0]; event.currentTarget.value = ""; if (next) void readInvoice(next); }} /></label>
         {extractNote && <p className="mt-2 text-xs" style={{ color: UI.cyan }}>{extractNote}</p>}
         <div className="mt-5 grid grid-cols-2 gap-2 rounded-xl p-1" style={{ background: "#061525", border: `1px solid ${UI.borderSoft}` }}><button type="button" onClick={() => switchKind("client")} className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ background: kind === "client" ? UI.blue : "transparent", color: kind === "client" ? "#06213a" : UI.mute }}>Client invoice</button><button type="button" onClick={() => switchKind("supplier")} className="rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ background: kind === "supplier" ? UI.blue : "transparent", color: kind === "supplier" ? "#06213a" : UI.mute }}>Supplier bill</button></div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
