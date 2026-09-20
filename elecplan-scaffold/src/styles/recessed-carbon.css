@@ -57,8 +57,12 @@
 .ep-carbon-mobilebar :is(button,.ep-mobile-action){background:var(--ep-tray);color:var(--ep-text);border:1px solid var(--ep-line);box-shadow:var(--ep-inset-shadow)}
 .ep-carbon-drawer{background:var(--ep-shell);border-right:1px solid var(--ep-line);box-shadow:20px 0 60px #0009;isolation:isolate}
 .ep-carbon-drawer-close{position:absolute;right:12px;top:12px;z-index:1;border-radius:8px;border:1px solid var(--ep-line);background:var(--ep-tray);color:var(--ep-text);padding:6px;box-shadow:var(--ep-inset-shadow)}
-.ep-carbon-topbar{background:var(--ep-shell)!important;border-color:var(--ep-line)!important;box-shadow:0 4px 20px #0003,inset 0 1px 0 #ffffff08}
-.ep-carbon-topbar [aria-label=Search]{background:var(--ep-input)!important}
+.ep-carbon-topbar{background:linear-gradient(100deg,#1aaed8 0%,#43D2FF 58%,#79E7FF 100%)!important;border-color:rgba(6,37,49,.28)!important;box-shadow:0 8px 26px #0005,inset 0 1px 0 #ffffff70}
+.ep-carbon-topbar :is(h1,p){color:#062531!important}
+.ep-carbon-topbar [aria-label=Search]{background:rgba(6,37,49,.16)!important;border-color:rgba(6,37,49,.28)!important;color:#062531!important;box-shadow:inset 0 1px 3px #001a2480!important}
+.ep-carbon-topbar [aria-label=Search]::placeholder{color:rgba(6,37,49,.68)!important}
+.ep-carbon-topbar [aria-label="To do list"],.ep-carbon-topbar [aria-label="Open jobs"]{background:linear-gradient(145deg,#16303c,#0d2029)!important;border:1px solid rgba(255,255,255,.22)!important;color:#eaffff!important;box-shadow:0 6px 16px #00131b55,inset 0 1px 0 #ffffff18!important}
+.ep-carbon-topbar .rounded-full{background:linear-gradient(145deg,#16303c,#0d2029)!important;border-color:rgba(255,255,255,.28)!important;color:#eaffff!important}
 /* Reused Tailwind-only widgets participate without overriding semantic statuses. */
 .ep-carbon :where(.bg-sky-950\/30,.bg-slate-900,.bg-slate-950,.bg-black\/20,.bg-white\/\[\.04\]){background:var(--ep-tray);box-shadow:var(--ep-inset-shadow)}
 .ep-carbon :where(section.rounded-2xl,section.rounded-xl){box-shadow:var(--ep-raised-shadow)}
@@ -75,4 +79,4 @@
 .ep-carbon :where(section.rounded-xl,section.rounded-2xl)::before{content:"";position:absolute;left:14px;right:14px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,#43d2ff99,transparent);pointer-events:none}
 .ep-carbon :where(section.rounded-xl,section.rounded-2xl){box-shadow:var(--ep-raised-shadow),0 0 0 1px #43d2ff12,0 0 24px #43d2ff0c}
 .ep-carbon :where(.ep-inset,.ep-carbon-link){border-color:#43d2ff24}
-.ep-carbon-topbar{border-bottom-color:#43d2ff45!important}
+.ep-carbon-topbar{border-bottom-color:rgba(6,37,49,.28)!important}
