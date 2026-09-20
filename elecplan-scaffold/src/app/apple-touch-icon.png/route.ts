@@ -12,16 +12,7 @@ export async function GET(request: Request) {
     .toLowerCase();
 
   if (host === "qls.your-plan.com.au") {
-    const qlsIcon = new URL("/qls-ios-icon-v12.png?v=15", url.origin);
-    const response = await fetch(qlsIcon, { cache: "no-store" });
-    if (!response.ok) return new Response("QLS icon unavailable", { status: 502 });
-    const bytes = await response.arrayBuffer();
-    return new Response(bytes, {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-      },
-    });
+    return Response.redirect(new URL("/qls-ios-icon-v10.png?v=16", url.origin), 307);
   }
 
   const svg = React.createElement(
