@@ -8,13 +8,13 @@ struct LiveTodayView: View {
             ZStack {
                 LinearGradient(colors: [.raceEdgeNavy, .black], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
                 Group {
-                    if let live = api.liveToday, live.live, let events = live.events {
+                    if let live = api.liveToday, let events = live.events, !events.isEmpty {
                         let supportedEvents = events.filter { ["R", "G"].contains(($0.meeting.code ?? "").uppercased()) }
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 14) {
                                 HStack(spacing: 8) {
-                                    Circle().fill(Color.raceEdgeBlue).frame(width: 8, height: 8)
-                                    Text("LIVE RACING DATA").font(.caption.bold()).foregroundStyle(Color.raceEdgeBlue)
+                                    Circle().fill(live.live ? Color.raceEdgeBlue : Color.orange).frame(width: 8, height: 8)
+                                    Text(live.live ? "LIVE RACING DATA" : "LAST KNOWN RACING DATA").font(.caption.bold()).foregroundStyle(live.live ? Color.raceEdgeBlue : Color.orange)
                                     Spacer()
                                     Text("Smarter Form. Better Tips.").font(.caption2).foregroundStyle(.secondary)
                                 }
@@ -37,6 +37,7 @@ struct LiveTodayView: View {
                                                         if let distance = race.distance { Text("\(distance)m").font(.caption).foregroundStyle(.secondary) }
                                                     }
                                                     Spacer()
+                                                    if let time = raceEdgeTimeText(race.startTime) { Text(time).font(.caption.bold()).foregroundStyle(.secondary) }
                                                     Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
                                                 }.padding(.vertical, 5)
                                             }
@@ -45,6 +46,12 @@ struct LiveTodayView: View {
                                     .padding()
                                     .background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 16))
                                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08)))
+                                }
+                                if !live.live {
+                                    Label("Showing the latest stored RaceEdge snapshot while the live provider is unavailable.", systemImage: "clock.arrow.circlepath")
+                                        .font(.caption).foregroundStyle(.orange)
+                                        .padding().frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 14))
                                 }
                                 if let changes = live.changes, !changes.isEmpty {
                                     VStack(alignment: .leading, spacing: 8) {
