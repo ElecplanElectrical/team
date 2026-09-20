@@ -52,12 +52,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invoice document upload expired. Choose the file again." }, { status: 400 });
     }
 
-    let documentData: Buffer | null = null;
+    let documentData: Uint8Array<ArrayBuffer> | null = null;
     if (!document && d.documentDataBase64) {
       if (!d.documentContentType || !DOCUMENT_TYPES.has(d.documentContentType)) {
         return NextResponse.json({ error: "Unsupported invoice document type." }, { status: 400 });
       }
-      documentData = Buffer.from(d.documentDataBase64, "base64");
+      const decoded = Buffer.from(d.documentDataBase64, "base64");
+      documentData = Uint8Array.from(decoded);
       if (documentData.byteLength === 0 || documentData.byteLength > DOCUMENT_MAX_BYTES) {
         return NextResponse.json({ error: "Invoice document is empty or too large." }, { status: 400 });
       }
