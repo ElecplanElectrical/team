@@ -13,6 +13,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Checkout release history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Resolve deployable RaceEdge commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(git log -1 --format=%H -- raceedge)"
+          test -n "$sha"
+          echo "EXPECTED_RELEASE_SHA=$sha" >> "$GITHUB_ENV"
+          echo "Expecting Railway release $sha"
+
       - name: Wait for exact production deployment
         shell: bash
         run: |
@@ -21,13 +35,13 @@ jobs:
           for i in {1..30}; do
             if body="$(curl -fsS --max-time 10 "$base/health" 2>/dev/null)"; then
               if python3 -c 'import json,os,sys; d=json.loads(sys.argv[1]); sys.exit(0 if d.get("ok") is True and d.get("releaseSha")==os.environ["GITHUB_SHA"] else 1)' "$body"; then
-                echo "Production is running commit $GITHUB_SHA"
+                echo "Production is running commit $EXPECTED_RELEASE_SHA"
                 exit 0
               fi
             fi
             sleep 10
           done
-          echo "Production did not deploy commit $GITHUB_SHA"
+          echo "Production did not deploy commit $EXPECTED_RELEASE_SHA"
           exit 1
 
       - name: Verify health and configured services
