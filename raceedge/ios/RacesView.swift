@@ -144,6 +144,36 @@ struct LiveRaceDetailView: View {
                         }.font(.subheadline).foregroundStyle(.secondary)
                     }.padding().background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 18))
 
+                    if race.analysisReady == true, let analysis = race.analysis, let top = analysis.topPick {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("RACEEDGE ANALYSIS").font(.caption.bold()).tracking(1.5).foregroundStyle(Color.raceEdgeBlue)
+                                Spacer()
+                                if let confidence = analysis.confidence {
+                                    Text(confidence.uppercased()).font(.caption.bold()).foregroundStyle(Color.raceEdgeBlue)
+                                }
+                            }
+                            HStack {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("TOP PICK").font(.caption2.bold()).foregroundStyle(.secondary)
+                                    Text("#\(top.number ?? 0) \(top.name ?? "Runner")").font(.title3.bold())
+                                }
+                                Spacer()
+                                if let rating = top.raceEdgeRating { Text("\(rating)").font(.title.bold()).foregroundStyle(Color.raceEdgeBlue) }
+                            }
+                            if let value = analysis.valueSelection {
+                                Text("Value: #\(value.number ?? 0) \(value.name ?? "Runner")").font(.subheadline).foregroundStyle(.secondary)
+                            }
+                            if let note = analysis.note { Text(note).font(.caption).foregroundStyle(.secondary) }
+                        }
+                        .padding()
+                        .background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 16))
+                    } else if let warning = race.dataWarning {
+                        Text(warning).font(.caption).foregroundStyle(.secondary)
+                            .padding().frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 16))
+                    }
+
                     Text("FIELD").font(.caption.bold()).tracking(1.5).foregroundStyle(Color.raceEdgeBlue)
                     ForEach(race.runners) { runner in
                         NavigationLink { LiveRunnerDetailView(runner: runner) } label: {
@@ -158,7 +188,12 @@ struct LiveRaceDetailView: View {
                                 }
                                 Spacer()
                                 if runner.scratched == true { Text("SCR").font(.caption.bold()).foregroundStyle(.red) }
-                                else if let price = runner.price { Text("$\(String(format: "%.2f", price))").font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue) }
+                                else {
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        if let price = runner.price { Text("$\(String(format: "%.2f", price))").font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue) }
+                                        if race.analysisReady == true, let rating = runner.raceEdgeRating { Text("RE \(rating)").font(.caption2.bold()).foregroundStyle(.secondary) }
+                                    }
+                                }
                                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
                             }
                             .padding()
@@ -192,6 +227,10 @@ struct LiveRunnerDetailView: View {
                         if let weight = runner.weight { liveMetric("Weight", "\(String(format: "%.1f", weight))") }
                         if let price = runner.price { liveMetric("Market", "$\(String(format: "%.2f", price))") }
                         if let jockey = runner.jockey { liveMetric("Jockey / Driver", jockey) }
+                        if runner.analysisReady == true, let rating = runner.raceEdgeRating { liveMetric("RaceEdge Rating", "\(rating)") }
+                        if runner.analysisReady == true, let fair = runner.estimatedFairPrice { liveMetric("Fair Price", "$\(String(format: "%.2f", fair))") }
+                        if runner.analysisReady == true, let probability = runner.estimatedProbability { liveMetric("Est. Probability", "\(String(format: "%.1f", probability))%") }
+                        if runner.analysisReady == true, let edge = runner.valueEdge { liveMetric("Value Edge", "\(String(format: "%+.1f", edge))%") }
                     }
                     if let trainer = runner.trainer { liveMetric("Trainer", trainer) }
                 }.padding()

@@ -3,7 +3,36 @@ import SwiftUI
 struct TipsView: View {
     @ObservedObject var api: RaceEdgeAPI
 
-    private var tips: [RaceTip] { api.home?.tips ?? [] }
+    private var publishedTips: [RaceTip] { api.home?.tips ?? [] }
+
+    private var liveAnalysisTips: [RaceTip] {
+        let events = api.liveToday?.events ?? []
+        return events.flatMap { event in
+            event.races.compactMap { race -> RaceTip? in
+                guard race.analysisReady == true,
+                      let top = race.analysis?.topPick,
+                      let runner = top.name,
+                      let raceNo = race.raceNo else { return nil }
+                let code = (event.meeting.code ?? "").uppercased()
+                return RaceTip(
+                    rank: top.rank,
+                    runner: runner,
+                    meeting: event.meeting.name ?? "Meeting",
+                    race: raceNo,
+                    number: top.number,
+                    score: top.raceEdgeRating.map(Double.init),
+                    price: top.price,
+                    label: code == "G" ? "GREYHOUND LIVE PICK" : "LIVE TOP PICK",
+                    reason: race.analysis?.note
+                )
+            }
+        }
+        .sorted { ($0.score ?? 0) > ($1.score ?? 0) }
+        .prefix(12)
+        .map { $0 }
+    }
+
+    private var tips: [RaceTip] { publishedTips.isEmpty ? liveAnalysisTips : publishedTips }
     private var greyhoundTips: [RaceTip] { tips.filter { ($0.label ?? "").uppercased().contains("GREYHOUND") } }
     private var bestBets: [RaceTip] { tips.filter { !($0.label ?? "").uppercased().contains("GREYHOUND") } }
 
@@ -31,8 +60,8 @@ struct TipsView: View {
                                 ProgressView().tint(Color.raceEdgeBlue)
                             } else {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("No published selections yet.").font(.headline)
-                                    Text("RaceEdge selections will appear here once they have been published for today’s racing.").font(.subheadline).foregroundStyle(.secondary)
+                                    Text("No analysis-ready selections yet.").font(.headline)
+                                    Text("RaceEdge will only show live selections here when the available race data passes the analysis coverage checks.").font(.subheadline).foregroundStyle(.secondary)
                                 }
                                 .padding()
                                 .frame(maxWidth: .infinity, alignment: .leading)
