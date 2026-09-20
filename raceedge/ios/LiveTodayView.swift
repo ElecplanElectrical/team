@@ -76,3 +76,17 @@ struct LiveTodayView: View {
         }
     }
 }
+
+
+struct PuntersEdgeAttribution: View {
+    var body: some View {
+        Link(destination: URL(string: "https://puntersedge.online")!) {
+            HStack(spacing: 4) {
+                Text("Prices by PuntersEdge")
+                Image(systemName: "arrow.up.right").font(.caption2)
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+    }
+}
