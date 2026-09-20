@@ -80,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/release-status -o /tmp/release-status.json
-          python3 -c 'import json; d=json.load(open("/tmp/release-status.json")); assert d.get("version")=="1.0.0"; assert d.get("production") is True; s=d.get("v1Scope") or {}; assert s.get("thoroughbred") is True and s.get("greyhound") is True and s.get("harnessExposed") is False and s.get("wagering") is False; b=d.get("backend") or {}; assert all(b.get(k) is True for k in ("database","providerConfigured","liveFeed","scratchings","analysis","rateLimit","securityHeaders")); i=d.get("ios") or {}; assert all(i.get(k) is True for k in ("project","simulatorBuild","unsignedReleaseArchive","privacyManifest","productionApi"))'
+          python3 -c 'import json; d=json.load(open("/tmp/release-status.json")); assert d.get("version")=="1.0.0"; assert d.get("production") is True; s=d.get("v1Scope") or {}; assert s.get("thoroughbred") is True and s.get("greyhound") is True and s.get("harnessExposed") is False and s.get("wagering") is False; b=d.get("backend") or {}; assert all(b.get(k) is True for k in ("database","providerConfigured","liveFeed","scratchings","analysis","rateLimit","securityHeaders")); i=d.get("ios") or {}; assert all(i.get(k) is True for k in ("project","simulatorBuild","runtimeSmoke","runtimeScreenshotArtifact","unsignedReleaseArchive","privacyManifest","productionApi"))'
 
 
       - name: Verify public live feed
