@@ -1,0 +1,22 @@
+name: Recessed Carbon review
+on:
+  push:
+    branches: [feat/elecplan-recessed-carbon-portal]
+permissions:
+  contents: read
+jobs:
+  source-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Package tracked source for theme review
+        run: |
+          mkdir -p /tmp/carbon-review
+          git archive HEAD elecplan-scaffold/src elecplan-scaffold/public elecplan-scaffold/scripts elecplan-scaffold/package.json elecplan-scaffold/pnpm-lock.yaml elecplan-scaffold/prisma elecplan-scaffold/tsconfig.json elecplan-scaffold/next.config.ts elecplan-scaffold/prisma.config.ts .github/workflows/ci.yml > /tmp/carbon-review/source.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: carbon-source-review
+          path: /tmp/carbon-review/source.tar
+          retention-days: 2
