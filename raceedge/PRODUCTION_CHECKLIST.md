@@ -113,3 +113,5 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 - [x] Historical status and backtest endpoints are available for building the V1 calibration dataset over time.
 
 - [ ] Automated iPhone Simulator runtime launch/install/screenshot smoke passes on the release branch.
+
+- [x] iOS production networking is HTTPS-only with no ATS arbitrary-load or insecure-HTTP exceptions.
