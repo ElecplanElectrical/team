@@ -23,6 +23,9 @@ const billSchema = z.object({
 }).refine((d) => Boolean(d.clientId || d.supplier), {
   message: "A client or supplier is required",
   path: ["clientId"],
+}).refine((d) => !(d.clientId && d.supplier), {
+  message: "Choose either a client invoice or a supplier bill, not both",
+  path: ["supplier"],
 });
 
 export async function POST(req: Request) {
