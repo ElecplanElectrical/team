@@ -6,6 +6,7 @@ struct TipsView: View {
     private var publishedTips: [RaceTip] { api.home?.tips ?? [] }
 
     private var liveAnalysisTips: [RaceTip] {
+        guard api.liveToday?.live == true else { return [] }
         let events = (api.liveToday?.events ?? []).filter { ["R", "G"].contains(($0.meeting.code ?? "").uppercased()) }
         return events.flatMap { event in
             event.races.compactMap { race -> RaceTip? in
