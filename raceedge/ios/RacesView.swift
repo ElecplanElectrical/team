@@ -3,7 +3,7 @@ import SwiftUI
 struct RacesView: View {
     @ObservedObject var api: RaceEdgeAPI
     @State private var selectedCode = "All"
-    private let filters = ["All", "R", "G", "H"]
+    private let filters = ["All", "R", "G"]
 
     private var filteredEvents: [LiveEvent] {
         let events = api.liveToday?.events ?? []
@@ -60,7 +60,7 @@ struct RacesView: View {
     }
 
     private func label(for code: String) -> String {
-        switch code { case "R": return "Horses"; case "G": return "Greyhounds"; case "H": return "Harness"; default: return "All" }
+        switch code { case "R": return "Horses"; case "G": return "Greyhounds"; default: return "All" }
     }
 
     private func meetingCard(_ event: LiveEvent) -> some View {

@@ -12,7 +12,7 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 18) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("RACEEDGE").font(.largeTitle.bold())
-                            Text("Smarter form. Better decisions.").foregroundStyle(.secondary)
+                            Text("Smarter Form. Better Tips. More Winners.").foregroundStyle(.secondary)
                         }
 
                         if let home = api.home {

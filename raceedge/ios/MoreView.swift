@@ -16,7 +16,6 @@ struct MoreView: View {
                         infoCard(title: "Racing Coverage", icon: "flag.checkered", rows: [
                             "Australian thoroughbred racing",
                             "Greyhound racing",
-                            "Harness-ready data architecture"
                         ])
 
                         infoCard(title: "RaceEdge Analysis", icon: "chart.bar.xaxis", rows: [
