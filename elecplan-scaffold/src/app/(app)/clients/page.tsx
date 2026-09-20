@@ -14,7 +14,6 @@ export default async function ClientsPage() {
         contactName: true,
         phone: true,
         email: true,
-        address: true,
         billingNotes: true,
         _count: { select: { jobs: true } },
       },
@@ -23,7 +22,7 @@ export default async function ClientsPage() {
     prisma.invoice.groupBy({ by: ["clientId"], _sum: { amount: true } }),
     prisma.job.groupBy({ by: ["clientId"], _max: { scheduledStart: true, createdAt: true } }),
     prisma.job.findMany({
-      select: { id: true, clientId: true, title: true, address: true, status: true, scheduledStart: true, createdAt: true },
+      select: { id: true, clientId: true, title: true, status: true, scheduledStart: true, createdAt: true },
       orderBy: [{ scheduledStart: "desc" }, { createdAt: "desc" }],
     }),
     prisma.user.findMany({
@@ -57,34 +56,14 @@ export default async function ClientsPage() {
 
   const rows: ClientRow[] = clients.map((c) => {
     const clientJobs = jobsByClient.get(c.id) ?? [];
-    const siteMap = new Map<string, { address: string; jobs: ClientRow["sites"][number]["jobs"] }>();
-    for (const job of clientJobs) {
-      const address = job.address.trim();
-      const key = address.toLowerCase().replace(/\s+/g, " ");
-      const site = siteMap.get(key) ?? { address, jobs: [] };
-      site.jobs.push({
-        id: job.id,
-        title: job.title,
-        status: job.status,
-        scheduledStart: job.scheduledStart?.toISOString() ?? null,
-        createdAt: job.createdAt.toISOString(),
-        inspections: inspectionsByJob.get(job.id) ?? [],
-      });
-      siteMap.set(key, site);
-    }
-    if (c.address?.trim()) {
-      const address = c.address.trim();
-      const key = address.toLowerCase().replace(/\s+/g, " ");
-      if (!siteMap.has(key)) siteMap.set(key, { address, jobs: [] });
-    }
-    const sites = [...siteMap.values()].sort((a, b) => a.address.localeCompare(b.address));
+    const sites: ClientRow["sites"] = [];
     return {
       id: c.id,
       name: c.name,
       contactName: c.contactName,
       phone: c.phone,
       email: c.email,
-      address: c.address,
+      address: null,
       billingNotes: c.billingNotes,
       jobs: c._count.jobs,
       billed: billed.get(c.id) ?? 0,
