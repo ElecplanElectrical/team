@@ -14,7 +14,7 @@ struct RunnerDetailView: View {
                             .foregroundStyle(.red).font(.headline)
                     }
 
-                    Text("FORM & ANALYSIS").font(.caption.bold()).tracking(1.5).foregroundStyle(.raceEdgeBlue)
+                    Text("FORM & ANALYSIS").font(.caption.bold()).tracking(1.5).foregroundStyle(Color.raceEdgeBlue)
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                         metric("Current Odds", runner.price.map { "$\(String(format: "%.2f", $0))" } ?? "—")
                         metric("Fair Price", runner.estimatedFairPrice.map { "$\(String(format: "%.2f", $0))" } ?? "—")
@@ -26,7 +26,7 @@ struct RunnerDetailView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Image(systemName: "chart.bar.xaxis").foregroundStyle(.raceEdgeBlue)
+                            Image(systemName: "chart.bar.xaxis").foregroundStyle(Color.raceEdgeBlue)
                             Text("RaceEdge Analysis").font(.headline)
                         }
                         Text("Fair price, probability and value edge are analytical estimates. Production calibration and historical validation remain part of RaceEdge's performance process.")
@@ -47,7 +47,7 @@ struct RunnerDetailView: View {
         HStack(alignment: .center, spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 14).fill(Color.raceEdgeBlue.opacity(0.16))
-                Text("#\(runner.number)").font(.title.bold()).foregroundStyle(.raceEdgeBlue)
+                Text("#\(runner.number)").font(.title.bold()).foregroundStyle(Color.raceEdgeBlue)
             }.frame(width: 64, height: 64)
 
             VStack(alignment: .leading, spacing: 4) {
