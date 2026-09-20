@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import PwaRegister from "@/components/PwaRegister";
 import "./globals.css";
 import "@/styles/recessed-carbon.css";
+import "@/styles/portal-layout.css";
 
 const HOME_ICON = "/5EAC5C26-D2E9-4219-8FB7-FDD38093BAFE.png?v=10";
 

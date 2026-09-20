@@ -34,11 +34,12 @@ const noop=()=>{};
 const events=[{id:'review-one',title:'Example scheduled job',customTitle:null,jobId:null,assignedToId:null,type:'job-scheduled',startsAt:'2026-09-21T09:00:00+10:00',endsAt:'2026-09-21T11:00:00+10:00'},
 {id:'review-two',title:'Example general event',customTitle:null,jobId:null,assignedToId:null,type:'event',startsAt:'2026-09-22T10:00:00+10:00',endsAt:'2026-09-22T11:30:00+10:00'},
 {id:'review-three',title:'Example in-progress job',customTitle:null,jobId:null,assignedToId:null,type:'job-in-progress',startsAt:'2026-09-23T08:00:00+10:00',endsAt:'2026-09-23T12:00:00+10:00'}];
+const exampleClients=Array.from({length:6},(_,i)=>({id:'example-client-'+i,name:'Example client '+(i+1),contactName:null,phone:null,email:null,address:null,billingNotes:null,jobs:0,billed:0,lastJob:null,sites:[{address:'Example site '+(i+1),jobs:[]}]}));
 const views={
 '/dashboard':()=> <Dashboard metrics={zero} upcomingJobs={[]} reminders={[]} weeklyGoal='Plan the day. Finish the job.' cashSeries={[{label:'Mon',value:0},{label:'Tue',value:0}]} />,
 '/calendar':()=> <Calendar weekStart='2026-09-21' events={events} jobs={[]} employees={[]} role='ADMIN' currentUserId='review' />,
 '/jobs':()=> <Jobs jobs={[]} clients={[]} crew={[]} canCreate={true} />,
-'/clients':()=> <Clients clients={[]} totalBilled={0} crew={[]} currentUserRole='ADMIN' xero={{configured:false,connected:false,tenantName:null}} />,
+'/clients':()=> <Clients clients={exampleClients} totalBilled={0} crew={[]} currentUserRole='ADMIN' xero={{configured:false,connected:false,tenantName:null}} />,
 '/bills':()=> <Bills bills={[]} clients={[]} jobs={[]} storageReady={true} />,
 '/quotes':()=> <Quotes quotes={[]} clients={[]} jobs={[]} />,
 '/documents':()=> <Documents documents={[]} jobs={[]} canDelete={true} storageReady={true} canConfigureStorage={true} />,
@@ -60,14 +61,14 @@ const views={
 '/login':()=> <div className='flex min-h-screen items-center justify-center p-5'><LoginForm callbackUrl='/dashboard' /></div>
 };
 function App(){const current=usePathname(),role=window.__role||'ADMIN',View=views[current]||views['/dashboard'];
-return current==='/login'?<View/>:<div className='flex min-h-screen w-full flex-col md:flex-row'><Sidebar role={role} name='Elecplan preview' /><main className='flex min-w-0 flex-1 flex-col overflow-hidden pt-14 md:pt-0'><View key={current}/></main><MobileNav role={role} name='Elecplan preview'/></div>}
+return current==='/login'?<View/>:<div className='flex min-h-screen w-full flex-col md:flex-row'><Sidebar role={role} name='Elecplan preview' /><main className='ep-portal-main flex min-w-0 flex-1 flex-col overflow-hidden pt-14 md:pt-0'><View key={current}/></main><MobileNav role={role} name='Elecplan preview'/></div>}
 window.setCarbonReview=(route,role='ADMIN')=>{window.__route=route;window.__role=role;window.dispatchEvent(new PopStateEvent('popstate'))};
 window.reviewRoutes=Object.keys(views);
 createRoot(document.getElementById('root')).render(<App/>);`;
 fs.writeFileSync(path.join(out,'entry.jsx'),entry);
 await esbuild.build({entryPoints:[path.join(out,'entry.jsx')],outfile:path.join(out,'bundle.js'),bundle:true,jsx:'automatic',platform:'browser',format:'iife',tsconfig:path.join(cwd,'tsconfig.json'),alias:{'next/link':path.join(out,'next.jsx'),'next/navigation':path.join(out,'next.jsx'),'next-auth/react':path.join(out,'auth.js')},define:{'process.env.NODE_ENV':'"production"'},minify:true});
 const css=[];const walk=p=>{for(const f of fs.readdirSync(p,{withFileTypes:true})){const q=path.join(p,f.name);if(f.isDirectory())walk(q);else if(q.endsWith('.css'))css.push(fs.readFileSync(q,'utf8'));}};walk(path.join(cwd,'.next/static'));
-fs.writeFileSync(path.join(out,'styles.css'),css.join('\n')+'\n'+fs.readFileSync(path.join(cwd,'src/styles/recessed-carbon.css'),'utf8'));
+fs.writeFileSync(path.join(out,'styles.css'),css.join('\n')+'\n'+fs.readFileSync(path.join(cwd,'src/styles/recessed-carbon.css'),'utf8')+'\n'+fs.readFileSync(path.join(cwd,'src/styles/portal-layout.css'),'utf8'));
 fs.writeFileSync(path.join(out,'index.html'),'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Elecplan carbon visual test - synthetic data</title><link rel="stylesheet" href="/styles.css"></head><body class="ep-carbon"><div id="root"></div><script src="/bundle.js"></script></body></html>');
 fs.writeFileSync(path.join(out,'README.txt'),'Isolated visual tests using actual React components with synthetic data and mocked navigation/auth. Not a production route. No customer data, API keys or sessions included.');
 console.log('CARBON_PREVIEW_BUNDLE_READY');
