@@ -73,7 +73,7 @@ struct TipsView: View {
                     Spacer()
                     if let score = tip.score {
                         VStack(spacing: 0) {
-                            Text("\(score, specifier: "%.0f")").font(.title.bold()).foregroundStyle(Color.raceEdgeBlue)
+                            Text("\(String(format: "%.0f", score))").font(.title.bold()).foregroundStyle(Color.raceEdgeBlue)
                             Text("RATING").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
                         }
                     }
@@ -82,7 +82,7 @@ struct TipsView: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text("#\(tip.number ?? 0) \(tip.runner)").font(.title3.bold())
                     Spacer()
-                    if let price = tip.price { Text("$\(price, specifier: "%.2f")").font(.title3.bold()) }
+                    if let price = tip.price { Text("$\(String(format: "%.2f", price))").font(.title3.bold()) }
                 }
 
                 Text("\(tip.meeting) · Race \(tip.race)")

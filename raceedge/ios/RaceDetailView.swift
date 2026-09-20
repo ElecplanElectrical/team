@@ -143,10 +143,10 @@ struct RaceDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(runner.name).font(.headline)
                 HStack {
-                    if let price = runner.price { Text("$\(price, specifier: "%.2f")").bold() }
+                    if let price = runner.price { Text("$\(String(format: "%.2f", price))").bold() }
                     if let barrier = runner.barrier { Text("Barrier \(barrier)") }
                 }.font(.caption).foregroundStyle(.secondary)
-                if let edge = runner.valueEdge { Text("Value edge \(edge, specifier: "%+.1f")%").font(.caption).foregroundStyle(.secondary) }
+                if let edge = runner.valueEdge { Text("Value edge \(String(format: "%+.1f", edge))%").font(.caption).foregroundStyle(.secondary) }
             }
             Spacer()
             if let rating = runner.raceEdgeRating {
@@ -166,7 +166,7 @@ struct RaceDetailView: View {
                 Text(runner.name).bold()
                 HStack {
                     if let barrier = runner.barrier { Text("Barrier \(barrier)") }
-                    if let price = runner.price { Text("$\(price, specifier: "%.2f")") }
+                    if let price = runner.price { Text("$\(String(format: "%.2f", price))") }
                 }.font(.caption).foregroundStyle(.secondary)
             }
             Spacer()

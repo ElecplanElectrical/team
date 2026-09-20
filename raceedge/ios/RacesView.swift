@@ -158,7 +158,7 @@ struct LiveRaceDetailView: View {
                                 }
                                 Spacer()
                                 if runner.scratched == true { Text("SCR").font(.caption.bold()).foregroundStyle(.red) }
-                                else if let price = runner.price { Text("$\(price, specifier: "%.2f")").font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue) }
+                                else if let price = runner.price { Text("$\(String(format: "%.2f", price))").font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue) }
                                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
                             }
                             .padding()
@@ -189,8 +189,8 @@ struct LiveRunnerDetailView: View {
 
                     LazyVGrid(columns:[GridItem(.flexible()),GridItem(.flexible())],spacing:10) {
                         if let barrier = runner.barrier { liveMetric("Barrier / Box", "\(barrier)") }
-                        if let weight = runner.weight { liveMetric("Weight", "\(weight, specifier: "%.1f")") }
-                        if let price = runner.price { liveMetric("Market", "$\(price, specifier: "%.2f")") }
+                        if let weight = runner.weight { liveMetric("Weight", "\(String(format: "%.1f", weight))") }
+                        if let price = runner.price { liveMetric("Market", "$\(String(format: "%.2f", price))") }
                         if let jockey = runner.jockey { liveMetric("Jockey / Driver", jockey) }
                     }
                     if let trainer = runner.trainer { liveMetric("Trainer", trainer) }

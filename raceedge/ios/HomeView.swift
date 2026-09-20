@@ -46,12 +46,12 @@ struct HomeView: View {
                                     HStack {
                                         Text((tip.label ?? "RACEEDGE").uppercased()).font(.caption2.bold()).tracking(1).foregroundStyle(Color.raceEdgeBlue)
                                         Spacer()
-                                        if let score = tip.score { Text("\(score, specifier: "%.0f")").font(.title2.bold()).foregroundStyle(Color.raceEdgeBlue) }
+                                        if let score = tip.score { Text("\(String(format: "%.0f", score))").font(.title2.bold()).foregroundStyle(Color.raceEdgeBlue) }
                                     }
                                     HStack {
                                         Text("#\(tip.number ?? 0) \(tip.runner)").font(.headline)
                                         Spacer()
-                                        if let price = tip.price { Text("$\(price, specifier: "%.2f")").bold() }
+                                        if let price = tip.price { Text("$\(String(format: "%.2f", price))").bold() }
                                     }
                                     Text("\(tip.meeting) · Race \(tip.race)").font(.caption).foregroundStyle(.secondary)
                                     if let reason = tip.reason { Text(reason).font(.footnote).foregroundStyle(.secondary) }
