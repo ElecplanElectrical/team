@@ -35,7 +35,7 @@ struct RacesView: View {
                             }
                         }
 
-                        if api.liveToday?.live == true {
+                        if !(api.liveToday?.events ?? []).isEmpty {
                             ForEach(filteredEvents) { event in
                                 meetingCard(event)
                             }
@@ -84,7 +84,7 @@ struct RacesView: View {
                         Text("R\(race.raceNo ?? 0)").font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue).frame(width: 40, alignment: .leading)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(race.name ?? "Race").foregroundStyle(.white)
-                            if let start = race.startTime { Text(start).font(.caption2).foregroundStyle(.secondary).lineLimit(1) }
+                            if let start = raceEdgeTimeText(race.startTime) { Text(start).font(.caption2).foregroundStyle(.secondary).lineLimit(1) }
                         }
                         Spacer()
                         if let distance = race.distance { Text("\(distance)m").font(.caption.bold()).foregroundStyle(.secondary) }
