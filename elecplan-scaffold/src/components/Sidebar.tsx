@@ -10,7 +10,7 @@ import { navGroupsFor, ROLE_TITLE, initialsOf } from "@/lib/nav";
 import { LOGO_WORDMARK } from "@/lib/logo";
 
 const UI = {
-  sidebar: "radial-gradient(ellipse at 20% 0%,rgba(255,255,255,.16) 0%,rgba(255,255,255,.045) 20%,transparent 42%),linear-gradient(115deg,transparent 0 30%,rgba(255,255,255,.045) 42%,transparent 54%),linear-gradient(180deg,#11151A 0%,#050608 48%,#0A0D11 100%)",
+  sidebar: "radial-gradient(ellipse at 50% -8%,rgba(255,255,255,.13),transparent 30%),linear-gradient(102deg,transparent 0 62%,rgba(255,255,255,.035) 68%,transparent 74%),linear-gradient(180deg,#15191E 0%,#090B0E 34%,#030405 72%,#0B0E12 100%)",
   border: "rgba(67,210,255,.16)",
   text: "#ffffff",
   mute: "#c0c7d0",
@@ -36,7 +36,7 @@ export default function Sidebar({ role, name }: { role: Role; name: string }) {
               const href = SCREEN_PATH[item.screen];
               const active = pathname === href || pathname.startsWith(href + "/");
               const Icon = item.icon;
-              return <Link key={item.screen} href={href} title={item.label} className="group flex h-10 items-center justify-center gap-3 rounded-lg px-2 text-sm font-medium transition xl:justify-start xl:px-3" style={{ background: active ? "linear-gradient(135deg,#79E5FF 0%,#43D2FF 42%,#159ED1 100%)" : "transparent", color: active ? "#fff" : UI.mute, boxShadow: active ? "inset 0 1px 0 rgba(255,255,255,.42),0 8px 24px rgba(67,210,255,.22)" : "none" }}><Icon size={17} strokeWidth={active ? 2.3 : 1.9} style={{ color: active ? UI.cyan : undefined }} /><span className="hidden truncate xl:inline">{item.label}</span></Link>;
+              return <Link key={item.screen} href={href} title={item.label} className="group flex h-10 items-center justify-center gap-3 rounded-lg px-2 text-sm font-medium transition xl:justify-start xl:px-3" style={{ background: active ? "linear-gradient(105deg,#22BDEB 0%,#43D2FF 48%,#8BEAFF 100%)" : "transparent", color: active ? "#fff" : UI.mute, boxShadow: active ? "inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,83,112,.32),0 6px 18px rgba(0,0,0,.32)" : "none" }}><Icon size={17} strokeWidth={active ? 2.3 : 1.9} style={{ color: active ? UI.cyan : undefined }} /><span className="hidden truncate xl:inline">{item.label}</span></Link>;
             })}
           </div>
         ))}
