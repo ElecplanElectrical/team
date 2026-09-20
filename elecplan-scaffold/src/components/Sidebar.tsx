@@ -10,7 +10,7 @@ import { navGroupsFor, ROLE_TITLE, initialsOf } from "@/lib/nav";
 import { LOGO_WORDMARK } from "@/lib/logo";
 
 const UI = {
-  sidebar: "linear-gradient(180deg,#0b0d10 0%,#11151a 55%,#15191f 100%)",
+  sidebar: "linear-gradient(180deg,#080A0D 0%,#0B1D27 34%,#102E3B 62%,#080A0D 100%)",
   border: "rgba(255,255,255,.10)",
   text: "#ffffff",
   mute: "#c0c7d0",
@@ -36,7 +36,7 @@ export default function Sidebar({ role, name }: { role: Role; name: string }) {
               const href = SCREEN_PATH[item.screen];
               const active = pathname === href || pathname.startsWith(href + "/");
               const Icon = item.icon;
-              return <Link key={item.screen} href={href} title={item.label} className="group flex h-10 items-center justify-center gap-3 rounded-lg px-2 text-sm font-medium transition xl:justify-start xl:px-3" style={{ background: active ? "linear-gradient(90deg,rgba(67,210,255,.22),rgba(168,85,247,.10))" : "transparent", color: active ? "#fff" : UI.mute, boxShadow: active ? "inset 0 0 0 1px rgba(67,210,255,.30),0 8px 24px rgba(67,210,255,.10)" : "none" }}><Icon size={17} strokeWidth={active ? 2.3 : 1.9} style={{ color: active ? UI.cyan : undefined }} /><span className="hidden truncate xl:inline">{item.label}</span></Link>;
+              return <Link key={item.screen} href={href} title={item.label} className="group flex h-10 items-center justify-center gap-3 rounded-lg px-2 text-sm font-medium transition xl:justify-start xl:px-3" style={{ background: active ? "linear-gradient(90deg,rgba(67,210,255,.34),rgba(67,210,255,.10))" : "transparent", color: active ? "#fff" : UI.mute, boxShadow: active ? "inset 0 0 0 1px rgba(67,210,255,.38),0 8px 26px rgba(67,210,255,.16)" : "none" }}><Icon size={17} strokeWidth={active ? 2.3 : 1.9} style={{ color: active ? UI.cyan : undefined }} /><span className="hidden truncate xl:inline">{item.label}</span></Link>;
             })}
           </div>
         ))}
