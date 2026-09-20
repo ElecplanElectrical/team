@@ -6,7 +6,7 @@ struct RacesView: View {
     private let filters = ["All", "R", "G"]
 
     private var filteredEvents: [LiveEvent] {
-        let events = api.liveToday?.events ?? []
+        let events = (api.liveToday?.events ?? []).filter { ["R", "G"].contains(($0.meeting.code ?? "").uppercased()) }
         guard selectedCode != "All" else { return events }
         return events.filter { ($0.meeting.code ?? "").uppercased() == selectedCode }
     }
