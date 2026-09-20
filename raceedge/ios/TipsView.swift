@@ -26,7 +26,7 @@ struct TipsView: View {
                             ForEach(greyhoundTips) { tipCard($0) }
                         }
 
-                        if tips.isEmpty && api.errorMessage == nil { ProgressView().tint(.raceEdgeBlue) }
+                        if tips.isEmpty && api.errorMessage == nil { ProgressView().tint(Color.raceEdgeBlue) }
                         if let message = api.errorMessage { Text(message).foregroundStyle(.secondary) }
 
                         Text("RaceEdge ratings are analytical estimates and are not guaranteed outcomes.")
@@ -46,7 +46,7 @@ struct TipsView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("TIPS").font(.caption.bold()).tracking(2).foregroundStyle(.raceEdgeBlue)
+            Text("TIPS").font(.caption.bold()).tracking(2).foregroundStyle(Color.raceEdgeBlue)
             Text("RaceEdge Selections").font(.largeTitle.bold())
             Text("Top picks, dangers and value selections.").foregroundStyle(.secondary)
         }
@@ -64,16 +64,16 @@ struct TipsView: View {
 
     private func tipCard(_ tip: RaceTip) -> some View {
         HStack(spacing: 0) {
-            Rectangle().fill(.raceEdgeBlue).frame(width: 5)
+            Rectangle().fill(Color.raceEdgeBlue).frame(width: 5)
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text((tip.label ?? "RACEEDGE").uppercased())
                         .font(.caption2.bold())
-                        .foregroundStyle(.raceEdgeBlue)
+                        .foregroundStyle(Color.raceEdgeBlue)
                     Spacer()
                     if let score = tip.score {
                         VStack(spacing: 0) {
-                            Text("\(score, specifier: "%.0f")").font(.title.bold()).foregroundStyle(.raceEdgeBlue)
+                            Text("\(score, specifier: "%.0f")").font(.title.bold()).foregroundStyle(Color.raceEdgeBlue)
                             Text("RATING").font(.system(size: 8, weight: .bold)).foregroundStyle(.secondary)
                         }
                     }
