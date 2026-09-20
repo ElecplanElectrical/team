@@ -14,13 +14,13 @@ import VoiceScheduler from "@/components/VoiceScheduler";
 import ClientSmsPanel from "@/components/ClientSmsPanel";
 
 const UI = {
-  panel: "#0a2038",
-  panelAlt: "#103152",
-  border: "rgba(125,211,252,.28)",
-  borderSoft: "rgba(125,211,252,.14)",
-  text: "#f5f9ff",
-  mute: "#a8c3dd",
-  faint: "#7392af",
+  panel: "#151a21",
+  panelAlt: "#202731",
+  border: "rgba(61,197,240,.34)",
+  borderSoft: "rgba(148,163,184,.18)",
+  text: "#ffffff",
+  mute: "#c2cad4",
+  faint: "#8e99a8",
   blue: "#38bdf8",
   cyan: "#7dd3fc",
   green: "#18d3a0",
@@ -218,7 +218,7 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
 
   return <>
     <TopBar title="Calendar" subtitle="Schedule jobs, appointments and team availability" rightSlot={<div className="flex items-center gap-2"><button onClick={() => setShowVoice(true)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold" style={{ background: "rgba(56,189,248,.14)", color: UI.cyan, border: "1px solid rgba(125,211,252,.30)" }}><Mic size={17} /><span className="hidden sm:inline">Voice</span></button><button onClick={() => setShowModal(true)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold" style={{ background: UI.blue, color: "#06213a" }}><Plus size={17} /><span className="hidden sm:inline">New event</span></button></div>} />
-    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(56,189,248,.16),transparent 38%),#061525" }} onClick={() => setSelectedEvent(null)}>
+    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "radial-gradient(circle at 55% 0%,rgba(61,197,240,.08),transparent 34%),#0a0d12" }} onClick={() => setSelectedEvent(null)}>
       <div className="grid w-full gap-3 xl:grid-cols-[180px_minmax(0,1fr)]">
         <aside className="hidden xl:flex flex-col rounded-xl p-3" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}><div className="flex items-center gap-2 px-1 py-2"><Users size={15} style={{ color: UI.cyan }} /><h2 className="text-xs font-semibold uppercase" style={{ color: UI.mute }}>Team / crew</h2></div><button onClick={() => setSelectedCrew([])} className="mt-2 flex items-center justify-between rounded-lg px-3 py-2 text-xs" style={{ background: selectedCrew.length === 0 ? "rgba(56,189,248,.15)" : UI.panelAlt, color: selectedCrew.length === 0 ? UI.cyan : UI.mute }}><span>All team members</span><Filter size={12} /></button>{employees.map((employee) => <button key={employee.id} onClick={() => toggleCrew(employee.id)} className="mt-1 rounded-lg px-2 py-2 text-left text-xs" style={{ color: selectedCrew.includes(employee.id) ? UI.text : UI.mute }}>{employee.name}</button>)}</aside>
         <main className="relative min-w-0 rounded-xl" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
