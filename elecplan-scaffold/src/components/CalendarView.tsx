@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { addDays, addMinutes, addWeeks, differenceInCalendarDays, format, getHours, getMinutes, isSameMonth, isToday, parseISO } from "date-fns";
+import { addDays, addWeeks, differenceInCalendarDays, format, getHours, getMinutes, isSameMonth, isToday, parseISO } from "date-fns";
 import { ChevronLeft, ChevronRight, Filter, MapPin, MessageSquareText, Mic, Plus, Users, UserRound, X } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { EVENT_COLOR } from "@/lib/theme";
@@ -16,15 +16,12 @@ import ClientSmsPanel from "@/components/ClientSmsPanel";
 import { PORTAL_UI as UI } from "@/lib/carbon-theme";
 
 const HOURS = Array.from({ length: CAL_HOUR_END - CAL_HOUR_START }, (_, index) => CAL_HOUR_START + index);
-const SNAP_MINUTES = 15;
-const MIN_DURATION_MINUTES = 15;
 
 type DragState = {
   eventId: string;
-  mode: "move" | "resize";
+  mode: "move" | "span";
   pointerId: number;
   startX: number;
-  startY: number;
   columnWidth: number;
   originalStart: Date;
   originalEnd: Date;
@@ -104,8 +101,21 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
   );
   const selectedJob = selectedEvent?.jobId ? jobs.find((job) => job.id === selectedEvent.jobId) ?? null : null;
 
-  function eventsForDay(index: number) {
-    return filteredEvents.filter((event) => differenceInCalendarDays(parseISO(event.startsAt), start) === index);
+  function eventsStartingOnVisibleDay(index: number) {
+    return filteredEvents.filter((event) => {
+      const firstVisibleDay = Math.max(0, differenceInCalendarDays(parseISO(event.startsAt), start));
+      const lastVisibleDay = Math.min(6, differenceInCalendarDays(parseISO(event.endsAt), start));
+      return firstVisibleDay === index && lastVisibleDay >= firstVisibleDay;
+    });
+  }
+
+  function eventsCoveringDay(index: number) {
+    const day = addDays(start, index);
+    return filteredEvents.filter((event) => {
+      const startsAt = parseISO(event.startsAt);
+      const endsAt = parseISO(event.endsAt);
+      return differenceInCalendarDays(day, startsAt) >= 0 && differenceInCalendarDays(endsAt, day) >= 0;
+    });
   }
 
   function refresh() {
@@ -123,52 +133,17 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     return role !== "EMPLOYEE" || (!event.jobId && event.assignedToId === currentUserId);
   }
 
-  async function duplicateEvent(event: CalendarEvent) {
-    if (suppressClickRef.current || event.fallback || event.id.startsWith("inspection:")) return;
-    if (!canDrag(event)) return;
-
-    const startsAt = addDays(parseISO(event.startsAt), 1);
-    const endsAt = addDays(parseISO(event.endsAt), 1);
-    const payload = {
-      title: event.customTitle ?? null,
-      notes: event.notes ?? null,
-      type: event.jobId ? "job" : event.type,
-      jobId: event.jobId ?? null,
-      assignedToId: event.assignedToId ?? null,
-      startsAt: startsAt.toISOString(),
-      endsAt: endsAt.toISOString(),
-    };
-
-    setDragError(null);
-    try {
-      const response = await fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error ?? "Could not duplicate this calendar item");
-      }
-
-      const created = await response.json();
-      const copy: CalendarEvent = {
-        ...event,
-        id: created.id,
-        customTitle: created.title ?? event.customTitle,
-        startsAt: startsAt.toISOString(),
-        endsAt: endsAt.toISOString(),
-        fallback: false,
-      };
-      setCalendarEvents((current) => [...current, copy]);
-      setSelectedEvent(copy);
-      router.refresh();
-    } catch (error) {
-      setDragError(error instanceof Error ? error.message : "Could not duplicate this calendar item");
+  function editFromCalendar(event: CalendarEvent) {
+    if (suppressClickRef.current) return;
+    if ((event.fallback || role === "EMPLOYEE") && event.jobId) {
+      router.push(`/jobs/${event.jobId}`);
+      return;
     }
+    setSelectedEvent(event);
+    setEditingEvent(event);
   }
 
-  function beginPointerAction(pointer: React.PointerEvent<HTMLDivElement>, event: CalendarEvent, mode: "move" | "resize") {
+  function beginPointerAction(pointer: React.PointerEvent<HTMLDivElement>, event: CalendarEvent, mode: "move" | "span") {
     if (!canDrag(event)) return;
     pointer.preventDefault();
     pointer.stopPropagation();
@@ -176,7 +151,7 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     const startAt = parseISO(event.startsAt);
     const endAt = parseISO(event.endsAt);
     pointer.currentTarget.setPointerCapture(pointer.pointerId);
-    dragRef.current = { eventId: event.id, mode, pointerId: pointer.pointerId, startX: pointer.clientX, startY: pointer.clientY, columnWidth: column?.getBoundingClientRect().width ?? 135, originalStart: startAt, originalEnd: endAt, previewStart: startAt, previewEnd: endAt };
+    dragRef.current = { eventId: event.id, mode, pointerId: pointer.pointerId, startX: pointer.clientX, columnWidth: column?.getBoundingClientRect().width ?? 135, originalStart: startAt, originalEnd: endAt, previewStart: startAt, previewEnd: endAt };
     suppressClickRef.current = true;
     setDragError(null);
   }
@@ -185,17 +160,21 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== pointer.pointerId) return;
     pointer.preventDefault();
-    const minutes = Math.round(((pointer.clientY - drag.startY) / CAL_ROW_PX) * (60 / SNAP_MINUTES)) * SNAP_MINUTES;
-    const daysMoved = drag.mode === "move" ? Math.round((pointer.clientX - drag.startX) / drag.columnWidth) : 0;
+
+    const daysMoved = Math.round((pointer.clientX - drag.startX) / drag.columnWidth);
     let startsAt = drag.originalStart;
     let endsAt = drag.originalEnd;
+
     if (drag.mode === "move") {
-      startsAt = addMinutes(addDays(drag.originalStart, daysMoved), minutes);
-      endsAt = addMinutes(addDays(drag.originalEnd, daysMoved), minutes);
+      startsAt = addDays(drag.originalStart, daysMoved);
+      endsAt = addDays(drag.originalEnd, daysMoved);
     } else {
-      endsAt = addMinutes(drag.originalEnd, minutes);
-      if (endsAt.getTime() - startsAt.getTime() < MIN_DURATION_MINUTES * 60_000) endsAt = addMinutes(startsAt, MIN_DURATION_MINUTES);
+      const originalSpanOffset = Math.max(0, differenceInCalendarDays(drag.originalEnd, drag.originalStart));
+      const nextSpanOffset = Math.max(0, originalSpanOffset + daysMoved);
+      endsAt = addDays(drag.originalEnd, nextSpanOffset - originalSpanOffset);
+      if (endsAt <= startsAt) endsAt = new Date(startsAt.getTime() + 60 * 60_000);
     }
+
     drag.previewStart = startsAt;
     drag.previewEnd = endsAt;
     setCalendarEvents((current) => current.map((item) => item.id === drag.eventId ? { ...item, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() } : item));
@@ -229,16 +208,56 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     }
   }
 
-  function eventBlock(event: CalendarEvent) {
+  function eventBlock(event: CalendarEvent, spanAcrossDays = false) {
     const startsAt = parseISO(event.startsAt);
     const endsAt = parseISO(event.endsAt);
     const top = (floatHours(startsAt) - CAL_HOUR_START) * CAL_ROW_PX;
     const height = Math.max((floatHours(endsAt) - floatHours(startsAt)) * CAL_ROW_PX - 4, 30);
     if (top < 0 || top >= (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX) return null;
+
     const colour = EVENT_COLOR[event.type] ?? EVENT_COLOR.job;
     const draggable = canDrag(event);
     const selected = selectedEvent?.id === event.id;
-    return <div key={event.id} title={!event.fallback && !event.id.startsWith("inspection:") ? "Double-click to duplicate to the next day" : undefined} onPointerDown={(pointer) => beginPointerAction(pointer, event, "move")} onPointerMove={movePointerAction} onPointerUp={(pointer) => void endPointerAction(pointer, event)} onPointerCancel={(pointer) => void endPointerAction(pointer, event)} onClick={(click) => { click.stopPropagation(); if (!suppressClickRef.current) setSelectedEvent(event); }} onDoubleClick={(click) => { click.preventDefault(); click.stopPropagation(); void duplicateEvent(event); }} className="absolute overflow-hidden rounded-lg px-2 py-1.5 text-left shadow-lg" style={{ top, height: Math.min(height, (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX - top), left: 5, right: 5, background: colour.bg, border: `${selected ? 2 : 1}px solid ${selected ? UI.cyan : `${colour.border}55`}`, borderLeft: `3px solid ${colour.border}`, color: colour.fg, cursor: draggable ? "grab" : "pointer", touchAction: draggable ? "none" : "auto", userSelect: "none" }}><div className="text-[10px] opacity-80">{timeRange(event.startsAt, event.endsAt)}</div><div className="mt-0.5 truncate text-[11px] font-semibold">{event.title}</div>{draggable && <div aria-label="Resize calendar item" onPointerDown={(pointer) => beginPointerAction(pointer, event, "resize")} className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize" style={{ background: `linear-gradient(to bottom,transparent,${colour.border}55)`, touchAction: "none" }}><div className="mx-auto mt-1 h-0.5 w-8 rounded-full" style={{ background: colour.border }} /></div>}</div>;
+    const firstVisibleDay = Math.max(0, differenceInCalendarDays(startsAt, start));
+    const lastVisibleDay = Math.min(6, differenceInCalendarDays(endsAt, start));
+    const visibleSpanDays = Math.max(1, lastVisibleDay - firstVisibleDay + 1);
+    const width = spanAcrossDays ? `calc(${visibleSpanDays * 100}% - 10px)` : undefined;
+
+    return <div
+      key={event.id}
+      title={draggable ? "Drag to another day. Drag the right edge to extend across days." : undefined}
+      onPointerDown={(pointer) => beginPointerAction(pointer, event, "move")}
+      onPointerMove={movePointerAction}
+      onPointerUp={(pointer) => void endPointerAction(pointer, event)}
+      onPointerCancel={(pointer) => void endPointerAction(pointer, event)}
+      onClick={(click) => { click.stopPropagation(); if (!suppressClickRef.current) setSelectedEvent(event); }}
+      onDoubleClick={(click) => { click.preventDefault(); click.stopPropagation(); editFromCalendar(event); }}
+      className="absolute overflow-hidden rounded-lg px-2 py-1.5 text-left shadow-lg"
+      style={{
+        top,
+        height: Math.min(height, (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX - top),
+        left: 5,
+        right: spanAcrossDays ? undefined : 5,
+        width,
+        zIndex: 10,
+        background: colour.bg,
+        border: `${selected ? 2 : 1}px solid ${selected ? UI.cyan : `${colour.border}55`}`,
+        borderLeft: `3px solid ${colour.border}`,
+        color: colour.fg,
+        cursor: draggable ? "grab" : "pointer",
+        touchAction: draggable ? "none" : "auto",
+        userSelect: "none",
+      }}
+    >
+      <div className="text-[10px] opacity-80">{timeRange(event.startsAt, event.endsAt)}</div>
+      <div className="mt-0.5 truncate text-[11px] font-semibold">{event.title}</div>
+      {draggable && spanAcrossDays && <div
+        aria-label="Extend calendar item across days"
+        onPointerDown={(pointer) => beginPointerAction(pointer, event, "span")}
+        className="absolute bottom-0 right-0 top-0 w-3 cursor-ew-resize"
+        style={{ background: `linear-gradient(to right,transparent,${colour.border}66)`, touchAction: "none" }}
+      ><div className="absolute bottom-2 right-1 top-2 w-0.5 rounded-full" style={{ background: colour.border }} /></div>}
+    </div>;
   }
 
   return <>
@@ -248,8 +267,8 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
         <main className="relative min-w-0 rounded-xl" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="flex items-center gap-2"><div className="relative"><button onClick={() => setShowCrewFilter((open) => !open)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{ ...UI.inset, background: UI.panelAlt, color: selectedCrew.length ? UI.cyan : UI.text, border: `1px solid ${UI.border}` }}><Users size={14} /><span>{selectedCrew.length ? `Crew (${selectedCrew.length})` : "Team / crew"}</span><ChevronRight size={13} style={{ transform: showCrewFilter ? "rotate(90deg)" : "none" }} /></button>{showCrewFilter && <div className="absolute left-0 top-11 z-50 w-56 rounded-xl p-2 shadow-2xl" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}><button onClick={() => setSelectedCrew([])} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs" style={{ background: selectedCrew.length === 0 ? "rgba(67,210,255,.14)" : "transparent", color: selectedCrew.length === 0 ? UI.cyan : UI.mute }}><span>All team members</span><Filter size={12} /></button>{employees.map((employee) => <button key={employee.id} onClick={() => toggleCrew(employee.id)} className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs" style={{ background: selectedCrew.includes(employee.id) ? "rgba(67,210,255,.12)" : "transparent", color: selectedCrew.includes(employee.id) ? UI.text : UI.mute }}>{employee.name}</button>)}</div>}</div><button onClick={() => router.push("/calendar")} className="rounded-lg px-3 py-2 text-xs font-semibold" style={{ ...UI.inset, background: UI.panelAlt, color: UI.text, border: `1px solid ${UI.border}` }}>Today</button><NavButton onClick={() => router.push(`/calendar?week=${weekKey(addWeeks(start, -1))}`)} label="Previous week"><ChevronLeft size={15} /></NavButton><NavButton onClick={() => router.push(`/calendar?week=${weekKey(addWeeks(start, 1))}`)} label="Next week"><ChevronRight size={15} /></NavButton><strong className="hidden text-sm sm:block" style={{ color: UI.text }}>{label}</strong></div></div>
           {dragError && <div className="mx-3 mt-3 rounded-lg px-3 py-2 text-xs" style={{ color: "#ff7487" }}>{dragError}</div>}
-          <div className="md:hidden"><div className="flex gap-1 overflow-x-auto border-b p-2" style={{ borderColor: UI.borderSoft }}>{days.map((day, index) => <button key={day.toISOString()} onClick={() => setMobileDay(index)} className="min-w-[52px] flex-1 rounded-lg px-2 py-2 text-center" style={{ background: mobileDay === index ? UI.blue : isToday(day) ? "rgba(67,210,255,.12)" : UI.panelAlt, color: mobileDay === index ? "#06213a" : isToday(day) ? UI.cyan : UI.mute }}><div className="text-[9px] font-semibold uppercase">{format(day, "EEE")}</div><div className="mt-1 text-sm font-bold">{format(day, "d")}</div></button>)}</div><div className="px-3 py-2 text-xs font-semibold" style={{ color: UI.text }}>{format(days[mobileDay], "EEEE d MMMM")}</div><div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 245px)" }}><div style={{ display: "grid", gridTemplateColumns: "52px minmax(0,1fr)" }}><div style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX }}>{HOURS.map((hour, index) => <div key={hour} className="pr-2 text-right text-[9px]" style={{ position: "absolute", top: index * CAL_ROW_PX - 6, right: 0, width: "100%", color: UI.faint }}>{hourLabel(hour)}</div>)}</div><div data-day-column style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX, borderLeft: `1px solid ${UI.borderSoft}`, background: isToday(days[mobileDay]) ? "rgba(67,210,255,.035)" : "transparent" }}>{HOURS.map((hour, index) => <div key={hour} style={{ position: "absolute", top: index * CAL_ROW_PX, left: 0, right: 0, borderTop: `1px solid ${UI.borderSoft}` }} />)}{eventsForDay(mobileDay).map(eventBlock)}</div></div></div></div>
-          <div className="hidden overflow-x-auto md:block"><div style={{ minWidth: 56 + 7 * 135 }}><div style={{ display: "grid", gridTemplateColumns: "56px repeat(7,minmax(135px,1fr))" }}><div />{days.map((day) => <div key={day.toISOString()} className="border-b px-2 py-3 text-center" style={{ borderColor: UI.borderSoft, background: isToday(day) ? "rgba(67,210,255,.07)" : "transparent" }}><div className="text-[10px] font-semibold uppercase" style={{ color: UI.faint }}>{format(day, "EEE")}</div><div className="mt-1 text-xs font-semibold" style={{ color: isToday(day) ? UI.cyan : UI.text }}>{format(day, "MMM d")}</div></div>)}</div><div style={{ display: "grid", gridTemplateColumns: "56px repeat(7,minmax(135px,1fr))" }}><div style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX }}>{HOURS.map((hour, index) => <div key={hour} className="pr-2 text-right text-[10px]" style={{ position: "absolute", top: index * CAL_ROW_PX - 7, right: 0, width: "100%", color: UI.faint }}>{hourLabel(hour)}</div>)}</div>{days.map((day, dayIndex) => <div data-day-column key={day.toISOString()} style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX, borderLeft: `1px solid ${UI.borderSoft}`, background: isToday(day) ? "rgba(67,210,255,.035)" : "transparent" }}>{HOURS.map((hour, hourIndex) => <div key={hour} style={{ position: "absolute", top: hourIndex * CAL_ROW_PX, left: 0, right: 0, borderTop: `1px solid ${UI.borderSoft}` }} />)}{eventsForDay(dayIndex).map(eventBlock)}</div>)}</div></div></div>
+          <div className="md:hidden"><div className="flex gap-1 overflow-x-auto border-b p-2" style={{ borderColor: UI.borderSoft }}>{days.map((day, index) => <button key={day.toISOString()} onClick={() => setMobileDay(index)} className="min-w-[52px] flex-1 rounded-lg px-2 py-2 text-center" style={{ background: mobileDay === index ? UI.blue : isToday(day) ? "rgba(67,210,255,.12)" : UI.panelAlt, color: mobileDay === index ? "#06213a" : isToday(day) ? UI.cyan : UI.mute }}><div className="text-[9px] font-semibold uppercase">{format(day, "EEE")}</div><div className="mt-1 text-sm font-bold">{format(day, "d")}</div></button>)}</div><div className="px-3 py-2 text-xs font-semibold" style={{ color: UI.text }}>{format(days[mobileDay], "EEEE d MMMM")}</div><div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 245px)" }}><div style={{ display: "grid", gridTemplateColumns: "52px minmax(0,1fr)" }}><div style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX }}>{HOURS.map((hour, index) => <div key={hour} className="pr-2 text-right text-[9px]" style={{ position: "absolute", top: index * CAL_ROW_PX - 6, right: 0, width: "100%", color: UI.faint }}>{hourLabel(hour)}</div>)}</div><div data-day-column style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX, borderLeft: `1px solid ${UI.borderSoft}`, background: isToday(days[mobileDay]) ? "rgba(67,210,255,.035)" : "transparent" }}>{HOURS.map((hour, index) => <div key={hour} style={{ position: "absolute", top: index * CAL_ROW_PX, left: 0, right: 0, borderTop: `1px solid ${UI.borderSoft}` }} />)}{eventsCoveringDay(mobileDay).map((event) => eventBlock(event, false))}</div></div></div></div>
+          <div className="hidden overflow-x-auto md:block"><div style={{ minWidth: 56 + 7 * 135 }}><div style={{ display: "grid", gridTemplateColumns: "56px repeat(7,minmax(135px,1fr))" }}><div />{days.map((day) => <div key={day.toISOString()} className="border-b px-2 py-3 text-center" style={{ borderColor: UI.borderSoft, background: isToday(day) ? "rgba(67,210,255,.07)" : "transparent" }}><div className="text-[10px] font-semibold uppercase" style={{ color: UI.faint }}>{format(day, "EEE")}</div><div className="mt-1 text-xs font-semibold" style={{ color: isToday(day) ? UI.cyan : UI.text }}>{format(day, "MMM d")}</div></div>)}</div><div style={{ display: "grid", gridTemplateColumns: "56px repeat(7,minmax(135px,1fr))" }}><div style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX }}>{HOURS.map((hour, index) => <div key={hour} className="pr-2 text-right text-[10px]" style={{ position: "absolute", top: index * CAL_ROW_PX - 7, right: 0, width: "100%", color: UI.faint }}>{hourLabel(hour)}</div>)}</div>{days.map((day, dayIndex) => <div data-day-column key={day.toISOString()} style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX, borderLeft: `1px solid ${UI.borderSoft}`, background: isToday(day) ? "rgba(67,210,255,.035)" : "transparent" }}>{HOURS.map((hour, hourIndex) => <div key={hour} style={{ position: "absolute", top: hourIndex * CAL_ROW_PX, left: 0, right: 0, borderTop: `1px solid ${UI.borderSoft}` }} />)}{eventsStartingOnVisibleDay(dayIndex).map((event) => eventBlock(event, true))}</div>)}</div></div></div>
           {selectedEvent && <EventDetails event={selectedEvent} job={selectedJob} role={role} onClose={() => setSelectedEvent(null)} onEdit={() => setEditingEvent(selectedEvent)} onOpenJob={() => selectedJob && router.push(`/jobs/${selectedJob.id}`)} onSms={() => selectedEvent.jobId && setSmsJobId(selectedEvent.jobId)} />}
         </main>
       </div>
