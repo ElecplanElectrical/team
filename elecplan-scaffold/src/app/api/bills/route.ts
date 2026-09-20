@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
-import { verifyCommitToken } from "@/lib/storage";
+import { DOCUMENT_MAX_BYTES, DOCUMENT_TYPES, verifyCommitToken } from "@/lib/storage";
 
 const billSchema = z.object({
   clientId: z.string().trim().optional().nullable(),
@@ -15,6 +15,10 @@ const billSchema = z.object({
   subtotal: z.coerce.number().nonnegative().optional().nullable(),
   gstAmount: z.coerce.number().nonnegative().optional().nullable(),
   documentCommitToken: z.string().optional().nullable(),
+  documentDataBase64: z.string().max(DOCUMENT_MAX_BYTES * 2).optional().nullable(),
+  documentFileName: z.string().trim().max(255).optional().nullable(),
+  documentContentType: z.string().trim().max(100).optional().nullable(),
+  documentSizeBytes: z.coerce.number().int().nonnegative().max(DOCUMENT_MAX_BYTES).optional().nullable(),
 }).refine((d) => Boolean(d.clientId || d.supplier), {
   message: "A client or supplier is required",
   path: ["clientId"],
@@ -42,14 +46,25 @@ export async function POST(req: Request) {
     if (job && d.clientId && job.clientId !== d.clientId) {
       return NextResponse.json({ error: "Selected job does not belong to this client" }, { status: 400 });
     }
-    if (job && !d.clientId && !d.supplier) {
-      return NextResponse.json({ error: "A client or supplier is required" }, { status: 400 });
-    }
 
     const document = d.documentCommitToken ? verifyCommitToken(d.documentCommitToken, "invoice-documents") : null;
-    if (d.documentCommitToken && !document) return NextResponse.json({ error: "Invoice document upload expired. Choose the file again." }, { status: 400 });
+    if (d.documentCommitToken && !document) {
+      return NextResponse.json({ error: "Invoice document upload expired. Choose the file again." }, { status: 400 });
+    }
+
+    let documentData: Buffer | null = null;
+    if (!document && d.documentDataBase64) {
+      if (!d.documentContentType || !DOCUMENT_TYPES.has(d.documentContentType)) {
+        return NextResponse.json({ error: "Unsupported invoice document type." }, { status: 400 });
+      }
+      documentData = Buffer.from(d.documentDataBase64, "base64");
+      if (documentData.byteLength === 0 || documentData.byteLength > DOCUMENT_MAX_BYTES) {
+        return NextResponse.json({ error: "Invoice document is empty or too large." }, { status: 400 });
+      }
+    }
 
     const id = crypto.randomUUID();
+    const hasDocument = Boolean(document || documentData);
     const invoice = await prisma.invoice.create({
       data: {
         id,
@@ -62,11 +77,27 @@ export async function POST(req: Request) {
         invoiceNumber: d.invoiceNumber || null,
         subtotal: d.subtotal ?? null,
         gstAmount: d.gstAmount ?? null,
-        ...(document ? { documentUrl: `/api/bills/${id}/file`, documentStorageKey: document.key, documentMimeType: document.contentType, documentSizeBytes: document.sizeBytes } : {}),
+        ...(document ? {
+          documentUrl: `/api/bills/${id}/file`,
+          documentStorageKey: document.key,
+          documentMimeType: document.contentType,
+          documentSizeBytes: document.sizeBytes,
+          documentFileName: document.fileName,
+        } : {}),
+        ...(documentData ? {
+          documentUrl: `/api/bills/${id}/file`,
+          documentData,
+          documentMimeType: d.documentContentType || "application/octet-stream",
+          documentSizeBytes: documentData.byteLength,
+          documentFileName: d.documentFileName || "invoice-document",
+        } : {}),
       },
+      select: { id: true, amount: true, dueDate: true, status: true },
     });
-    return NextResponse.json(invoice, { status: 201 });
-  } catch {
+
+    return NextResponse.json({ ...invoice, hasDocument }, { status: 201 });
+  } catch (error) {
+    console.error("CREATE_BILL_FAILED", error);
     return NextResponse.json({ error: "Could not create bill" }, { status: 400 });
   }
 }
