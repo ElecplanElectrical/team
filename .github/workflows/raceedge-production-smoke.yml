@@ -20,15 +20,13 @@ jobs:
           base="https://raceedge-v1-production.up.railway.app"
           for i in {1..30}; do
             if body="$(curl -fsS --max-time 10 "$base/health" 2>/dev/null)"; then
-              python3 - "$GITHUB_SHA" "$body" <<'PY'
+              if python3 - "$GITHUB_SHA" "$body" <<'PY'
 import json,sys
 expected=sys.argv[1]
 data=json.loads(sys.argv[2])
-if data.get('ok') is True and data.get('releaseSha') == expected:
-    raise SystemExit(0)
-raise SystemExit(1)
+raise SystemExit(0 if data.get('ok') is True and data.get('releaseSha') == expected else 1)
 PY
-              if [ "$?" -eq 0 ]; then
+              then
                 echo "Production is running commit $GITHUB_SHA"
                 exit 0
               fi
