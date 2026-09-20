@@ -46,20 +46,25 @@ function localExtract(text: string, fileName: string): InvoiceExtraction {
   const compact = text.replace(/\r/g, "\n").replace(/[ \t]+/g, " ");
   const lines = compact.split(/\n+/).map((line) => line.trim()).filter(Boolean);
 
+  const fileStem = fileName.replace(/\.[^.]+$/, "").trim();
   const invoiceNumber = firstMatch(compact, [
-    /(?:tax\s+invoice|invoice)\s*(?:no\.?|number|#)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9\-\/]{2,30})/i,
-    /(?:document|reference|ref)\s*(?:no\.?|number|#)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9\-\/]{2,30})/i,
+    /(?:tax\s+invoice|invoice|statement)\s*(?:no\.?|number|#)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9\-\/]{2,30})/i,
+    /(?:document|reference|ref|account)\s*(?:no\.?|number|#)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9\-\/]{2,30})/i,
+  ]) ?? firstMatch(fileStem, [
+    /(?:invoice|statement|bill|receipt)\s*[-_ ]*([A-Z0-9][A-Z0-9\-\/]{2,30})/i,
   ]);
 
   const dueRaw = firstMatch(compact, [
     /(?:due\s+date|payment\s+due)\s*[:\-]?\s*(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4})/i,
   ]);
   const invoiceDateRaw = firstMatch(compact, [
-    /(?:invoice\s+date|date)\s*[:\-]?\s*(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4})/i,
+    /(?:invoice\s+date|statement\s+date|date)\s*[:\-]?\s*(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4})/i,
+  ]) ?? firstMatch(fileStem, [
+    /(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4})/,
   ]);
 
   const total = moneyValue(firstMatch(compact, [
-    /(?:amount\s+due|balance\s+due|total\s+due|invoice\s+total|grand\s+total|total)\s*(?:aud)?\s*[:$]?\s*\$?\s*([0-9][0-9,]*\.\d{2})/i,
+    /(?:amount\s+due|balance\s+due|closing\s+balance|current\s+balance|total\s+due|invoice\s+total|grand\s+total|total)\s*(?:aud)?\s*[:$]?\s*\$?\s*([0-9][0-9,]*\.\d{2})/i,
   ]));
   const gstAmount = moneyValue(firstMatch(compact, [
     /(?:gst|tax)\s*(?:amount|total)?\s*[:$]?\s*\$?\s*([0-9][0-9,]*\.\d{2})/i,
@@ -75,7 +80,7 @@ function localExtract(text: string, fileName: string): InvoiceExtraction {
     !/^\d/.test(line)
   );
   let supplier = supplierCandidates[0] ?? null;
-  const fileSupplier = fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+  const fileSupplier = fileStem.replace(/[_-]+/g, " ").replace(/\b(?:invoice|statement|bill|receipt)\b/gi, " ").replace(/\b\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}\b/g, " ").replace(/\b\d{3,}\b/g, " ").replace(/\s+/g, " ").trim();
   if ((!supplier || supplier.length < 2) && fileSupplier) supplier = fileSupplier.slice(0, 80);
 
   const populated = [invoiceNumber, dueRaw, invoiceDateRaw, total, gstAmount, subtotal, supplier].filter((value) => value !== null).length;
