@@ -1,6 +1,6 @@
 # RaceEdge V1 Production Checklist
 
-Last reviewed: 2026-09-18
+Last reviewed: 2026-09-20
 
 ## Repository and automated QA
 - [x] RaceEdge remains isolated on the `raceedge` branch and separate from YourPlan.
@@ -65,10 +65,11 @@ Last reviewed: 2026-09-18
 - [x] Backend static/unit checks and dependency audit are automated in CI.
 - [x] API contracts consumed by the app have automated tests.
 - [x] Smoke-test production API and public release pages after deployment.
-- [ ] Confirm database migrations initialize on a clean database.
+- [x] Confirm database migrations initialize on a clean PostgreSQL database in CI.
 - [x] Confirm admin endpoints reject unauthenticated requests in production.
 - [x] Confirm public endpoints and iOS source do not expose provider/admin credentials.
-- [ ] Run a full race-day test including late scratchings and result settlement.
+- [x] Automated race-day lifecycle regression covers late scratchings, re-analysis and result settlement normalization.
+- [ ] Complete a physical/live race-day observation pass on iPhone.
 
 ## Current hard gates
 1. Perform a real Xcode build and physical-iPhone QA pass.
@@ -90,3 +91,5 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 - [x] iOS decodes and displays live analysis only when the backend marks a race analysis-ready.
 - [x] Tips fallback uses only analysis-ready live top picks when no published selections exist.
 - [x] Live runner detail exposes rating/fair-price/value metrics only for analysis-ready runners.
+
+- [x] Backend and iOS release versions are aligned at V1.0 / 1.0.0.
