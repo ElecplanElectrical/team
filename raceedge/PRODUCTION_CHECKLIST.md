@@ -30,8 +30,8 @@ Last reviewed: 2026-09-20
 - [x] Scratchings are applied before live race enrichment/selections.
 - [x] Validate PuntersEdge events, acceptances, changes and results using production responses.
 - [ ] Confirm horse, greyhound and harness code mapping using production responses.
-- [ ] Confirm runner/provider IDs remain stable enough for live change matching.
-- [ ] Validate Australian meeting dates/time zones from production data.
+- [x] Confirm live runners remain matchable for changes using provider ID when present, with number+name fallback when PuntersEdge omits runner_ref.
+- [x] Validate production race start timestamps are consistently present and parse as timezone-aware ISO timestamps.
 - [x] Confirm current PuntersEdge public rate-limit/credit rules and display-licence requirements.
 - [x] Add visible Prices by PuntersEdge attribution wherever provider prices are displayed in iOS.
 - [ ] Confirm the production PuntersEdge key is on a plan/licence that permits RaceEdge's public price display before App Store launch.
@@ -100,3 +100,5 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 - [x] Provider plan/credit diagnostics are key-safe and admin-protected; health exposes only safe plan/display status.
 
 - [x] Provider-credit safeguard: shared live snapshot cache defaults to 60 seconds with a bounded server-side override.
+
+- [x] PuntersEdge runner provider IDs are not universal; production QA reports provider-ID coverage separately from effective change-matching identity coverage.
