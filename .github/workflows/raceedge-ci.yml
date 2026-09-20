@@ -35,3 +35,78 @@ jobs:
 
       - name: Dependency audit
         run: npm audit --audit-level=high
+
+
+  clean-db-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: raceedge_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d raceedge_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    defaults:
+      run:
+        working-directory: raceedge
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/raceedge_ci
+      NODE_ENV: test
+      RACEEDGE_ADMIN_TOKEN: ci-admin-token
+      PORT: 3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start RaceEdge against clean PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm start > /tmp/raceedge-ci.log 2>&1 &
+          echo $! > /tmp/raceedge-ci.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/health -o /tmp/health.json; then
+              cat /tmp/health.json
+              break
+            fi
+            sleep 1
+          done
+          test -s /tmp/health.json
+          grep -q '"database":"ok"' /tmp/health.json
+
+      - name: Verify clean schema was created
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import pg from 'pg';
+          const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+          const expected = ['raceedge_tip_results','raceedge_published_tips','raceedge_live_snapshots','raceedge_sync_status'];
+          const { rows } = await pool.query(
+            "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename = ANY($1::text[])",
+            [expected]
+          );
+          const found = new Set(rows.map(r => r.tablename));
+          const missing = expected.filter(name => !found.has(name));
+          if (missing.length) throw new Error('Missing tables: ' + missing.join(', '));
+          console.log('Verified tables:', [...found].sort().join(', '));
+          await pool.end();
+          NODE
+
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/raceedge-ci.log || true
