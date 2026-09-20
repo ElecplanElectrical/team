@@ -13,12 +13,12 @@ export const CARBON = {
 export const PORTAL_UI = {
   bg: "#0d1117", deep: "#10151b", panel: CARBON.shell,
   panelAlt: CARBON.tray, alt: CARBON.tray,
-  border: "rgba(255,255,255,.14)", borderSoft: "rgba(255,255,255,.08)",
+  border: "rgba(67,210,255,.34)", borderSoft: "rgba(67,210,255,.18)",
   text: "#f4f7fa", mute: "#c5cdd7", faint: "#a5b0bd",
   blue: "#43D2FF", cyan: "#78e5ff", green: "#3BE6B7",
   orange: "#FFC34D", purple: "#C084FC", red: "#FF8192",
   activeText: CARBON.activeText,
-  raised: { boxShadow: CARBON.raisedShadow },
+  raised: { boxShadow: `${CARBON.raisedShadow},0 0 0 1px rgba(67,210,255,.07),0 0 24px rgba(67,210,255,.045)` },
   inset: { boxShadow: CARBON.insetShadow },
   primary: { background: CARBON.active, color: CARBON.activeText, boxShadow: CARBON.activeShadow },
 } as const;
