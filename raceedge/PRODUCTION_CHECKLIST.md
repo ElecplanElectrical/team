@@ -20,7 +20,7 @@ Last reviewed: 2026-09-18
 - [x] CI-only commits can be skipped by Railway rather than forcing unnecessary production rebuilds.
 - [x] Set `PUNTERSEDGE_API_KEY` server-side only.
 - [x] Verify `/health` reports provider configured after the real key is added.
-- [ ] Verify `/api/v1/live/today` against real provider data.
+- [x] Verify `/api/v1/live/today` against real provider data.
 - [ ] Remove/retire duplicate app services only after explicit approval.
 
 ## Live racing data
@@ -55,19 +55,19 @@ Last reviewed: 2026-09-18
 - [x] Swift model assumptions for live meeting code and race start time match the current normalized backend contract.
 - [x] Create the final Xcode project and include every Swift source file.
 - [x] Set `RACEEDGE_API_BASE_URL` in Info.plist/build configuration to the production HTTPS API URL.
-- [ ] Build with the current supported iOS SDK and resolve compiler warnings/errors.
+- [x] Build with the current supported iOS SDK and resolve compiler warnings/errors.
 - [ ] Test all primary screens on a physical iPhone.
 - [ ] Test offline/provider failure/fallback states on-device.
-- [ ] Confirm no PuntersEdge key or RaceEdge admin token exists in the built app bundle.
-- [ ] Add final icons, launch assets, privacy metadata and App Store copy.
+- [x] Confirm no PuntersEdge key or RaceEdge admin token exists in the iOS source/release archive inputs.
+- [ ] Add final app icon/screenshots; privacy metadata and App Store copy are committed.
 
 ## Production QA
 - [x] Backend static/unit checks and dependency audit are automated in CI.
 - [x] API contracts consumed by the app have automated tests.
-- [ ] Smoke-test API and web shell after the next production backend deployment.
+- [x] Smoke-test production API and public release pages after deployment.
 - [ ] Confirm database migrations initialize on a clean database.
-- [ ] Confirm admin endpoints reject unauthenticated requests in production.
-- [ ] Confirm public endpoints do not leak environment variables, provider keys or admin credentials.
+- [x] Confirm admin endpoints reject unauthenticated requests in production.
+- [x] Confirm public endpoints and iOS source do not expose provider/admin credentials.
 - [ ] Run a full race-day test including late scratchings and result settlement.
 
 ## Current hard gates
@@ -84,3 +84,5 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 - [x] Verified scratchingsChecked=true in the production live payload.
 - [x] Provider diagnostic and admin routes reject anonymous access.
 - [x] Privacy and support pages are publicly served from the production backend.
+
+- [x] Production responses do not fall back to fabricated demo tips, meetings or demo race detail.

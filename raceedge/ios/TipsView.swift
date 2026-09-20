@@ -26,7 +26,19 @@ struct TipsView: View {
                             ForEach(greyhoundTips) { tipCard($0) }
                         }
 
-                        if tips.isEmpty && api.errorMessage == nil { ProgressView().tint(Color.raceEdgeBlue) }
+                        if tips.isEmpty && api.errorMessage == nil {
+                            if api.home == nil {
+                                ProgressView().tint(Color.raceEdgeBlue)
+                            } else {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("No published selections yet.").font(.headline)
+                                    Text("RaceEdge selections will appear here once they have been published for today’s racing.").font(.subheadline).foregroundStyle(.secondary)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.raceEdgeCard, in: RoundedRectangle(cornerRadius: 16))
+                            }
+                        }
                         if let message = api.errorMessage { Text(message).foregroundStyle(.secondary) }
 
                         Text("RaceEdge ratings are analytical estimates and are not guaranteed outcomes.")
