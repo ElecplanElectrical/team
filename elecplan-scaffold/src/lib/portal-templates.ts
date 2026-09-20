@@ -28,14 +28,14 @@ export const PORTAL_TEMPLATES: PortalTemplate[] = [
   },
   {
     id: "motorsport-team",
-    name: "Motorsport Team",
+    name: "Motorbike Team",
     category: "Sport",
-    description: "Team calendar, staff, documents, reminders and reporting foundation for race-team operations.",
-    industry: "Motorsport Team",
+    description: "Race calendar, riders, team operations, documents, reminders and reporting foundation for motorbike race-team workflows.",
+    industry: "Motorbike Team",
     modules: m("dashboard","calendar","clients","employees","timesheets","documents","materials","reminders","analytics"),
     primaryColor: "#168dff",
     accentColor: "#25c7ff",
-    recommendedFor: "Motocross, superbike, karting, race car and other competitive teams"
+    recommendedFor: "Motocross, supercross, superbike, enduro and other competitive motorbike teams"
   },
   {
     id: "mechanical-workshop",
