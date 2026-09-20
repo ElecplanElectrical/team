@@ -10,7 +10,6 @@ export default function NewClientModal({ onClose, onDone }: { onClose: () => voi
   const [contactName, setContactName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
   const [billingNotes, setBillingNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -20,7 +19,7 @@ export default function NewClientModal({ onClose, onDone }: { onClose: () => voi
     setError(null);
     if (!name.trim()) return setError("Client name is required.");
     setSaving(true);
-    const res = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), contactName: contactName.trim() || null, phone: phone.trim() || null, email: email.trim() || null, address: address.trim() || null, billingNotes: billingNotes.trim() || null }) });
+    const res = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), contactName: contactName.trim() || null, phone: phone.trim() || null, email: email.trim() || null, billingNotes: billingNotes.trim() || null }) });
     setSaving(false);
     if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not create the client. Check the details and try again."); return; }
     onDone();
@@ -43,7 +42,6 @@ export default function NewClientModal({ onClose, onDone }: { onClose: () => voi
           <Field label="Phone"><input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="04xx xxx xxx" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
           <Field label="Email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
           <div className="hidden md:block" />
-          <Field label="Address" className="md:col-span-2"><input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, suburb, state" className="h-11 w-full rounded-lg px-3 text-sm outline-none" style={field} /></Field>
           <Field label="Billing notes" className="md:col-span-2"><textarea value={billingNotes} onChange={(e) => setBillingNotes(e.target.value)} placeholder="e.g. Net 30, PO required" rows={3} className="w-full resize-none rounded-lg px-3 py-2.5 text-sm outline-none" style={field} /></Field>
         </div>
 
