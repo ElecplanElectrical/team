@@ -95,7 +95,7 @@ jobs:
           node --input-type=module - <<'NODE'
           import pg from 'pg';
           const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-          const expected = ['raceedge_tip_results','raceedge_published_tips','raceedge_live_snapshots','raceedge_sync_status'];
+          const expected = ['raceedge_tip_results','raceedge_published_tips','raceedge_live_snapshots','raceedge_sync_status','raceedge_race_history'];
           const { rows } = await pool.query(
             "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename = ANY($1::text[])",
             [expected]
