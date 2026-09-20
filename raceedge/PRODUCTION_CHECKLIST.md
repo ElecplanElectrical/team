@@ -18,8 +18,8 @@ Last reviewed: 2026-09-18
 - [x] `RACEEDGE_ADMIN_TOKEN` configured server-side.
 - [x] Health check path is `/health` with restart-on-failure policy.
 - [x] CI-only commits can be skipped by Railway rather than forcing unnecessary production rebuilds.
-- [ ] Set `PUNTERSEDGE_API_KEY` server-side only.
-- [ ] Verify `/health` reports provider configured after the real key is added.
+- [x] Set `PUNTERSEDGE_API_KEY` server-side only.
+- [x] Verify `/health` reports provider configured after the real key is added.
 - [ ] Verify `/api/v1/live/today` against real provider data.
 - [ ] Remove/retire duplicate app services only after explicit approval.
 
@@ -28,7 +28,7 @@ Last reviewed: 2026-09-18
 - [x] Provider requests have bounded timeout handling and safe invalid-JSON/HTTP failure handling.
 - [x] Normalized meeting, race, runner, change and analysis shapes have automated app-contract coverage.
 - [x] Scratchings are applied before live race enrichment/selections.
-- [ ] Validate PuntersEdge events, acceptances, changes and results using production responses.
+- [x] Validate PuntersEdge events, acceptances, changes and results using production responses.
 - [ ] Confirm horse, greyhound and harness code mapping using production responses.
 - [ ] Confirm runner/provider IDs remain stable enough for live change matching.
 - [ ] Validate Australian meeting dates/time zones from production data.
@@ -47,8 +47,8 @@ Last reviewed: 2026-09-18
 - [x] Primary navigation and screens use the locked RaceEdge navy/electric-blue design system.
 - [x] Home, Meetings/Races, Tips, Race Detail, Runner Detail, Results and More screens are implemented.
 - [x] Swift model assumptions for live meeting code and race start time match the current normalized backend contract.
-- [ ] Create/open the final Xcode project and include every Swift source file.
-- [ ] Set `RACEEDGE_API_BASE_URL` in Info.plist/build configuration to the production HTTPS API URL.
+- [x] Create the final Xcode project and include every Swift source file.
+- [x] Set `RACEEDGE_API_BASE_URL` in Info.plist/build configuration to the production HTTPS API URL.
 - [ ] Build with the current supported iOS SDK and resolve compiler warnings/errors.
 - [ ] Test all primary screens on a physical iPhone.
 - [ ] Test offline/provider failure/fallback states on-device.
@@ -65,8 +65,7 @@ Last reviewed: 2026-09-18
 - [ ] Run a full race-day test including late scratchings and result settlement.
 
 ## Current hard gates
-1. Add the real `PUNTERSEDGE_API_KEY` to Railway and validate production payloads.
-2. Perform a real Xcode build and physical-iPhone QA pass.
-3. Complete App Store/TestFlight signing, assets, privacy metadata and release configuration.
+1. Perform a real Xcode build and physical-iPhone QA pass.
+2. Complete App Store/TestFlight signing, final icon/screenshots, App Store Connect privacy details and release configuration.
 
 V1 scope: form, analytics, tips and results. No wagering or bet placement.
