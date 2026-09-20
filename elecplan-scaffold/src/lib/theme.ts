@@ -5,7 +5,7 @@
  * way the mockups do, so screens match the reference exactly.
  */
 export const COLORS = {
-  bg: "#0A0D12", sidebar: "#07090C", card: "#14181F", cardAlt: "#191E26", border: "#242A33", borderSoft: "#1B2028", text: "#EDEFF2", textMute: "#8B94A0", textFaint: "#5B6472", accent: "#3DC5F0", accentDim: "rgba(61,197,240,0.14)", accentGlow: "rgba(61,197,240,0.35)", teal: "#33D6AC", tealBg: "rgba(51,214,172,0.14)", amber: "#F0B23D", amberBg: "rgba(240,178,61,0.14)", coral: "#FF6E64", coralBg: "rgba(255,110,100,0.14)",
+  bg: "#0A0D12", sidebar: "#07090C", card: "#181E26", cardAlt: "#222A35", border: "#35404D", borderSoft: "#29323D", text: "#FFFFFF", textMute: "#B7C0CC", textFaint: "#7F8B9B", accent: "#43D2FF", accentDim: "rgba(61,197,240,0.14)", accentGlow: "rgba(61,197,240,0.35)", teal: "#3BE6B7", tealBg: "rgba(51,214,172,0.14)", amber: "#FFC34D", amberBg: "rgba(240,178,61,0.14)", coral: "#FF756B", coralBg: "rgba(255,110,100,0.14)",
 } as const;
 export const ON_ACCENT = "#06222C";
 export const FONTS = { display: "'Sora', sans-serif", body: "'Inter', sans-serif", mono: "'IBM Plex Mono', monospace" } as const;
