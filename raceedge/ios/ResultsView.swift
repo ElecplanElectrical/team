@@ -19,8 +19,8 @@ struct ResultsView: View {
                             LazyVGrid(columns:[GridItem(.flexible()),GridItem(.flexible())],spacing:10) {
                                 metric("Tips", "\(p.tips)")
                                 metric("Wins", "\(p.wins)")
-                                metric("Strike Rate", p.strikeRate.map { "\($0, specifier: "%.1f")%" } ?? "—")
-                                metric("ROI", p.roi.map { "\($0, specifier: "%.1f")%" } ?? "—")
+                                metric("Strike Rate", p.strikeRate.map { "\(String(format: "%.1f", $0))%" } ?? "—")
+                                metric("ROI", p.roi.map { "\(String(format: "%.1f", $0))%" } ?? "—")
                             }
                             if let note=p.note { Text(note).font(.caption).foregroundStyle(.secondary) }
                         }
