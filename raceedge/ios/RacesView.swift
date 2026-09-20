@@ -202,6 +202,7 @@ struct LiveRaceDetailView: View {
                         }.buttonStyle(.plain).disabled(runner.scratched == true)
                     }
 
+                    PuntersEdgeAttribution()
                     Text("Live provider field data. RaceEdge ratings remain analytical estimates and are not guaranteed outcomes.")
                         .font(.caption).foregroundStyle(.secondary).padding(.top, 6)
                 }.padding()
@@ -233,6 +234,7 @@ struct LiveRunnerDetailView: View {
                         if runner.analysisReady == true, let edge = runner.valueEdge { liveMetric("Value Edge", "\(String(format: "%+.1f", edge))%") }
                     }
                     if let trainer = runner.trainer { liveMetric("Trainer", trainer) }
+                    if runner.price != nil { PuntersEdgeAttribution() }
                 }.padding()
             }
         }.navigationTitle("Runner Form").navigationBarTitleDisplayMode(.inline)

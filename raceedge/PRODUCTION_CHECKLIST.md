@@ -32,7 +32,9 @@ Last reviewed: 2026-09-20
 - [ ] Confirm horse, greyhound and harness code mapping using production responses.
 - [ ] Confirm runner/provider IDs remain stable enough for live change matching.
 - [ ] Validate Australian meeting dates/time zones from production data.
-- [ ] Confirm provider licensing, production plan and rate limits.
+- [x] Confirm current PuntersEdge public rate-limit/credit rules and display-licence requirements.
+- [x] Add visible Prices by PuntersEdge attribution wherever provider prices are displayed in iOS.
+- [ ] Confirm the production PuntersEdge key is on a plan/licence that permits RaceEdge's public price display before App Store launch.
 
 ## Ratings and results
 - [x] Ratings/fair prices/value edges remain identified as prototype estimates.

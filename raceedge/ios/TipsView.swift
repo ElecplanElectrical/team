@@ -71,6 +71,7 @@ struct TipsView: View {
                         }
                         if let message = api.errorMessage { Text(message).foregroundStyle(.secondary) }
 
+                        if tips.contains(where: { $0.price != nil }) { PuntersEdgeAttribution() }
                         Text("RaceEdge ratings are analytical estimates and are not guaranteed outcomes.")
                             .font(.caption)
                             .foregroundStyle(.secondary)

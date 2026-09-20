@@ -24,6 +24,8 @@ struct RunnerDetailView: View {
                         metric("RaceEdge Rank", runner.rank.map { "#\($0)" } ?? "—")
                     }
 
+                    if runner.price != nil { PuntersEdgeAttribution() }
+
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Image(systemName: "chart.bar.xaxis").foregroundStyle(Color.raceEdgeBlue)

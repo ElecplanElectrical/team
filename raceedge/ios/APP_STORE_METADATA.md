@@ -57,3 +57,7 @@ No user account is required for version 1.0.
 Current iOS client does not intentionally collect user account data, contacts, precise location, health information, financial information, advertising identifiers or tracking data.
 
 Before submission, answer the App Store Connect privacy questionnaire against the final production build and server logging/analytics configuration.
+
+
+## Data attribution
+Race pricing displayed in the app includes a visible **Prices by PuntersEdge** attribution linking to PuntersEdge where required by the active provider licence.
