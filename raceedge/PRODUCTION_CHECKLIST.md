@@ -44,6 +44,9 @@ Last reviewed: 2026-09-18
 - [ ] Use holdout/out-of-sample validation before describing the model as calibrated.
 
 ## iOS
+- [x] Xcode CI simulator build passes on the `raceedge` branch.
+- [x] Xcode project, shared scheme, production API URL and privacy manifest are committed.
+
 - [x] Primary navigation and screens use the locked RaceEdge navy/electric-blue design system.
 - [x] Home, Meetings/Races, Tips, Race Detail, Runner Detail, Results and More screens are implemented.
 - [x] Swift model assumptions for live meeting code and race start time match the current normalized backend contract.
