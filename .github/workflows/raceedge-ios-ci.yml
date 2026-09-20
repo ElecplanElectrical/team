@@ -1,0 +1,33 @@
+name: RaceEdge iOS CI
+
+on:
+  push:
+    branches: [raceedge]
+    paths:
+      - 'raceedge/ios/**'
+      - '.github/workflows/raceedge-ios-ci.yml'
+  pull_request:
+    branches: [raceedge]
+    paths:
+      - 'raceedge/ios/**'
+      - '.github/workflows/raceedge-ios-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Validate project
+        run: xcodebuild -list -project raceedge/ios/RaceEdge.xcodeproj
+
+      - name: Build RaceEdge for iPhone Simulator
+        run: |
+          set -o pipefail
+          xcodebuild             -project raceedge/ios/RaceEdge.xcodeproj             -scheme RaceEdge             -configuration Debug             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             CODE_SIGNING_ALLOWED=NO             build | xcpretty
