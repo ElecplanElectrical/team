@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Building2, X } from "lucide-react";
 
-const UI = { panel: "#07192b", panelAlt: "#09213a", border: "rgba(77,150,221,.24)", borderSoft: "rgba(77,150,221,.12)", text: "#f5f9ff", mute: "#93a9c2", faint: "#617993", blue: "#168dff", cyan: "#25c7ff", red: "#ff5e72" };
+import { PORTAL_UI as UI } from "@/lib/carbon-theme";
 
 export default function NewClientModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [name, setName] = useState("");
@@ -26,12 +26,12 @@ export default function NewClientModal({ onClose, onDone }: { onClose: () => voi
     onDone();
   }
 
-  const field = { background: "#041323", border: `1px solid ${UI.border}`, color: UI.text } as const;
+  const field = { ...{boxShadow:"var(--ep-inset-shadow)"}, background: "var(--ep-input)", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
   return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm md:items-center md:p-4" onClick={onClose}>
-    <section className="w-full max-w-xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
+    <section className="w-full max-w-xl overflow-hidden rounded-t-2xl md:rounded-2xl" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}`, boxShadow: "0 28px 90px rgba(0,0,0,.35)" }} onClick={(e) => e.stopPropagation()}>
       <header className="flex items-start gap-3 border-b px-5 py-4" style={{ borderColor: UI.borderSoft }}>
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan }}><Building2 size={18} /></span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(67,210,255,.11)", color: UI.cyan }}><Building2 size={18} /></span>
         <div className="min-w-0 flex-1"><h2 className="text-base font-semibold" style={{ color: UI.text }}>New client</h2><p className="mt-1 text-xs" style={{ color: UI.faint }}>Add the client details you need for jobs, quotes and billing.</p></div>
         <button type="button" aria-label="Close" onClick={onClose} className="p-1" style={{ color: UI.mute }}><X size={18} /></button>
       </header>
@@ -48,7 +48,7 @@ export default function NewClientModal({ onClose, onDone }: { onClose: () => voi
         </div>
 
         {error && <p className="mt-4 text-xs" style={{ color: UI.red }}>{error}</p>}
-        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving} className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white" }}>{saving ? "Saving…" : "Create client"}</button></div>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} className="rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ ...UI.inset, background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button type="submit" disabled={saving} className="rounded-lg px-5 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ ...UI.primary, color: UI.activeText }}>{saving ? "Saving…" : "Create client"}</button></div>
       </form>
     </section>
   </div>;

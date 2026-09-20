@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import PwaRegister from "@/components/PwaRegister";
 import "./globals.css";
+import "@/styles/recessed-carbon.css";
 
 const HOME_ICON = "/5EAC5C26-D2E9-4219-8FB7-FDD38093BAFE.png?v=10";
 
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07131f",
+  themeColor: "#0d1117",
 };
 
 export default function RootLayout({
@@ -36,7 +37,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href={HOME_ICON} />
         <link rel="icon" type="image/png" href={HOME_ICON} />
       </head>
-      <body className="min-h-full">
+      <body className="ep-carbon min-h-full" data-elecplan-theme="recessed-carbon-10">
         {children}
         <PwaRegister />
       </body>

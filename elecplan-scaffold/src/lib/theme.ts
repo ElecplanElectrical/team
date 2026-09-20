@@ -1,13 +1,8 @@
-/**
- * Elecplan design tokens — copied verbatim from the design mockups'
- * `COLORS` object (docs/design-reference/responsive-full-app.jsx).
- * Dark theme, cyan accent. Colours flow through inline styles the same
- * way the mockups do, so screens match the reference exactly.
- */
+/** Elecplan Recessed Carbon (#10). Shared semantic colours, independent of other products. */
 export const COLORS = {
-  bg: "#0A0D12", sidebar: "#07090C", card: "#181E26", cardAlt: "#222A35", border: "#35404D", borderSoft: "#29323D", text: "#FFFFFF", textMute: "#B7C0CC", textFaint: "#7F8B9B", accent: "#43D2FF", accentDim: "rgba(61,197,240,0.14)", accentGlow: "rgba(61,197,240,0.35)", teal: "#3BE6B7", tealBg: "rgba(51,214,172,0.14)", amber: "#FFC34D", amberBg: "rgba(240,178,61,0.14)", coral: "#FF756B", coralBg: "rgba(255,110,100,0.14)",
+  bg: "#0d1117", sidebar: "#14181e", card: "#181e27", cardAlt: "#20272f", border: "#3a424c", borderSoft: "#2a313a", text: "#f4f7fa", textMute: "#c5cdd7", textFaint: "#a5b0bd", accent: "#43D2FF", accentDim: "rgba(67,210,255,0.14)", accentGlow: "rgba(67,210,255,0.35)", teal: "#3BE6B7", tealBg: "rgba(51,214,172,0.14)", amber: "#FFC34D", amberBg: "rgba(240,178,61,0.14)", coral: "#FF756B", coralBg: "rgba(255,110,100,0.14)",
 } as const;
-export const ON_ACCENT = "#06222C";
+export const ON_ACCENT = "#062531";
 export const FONTS = { display: "'Sora', sans-serif", body: "'Inter', sans-serif", mono: "'IBM Plex Mono', monospace" } as const;
 export const EVENT_COLOR: Record<string,{ bg:string;border:string;fg:string }> = {
   event:{bg:"rgba(167,139,250,0.24)",border:"#A78BFA",fg:"#EDE9FE"},

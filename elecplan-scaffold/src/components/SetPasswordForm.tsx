@@ -5,19 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, KeyRound, ShieldCheck } from "lucide-react";
 import { LOGO_WORDMARK } from "@/lib/logo";
 
-const UI = {
-  panel: "#07192b",
-  panelAlt: "#09213a",
-  border: "rgba(77,150,221,.24)",
-  borderSoft: "rgba(77,150,221,.12)",
-  text: "#f5f9ff",
-  mute: "#93a9c2",
-  faint: "#617993",
-  blue: "#168dff",
-  cyan: "#25c7ff",
-  green: "#18d3a0",
-  red: "#ff5e72",
-};
+import { PORTAL_UI as UI } from "@/lib/carbon-theme";
 
 export default function SetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
@@ -55,20 +43,20 @@ export default function SetPasswordForm({ token }: { token: string }) {
   }
 
   const inputStyle: React.CSSProperties = {
-    background: "#041323",
+    ...{boxShadow:"var(--ep-inset-shadow)"}, background: "var(--ep-input)",
     border: `1px solid ${UI.border}`,
     color: UI.text,
   };
 
   return (
-    <section className="w-full max-w-lg rounded-2xl p-5 shadow-[0_28px_90px_rgba(0,0,0,.35)] sm:p-8" style={{ background: UI.panel, border: `1px solid ${UI.border}` }}>
+    <section className="w-full max-w-lg rounded-2xl p-5 shadow-[0_28px_90px_rgba(0,0,0,.35)] sm:p-8" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}>
       <div className="flex items-start gap-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: 145, height: "auto", objectFit: "contain" }} />
       </div>
 
       <div className="mt-7 flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(22,141,255,.11)", color: UI.cyan, border: "1px solid rgba(37,199,255,.20)" }}><KeyRound size={18} /></span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(67,210,255,.11)", color: UI.cyan, border: "1px solid rgba(67,210,255,.20)" }}><KeyRound size={18} /></span>
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[.16em]" style={{ color: UI.cyan }}>Secure access</p>
           <h1 className="mt-1 text-xl font-semibold" style={{ color: UI.text }}>Set your password</h1>
@@ -90,11 +78,11 @@ export default function SetPasswordForm({ token }: { token: string }) {
             <input type="password" autoComplete="new-password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} className="h-11 rounded-lg px-3 text-sm outline-none transition focus:ring-2 focus:ring-blue-500/30" style={inputStyle} placeholder="••••••••" />
           </label>
 
-          <div className="flex gap-3 rounded-xl p-3" style={{ background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><ShieldCheck size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><p className="text-xs leading-5" style={{ color: UI.faint }}>This secure link is single-use. After the password is saved, sign in with your Elecplan email address.</p></div>
+          <div className="flex gap-3 rounded-xl p-3" style={{ ...UI.inset, background: UI.panelAlt, border: `1px solid ${UI.borderSoft}` }}><ShieldCheck size={15} className="mt-0.5 shrink-0" style={{ color: UI.cyan }} /><p className="text-xs leading-5" style={{ color: UI.faint }}>This secure link is single-use. After the password is saved, sign in with your Elecplan email address.</p></div>
 
           {error && <div className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.22)", color: UI.red }}><AlertTriangle size={14} />{error}</div>}
 
-          <button type="submit" disabled={loading} className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:opacity-60" style={{ background: UI.blue, color: "white", boxShadow: "0 10px 28px rgba(22,141,255,.24)" }}><KeyRound size={16} />{loading ? "Saving…" : "Set password"}</button>
+          <button type="submit" disabled={loading} className="mt-1 flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:opacity-60" style={{ ...UI.primary, color: UI.activeText, boxShadow: "0 10px 28px rgba(67,210,255,.24)" }}><KeyRound size={16} />{loading ? "Saving…" : "Set password"}</button>
         </form>
       )}
     </section>
