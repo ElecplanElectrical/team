@@ -2,7 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject var api: RaceEdgeAPI
-    init(api: RaceEdgeAPI = RaceEdgeAPI()) { self.api = api }
+    init(api: RaceEdgeAPI) { self.api = api }
 
     var body: some View {
         NavigationStack {
