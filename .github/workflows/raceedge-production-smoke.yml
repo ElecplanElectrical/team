@@ -20,14 +20,20 @@ jobs:
           base="https://raceedge-v1-production.up.railway.app"
           for i in {1..30}; do
             if body="$(curl -fsS --max-time 10 "$base/health" 2>/dev/null)"; then
-              if echo "$body" | grep -q '"ok":true'; then
-                echo "Production health is up"
+              if python3 - "$GITHUB_SHA" "$body" <<'PY'
+import json,sys
+expected=sys.argv[1]
+data=json.loads(sys.argv[2])
+raise SystemExit(0 if data.get('ok') is True and data.get('releaseSha') == expected else 1)
+PY
+              then
+                echo "Production is running commit $GITHUB_SHA"
                 exit 0
               fi
             fi
             sleep 10
           done
-          echo "Production did not become healthy"
+          echo "Production did not deploy commit $GITHUB_SHA"
           exit 1
 
       - name: Verify health and configured services
@@ -39,6 +45,24 @@ jobs:
           echo "$body" | grep -q '"ok":true'
           echo "$body" | grep -q '"providerConfigured":true'
           echo "$body" | grep -q '"adminConfigured":true'
+
+      - name: Verify production does not serve demo content
+        shell: bash
+        run: |
+          set -euo pipefail
+          home="$(curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/home)"
+          tips="$(curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/tips)"
+          python3 - "$home" "$tips" <<'PY'
+          import json,sys
+          home=json.loads(sys.argv[1])
+          tips=json.loads(sys.argv[2])
+          assert home.get('source') == 'production', home
+          assert home.get('meetings') == [], home
+          assert home.get('tips') == [], home
+          assert tips.get('source') in ('production','published'), tips
+          if tips.get('source') == 'production':
+              assert tips.get('tips') == [], tips
+          PY
 
       - name: Verify public release pages
         shell: bash
