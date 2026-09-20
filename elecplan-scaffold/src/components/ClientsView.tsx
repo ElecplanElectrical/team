@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
-import { Building2, ChevronDown, ChevronRight, ClipboardCheck, FolderOpen, Mail, MessageSquareText, Pencil, Phone, Plus, Search, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, ClipboardCheck, FolderOpen, Mail, MapPin, MessageSquareText, Pencil, Phone, Plus, Search, X } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import NewClientModal from "@/components/NewClientModal";
 import EditClientModal from "@/components/EditClientModal";
