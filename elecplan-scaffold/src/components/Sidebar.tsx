@@ -10,7 +10,7 @@ import { navGroupsFor, ROLE_TITLE, initialsOf } from "@/lib/nav";
 import { LOGO_WORDMARK } from "@/lib/logo";
 
 const UI = {
-  sidebar: "linear-gradient(135deg,rgba(67,210,255,.055) 0 1px,transparent 1px 22px),linear-gradient(45deg,rgba(67,210,255,.028) 0 1px,transparent 1px 22px),linear-gradient(180deg,#0A0C0F 0%,#11151A 48%,#090B0E 100%)",
+  sidebar: "linear-gradient(135deg,rgba(67,210,255,.045) 0 1px,transparent 1px 22px),linear-gradient(45deg,rgba(255,255,255,.035) 0 1px,transparent 1px 22px),linear-gradient(180deg,#242A31 0%,#1D232A 52%,#181D23 100%)",
   border: "rgba(67,210,255,.16)",
   text: "#ffffff",
   mute: "#c0c7d0",
@@ -42,7 +42,7 @@ export default function Sidebar({ role, name }: { role: Role; name: string }) {
         ))}
       </nav>
       <div className="mt-4 border-t pt-3" style={{ borderColor: UI.border }}>
-        <div className="flex items-center justify-center gap-2 rounded-xl px-1 py-2 xl:justify-start xl:px-2" style={{ background: "rgba(255,255,255,.045)" }}>
+        <div className="flex items-center justify-center gap-2 rounded-xl px-1 py-2 xl:justify-start xl:px-2" style={{ background: "rgba(0,0,0,.16)" }}>
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold" style={{ background: "#202a34", border: `1px solid rgba(125,211,252,.32)`, color: "#e0f7ff" }}>{initialsOf(name)}</div>
           <div className="hidden min-w-0 flex-1 xl:block"><p className="truncate text-xs font-semibold" style={{ color: UI.text }}>{name}</p><p className="truncate text-[10px]" style={{ color: UI.faint }}>{ROLE_TITLE[role]}</p></div>
           <ChevronDown size={13} className="hidden xl:block" style={{ color: UI.faint }} />
