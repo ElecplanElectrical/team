@@ -1,0 +1,42 @@
+name: Full width layout review
+on:
+  push:
+    branches: [fix/elecplan-full-width-layout]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: elecplan-scaffold
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/elecplan_ci
+      AUTH_SECRET: ci-only-placeholder-secret
+      AUTH_TRUST_HOST: "true"
+      NEXTAUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Production build and product boundary
+        run: pnpm build
+      - name: Build isolated actual component preview
+        run: node scripts/carbon-preview.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: elecplan-full-width-review
+          path: elecplan-scaffold/.carbon-review/
+          include-hidden-files: true
+          retention-days: 2
