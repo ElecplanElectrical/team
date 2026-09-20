@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-// Lightweight liveness probe for Railway's healthcheck. Intentionally does NOT
-// touch the database — it reports that the web process is up and serving, so a
-// transient DB blip doesn't cause the platform to kill an otherwise-healthy
-// container. Middleware excludes /api/*, so this is reachable without a session.
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  return NextResponse.json({ status: "ok" });
+export async function GET() {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return NextResponse.json(
+      { status: "ok" },
+      { status: 200, headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (error) {
+    console.error("HEALTHCHECK_FAILED", error);
+    return NextResponse.json(
+      { status: "unhealthy" },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 }
