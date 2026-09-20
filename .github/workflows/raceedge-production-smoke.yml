@@ -51,9 +51,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          body="$(curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/live/today)"
-          echo "$body" | grep -q '"events"'
-          echo "$body" | grep -q '"scratchingsChecked"'
+          curl -fsS https://raceedge-v1-production.up.railway.app/api/v1/live/today -o /tmp/live.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/live.json') as f:
+              data=json.load(f)
+          events=data.get('events')
+          assert isinstance(events,list) and len(events)>0, 'live events must be non-empty'
+          races=[r for e in events for r in (e.get('races') or [])]
+          assert races, 'live races must be non-empty'
+          meetings=[e.get('meeting') or {} for e in events]
+          assert any(m.get('providerId') and m.get('name') and m.get('code') for m in meetings), 'meeting identity missing'
+          assert any(r.get('providerId') and r.get('raceNo') and r.get('startTime') for r in races), 'race identity missing'
+          runners=[runner for r in races for runner in (r.get('runners') or [])]
+          assert runners, 'live runner fields must be non-empty'
+          assert any((runner.get('number') is not None) and runner.get('name') for runner in runners), 'runner identity missing'
+          print(json.dumps({
+              'events':len(events),
+              'races':len(races),
+              'runners':len(runners),
+              'pricedRunners':sum(1 for x in runners if x.get('price') is not None),
+              'scratchingsChecked':data.get('scratchingsChecked')
+          }))
+          PY
 
       - name: Verify protected routes reject anonymous access
         shell: bash
