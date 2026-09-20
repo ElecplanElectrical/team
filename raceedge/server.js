@@ -38,7 +38,7 @@ async function runProviderDiagnostics(){
       const normalized=await normalizedLoader();
       console.log('RaceEdge provider diagnostic',JSON.stringify({feed:name,ok:true,raw:summarizeProviderPayload(raw),normalizedCount:Array.isArray(normalized)?normalized.length:null}));
     }catch(error){
-      console.error('RaceEdge provider diagnostic',JSON.stringify({feed:name,ok:false,code:error?.code??null,status:error?.status??null,message:error?.message??'Unknown provider error'}));
+      console.error('RaceEdge provider diagnostic',JSON.stringify({feed:name,ok:false,code:error?.code??null,status:error?.status??null,message:error?.message??'Unknown provider error',providerDetail:error?.providerDetail??null}));
     }
   }
 }
