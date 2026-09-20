@@ -2,8 +2,8 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #0a0d12;
-  --text: #edeff2;
+  --bg: #0b0d10;
+  --text: #ffffff;
 }
 
 html,
@@ -61,3 +61,7 @@ body {
   background: #242a33;
   border-radius: 8px;
 }
+
+
+/* Elecplan 2026 theme: neutral graphite base with vivid operational accents. */
+::selection { background: rgba(67,210,255,.28); color: #fff; }
