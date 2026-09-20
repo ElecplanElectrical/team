@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { EVENT_COLOR } from "@/lib/theme";
 
-const UI = { bg: "rgba(6,21,37,.95)", panel: "#0a2038", panelAlt: "#103152", border: "rgba(125,211,252,.26)", text: "#f6f9ff", mute: "#a8c3dd", faint: "#7392af", blue: "#38bdf8", green: "#18d3a0", red: "#ff7185" };
+const UI = { bg: "rgba(12,15,19,.96)", panel: "#181e26", panelAlt: "#222a35", border: "rgba(255,255,255,.12)", text: "#ffffff", mute: "#c0c7d0", faint: "#7f8b9b", blue: "#43d2ff", green: "#3be6b7", red: "#ff756b" };
 const CALENDAR_KEY = [
   ["job-scheduled", "Scheduled"],
   ["job-in-progress", "In progress"],
