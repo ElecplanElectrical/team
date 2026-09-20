@@ -70,6 +70,7 @@ export const getNextToGo = () => puntersEdgeRequest('/v1/racing/next-to-go?num_r
 export const getEvents = () => puntersEdgeRequest('/v1/racing/events?hours_ahead=24');
 export const getResults = () => puntersEdgeRequest('/v1/racing/results');
 export const getAcceptances = () => puntersEdgeRequest('/v1/racing/acceptances');
+export const getUsage = () => puntersEdgeRequest('/v1/usage');
 let changesCursor = null;
 function freshChangesCursor() { return new Date(Date.now() - 5 * 60 * 1000).toISOString(); }
 export async function getChanges() {
