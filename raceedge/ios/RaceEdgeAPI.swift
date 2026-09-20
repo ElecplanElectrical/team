@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 struct RaceEdgeHome: Codable { let updatedAt:String; let source:String?; let meetings:[RaceMeeting]; let tips:[RaceTip]; let disclaimer:String? }
 struct RaceMeeting: Codable, Identifiable { let id:String; let code:String; let name:String; let state:String; let condition:String; let races:Int; let nextRace:Int; let nextTime:String; let status:String }
@@ -21,10 +22,10 @@ enum RaceEdgeAPIError: Error { case invalidResponse; case server(Int) }
  let baseURL:URL
  init() {
    if let configured=Bundle.main.object(forInfoDictionaryKey:"RACEEDGE_API_BASE_URL") as? String, let url=URL(string:configured), !configured.isEmpty { baseURL=url }
-   else { baseURL=URL(string:"http://127.0.0.1:3000")! }
+   else { baseURL=URL(string:"https://raceedge-v1-production.up.railway.app")! }
  }
  private func fetchJSON<T:Decodable>(_ path:String,as type:T.Type) async throws -> T { let url=baseURL.appending(path:path);let(data,response)=try await URLSession.shared.data(from:url);guard let http=response as? HTTPURLResponse else{throw RaceEdgeAPIError.invalidResponse};guard(200...299).contains(http.statusCode)else{throw RaceEdgeAPIError.server(http.statusCode)};return try JSONDecoder().decode(T.self,from:data) }
- func loadHome() async {isLoading=true;errorMessage=nil;defer{isLoading=false};do{liveToday=try await fetchJSON("/api/v1/live/today",as:LiveToday.self);if liveToday?.live != true { home=try await fetchJSON("/api/v1/home",as:RaceEdgeHome.self) }}catch{do{home=try await fetchJSON("/api/v1/home",as:RaceEdgeHome.self)}catch{errorMessage="RaceEdge data is temporarily unavailable."}}}
+ func loadHome() async {isLoading=true;errorMessage=nil;defer{isLoading=false};do{async let liveRequest=fetchJSON("/api/v1/live/today",as:LiveToday.self);async let homeRequest=fetchJSON("/api/v1/home",as:RaceEdgeHome.self);let(live,homePayload)=try await(liveRequest,homeRequest);liveToday=live;home=homePayload}catch{do{home=try await fetchJSON("/api/v1/home",as:RaceEdgeHome.self)}catch{errorMessage="RaceEdge data is temporarily unavailable."}}}
  func loadRace(meetingID:String,raceNo:Int) async throws -> RaceDetail {try await fetchJSON("/api/v1/races/\(meetingID)/\(raceNo)",as:RaceDetail.self)}
  func loadPerformance() async throws -> PerformanceSummary {try await fetchJSON("/api/v1/performance",as:PerformanceSummary.self)}
  func loadResults() async throws -> [TipResult] {try await fetchJSON("/api/v1/results",as:[TipResult].self)}
