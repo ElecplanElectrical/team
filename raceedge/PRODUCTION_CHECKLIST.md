@@ -75,3 +75,12 @@ Last reviewed: 2026-09-18
 2. Complete App Store/TestFlight signing, final icon/screenshots, App Store Connect privacy details and release configuration.
 
 V1 scope: form, analytics, tips and results. No wagering or bet placement.
+
+
+## Verified production live payload
+- [x] Production smoke test confirms non-empty live racing data.
+- [x] Verified 28 live meetings, 196 races and 1,680 runners in production.
+- [x] Verified all 1,680 sampled production runners carried prices.
+- [x] Verified scratchingsChecked=true in the production live payload.
+- [x] Provider diagnostic and admin routes reject anonymous access.
+- [x] Privacy and support pages are publicly served from the production backend.
