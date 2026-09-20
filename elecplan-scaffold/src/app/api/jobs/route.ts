@@ -7,7 +7,7 @@ import { recordAudit } from "@/lib/audit";
 const jobSchema = z.object({
   title: z.string().trim().min(1).max(160),
   clientId: z.string().trim().min(1),
-  address: z.string().trim().min(1).max(240),
+  address: z.string().trim().max(240).optional().default(""),
   crewIds: z.array(z.string().trim().min(1)).max(50).default([]),
   status: z.enum(["QUOTED","SCHEDULED","IN_PROGRESS","COMPLETE","INVOICED"]).default("SCHEDULED"),
   scheduledStart: z.string().datetime().optional().nullable(),
