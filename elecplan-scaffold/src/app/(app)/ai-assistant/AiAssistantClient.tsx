@@ -117,7 +117,11 @@ export default function AiAssistantClient() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not apply changes");
-      setStatus(`Done — ${data.created} item${data.created === 1 ? "" : "s"} added to Elecplan.`);
+      setItems([]);
+      setFile(null);
+      if (preview) URL.revokeObjectURL(preview);
+      setPreview(null);
+      setStatus(`Done — ${data.created} item${data.created === 1 ? "" : "s"} added to Elecplan. The proposal list has been cleared so it cannot be applied twice.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not apply changes");
     } finally {
@@ -164,7 +168,7 @@ export default function AiAssistantClient() {
         </div>
 
         {status && <div className="rounded-xl border border-white/10 ep-inset p-3 text-sm">{status}</div>}
-        <div className="rounded-2xl border border-white/10 ep-inset p-4"><div className="flex items-center gap-2 text-sm font-medium"><Upload className="h-4 w-4" />Examples</div><p className="mt-2 text-sm text-slate-400">“Read this and organise the calendar and tasks” · “Move Warrandyte to Friday” · “Schedule these five jobs around my exam” · “Remind me about insurance Monday”</p></div>
+        <div className="rounded-2xl border border-white/10 ep-inset p-4"><div className="flex items-center gap-2 text-sm font-medium"><Upload className="h-4 w-4" />Examples</div><p className="mt-2 text-sm text-slate-400">“Read this and organise the calendar and tasks” · “Schedule Warrandyte Friday 8am” · “Schedule these five jobs around my exam” · “Add insurance to my to-do list”</p></div>
       </div>
     </div>
   );
