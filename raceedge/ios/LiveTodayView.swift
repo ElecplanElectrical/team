@@ -9,6 +9,7 @@ struct LiveTodayView: View {
                 LinearGradient(colors: [.raceEdgeNavy, .black], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
                 Group {
                     if let live = api.liveToday, live.live, let events = live.events {
+                        let supportedEvents = events.filter { ["R", "G"].contains(($0.meeting.code ?? "").uppercased()) }
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 14) {
                                 HStack(spacing: 8) {
@@ -18,7 +19,7 @@ struct LiveTodayView: View {
                                     Text("Smarter Form. Better Tips.").font(.caption2).foregroundStyle(.secondary)
                                 }
                                 Text("Today's Meetings").font(.title2.bold())
-                                ForEach(events) { event in
+                                ForEach(supportedEvents) { event in
                                     VStack(alignment: .leading, spacing: 10) {
                                         HStack {
                                             Text(event.meeting.code ?? "R").font(.caption.bold()).foregroundStyle(Color.raceEdgeBlue)
