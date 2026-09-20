@@ -102,3 +102,5 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 - [x] Provider-credit safeguard: shared live snapshot cache defaults to 60 seconds with a bounded server-side override.
 
 - [x] PuntersEdge runner provider IDs are not universal; production QA reports provider-ID coverage separately from effective change-matching identity coverage.
+
+- [x] Public API abuse protection limits each client to 120 requests/minute and returns Retry-After on 429 responses.
