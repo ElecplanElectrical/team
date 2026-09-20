@@ -19,7 +19,7 @@ const proposal = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("reminder"),
     title: z.string().trim().min(1).max(200),
-    dueDate: isoDateTime,
+    dueDate: isoDateTime.optional(),
     notes: z.string().max(2000).optional(),
   }),
 ]);
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
             output.push({ kind: "event", id: row.id });
           }
         } else {
-          const row = await tx.reminder.create({ data: { userId: user.id, title: item.title, dueAt: new Date(item.dueDate) } });
+          const row = await tx.reminder.create({ data: { userId: user.id, title: item.title, dueAt: item.dueDate ? new Date(item.dueDate) : new Date() } });
           output.push({ kind: "reminder", id: row.id });
         }
       }
