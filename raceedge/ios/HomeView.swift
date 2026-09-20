@@ -22,7 +22,7 @@ struct HomeView: View {
                                     HStack(spacing: 12) {
                                         ZStack {
                                             RoundedRectangle(cornerRadius: 10).fill(Color.raceEdgeBlue.opacity(0.16))
-                                            Text(meeting.code).font(.headline.bold()).foregroundStyle(.raceEdgeBlue)
+                                            Text(meeting.code).font(.headline.bold()).foregroundStyle(Color.raceEdgeBlue)
                                         }.frame(width: 42, height: 42)
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text(meeting.name).font(.headline).foregroundStyle(.white)
@@ -30,7 +30,7 @@ struct HomeView: View {
                                         }
                                         Spacer()
                                         VStack(alignment: .trailing, spacing: 3) {
-                                            Text("R\(meeting.nextRace)").bold().foregroundStyle(.raceEdgeBlue)
+                                            Text("R\(meeting.nextRace)").bold().foregroundStyle(Color.raceEdgeBlue)
                                             Text(meeting.nextTime).font(.caption).foregroundStyle(.secondary)
                                         }
                                         Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
@@ -44,9 +44,9 @@ struct HomeView: View {
                             ForEach(home.tips) { tip in
                                 VStack(alignment: .leading, spacing: 8) {
                                     HStack {
-                                        Text((tip.label ?? "RACEEDGE").uppercased()).font(.caption2.bold()).tracking(1).foregroundStyle(.raceEdgeBlue)
+                                        Text((tip.label ?? "RACEEDGE").uppercased()).font(.caption2.bold()).tracking(1).foregroundStyle(Color.raceEdgeBlue)
                                         Spacer()
-                                        if let score = tip.score { Text("\(score, specifier: "%.0f")").font(.title2.bold()).foregroundStyle(.raceEdgeBlue) }
+                                        if let score = tip.score { Text("\(score, specifier: "%.0f")").font(.title2.bold()).foregroundStyle(Color.raceEdgeBlue) }
                                     }
                                     HStack {
                                         Text("#\(tip.number ?? 0) \(tip.runner)").font(.headline)
@@ -65,10 +65,10 @@ struct HomeView: View {
                         } else if let message = api.errorMessage {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text(message).foregroundStyle(.secondary)
-                                Button("Try again") { Task { await api.loadHome() } }.buttonStyle(.borderedProminent).tint(.raceEdgeBlue)
+                                Button("Try again") { Task { await api.loadHome() } }.buttonStyle(.borderedProminent).tint(Color.raceEdgeBlue)
                             }
                         } else {
-                            ProgressView().tint(.raceEdgeBlue).frame(maxWidth: .infinity).padding(.top, 40)
+                            ProgressView().tint(Color.raceEdgeBlue).frame(maxWidth: .infinity).padding(.top, 40)
                         }
                     }.padding()
                 }
