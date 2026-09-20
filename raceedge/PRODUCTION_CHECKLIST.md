@@ -86,3 +86,7 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 - [x] Privacy and support pages are publicly served from the production backend.
 
 - [x] Production responses do not fall back to fabricated demo tips, meetings or demo race detail.
+
+- [x] iOS decodes and displays live analysis only when the backend marks a race analysis-ready.
+- [x] Tips fallback uses only analysis-ready live top picks when no published selections exist.
+- [x] Live runner detail exposes rating/fair-price/value metrics only for analysis-ready runners.
