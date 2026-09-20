@@ -107,3 +107,7 @@ V1 scope: form, analytics, tips and results. No wagering or bet placement.
 - [x] Public API abuse protection limits each client to 120 requests/minute and returns Retry-After on 429 responses.
 
 - [x] Machine-readable release status endpoint reports V1 scope, backend readiness, provider entitlement state and remaining external gates.
+
+- [x] Historical pre-race snapshots are now captured automatically from the existing live-feed path without extra provider calls.
+- [x] Admin-only result sync can settle captured races against PuntersEdge results on demand.
+- [x] Historical status and backtest endpoints are available for building the V1 calibration dataset over time.
