@@ -83,53 +83,165 @@ async function photoBytes(key: string) {
   return Buffer.from(await image.arrayBuffer());
 }
 
-async function main() {
-  await prisma.scanEnrichmentQueue.updateMany({ where: { status: "PROCESSING", updatedAt: { lt: new Date(Date.now() - 15 * 60 * 1000) } }, data: { status: "PENDING", lastError: "Recovered stale processing job" } });
-  const jobs = await prisma.scanEnrichmentQueue.findMany({ where: { status: "PENDING", attempts: { lt: 3 } }, orderBy: { createdAt: "asc" }, take: 50 });
-  if (!jobs.length) {
-    console.log("No pending scan jobs");
-    return;
-  }
+const IDLE_POLL_MS = 5000;
+const BUSY_POLL_MS = 750;
+const ERROR_BACKOFF_MS = 10000;
+const IDLE_LOG_INTERVAL_MS = 5 * 60 * 1000;
+
+let stopping = false;
+let lastIdleLogAt = 0;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+process.on("SIGTERM", () => {
+  stopping = true;
+});
+
+process.on("SIGINT", () => {
+  stopping = true;
+});
+
+async function processBatch() {
+  await prisma.scanEnrichmentQueue.updateMany({
+    where: {
+      status: "PROCESSING",
+      updatedAt: { lt: new Date(Date.now() - 15 * 60 * 1000) },
+    },
+    data: {
+      status: "PENDING",
+      lastError: "Recovered stale processing job",
+    },
+  });
+
+  const jobs = await prisma.scanEnrichmentQueue.findMany({
+    where: { status: "PENDING", attempts: { lt: 3 } },
+    orderBy: { createdAt: "asc" },
+    take: 50,
+  });
+
+  if (!jobs.length) return 0;
 
   const worker = await createWorker("eng");
   await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
+
+  let processed = 0;
   try {
     for (const job of jobs) {
-      const claimed = await prisma.scanEnrichmentQueue.updateMany({ where: { id: job.id, status: "PENDING" }, data: { status: "PROCESSING", attempts: { increment: 1 }, lastError: null } });
+      if (stopping) break;
+
+      const claimed = await prisma.scanEnrichmentQueue.updateMany({
+        where: { id: job.id, status: "PENDING" },
+        data: {
+          status: "PROCESSING",
+          attempts: { increment: 1 },
+          lastError: null,
+        },
+      });
       if (claimed.count !== 1) continue;
+
+      processed += 1;
       try {
         const target = await prisma.material.findUnique({ where: { id: job.materialId } });
         if (!target) throw new Error("Material disappeared before scan completed");
+
         const photo = job.photoUrl || target.photoStorageKey;
         if (!photo) throw new Error("No scan photo is attached");
+
         const bytes = await photoBytes(photo);
         if (bytes.length < 500) throw new Error(`Photo too small for reliable OCR (${bytes.length} bytes)`);
+
         const output = await worker.recognize(bytes);
         const text = output.data.text || "";
         const quantity = parseQuantity(text);
         if (!quantity) throw new Error("No reliable Qty / Pack / Rolls quantity found on label");
+
         const product = parseProduct(text, target.barcode || "");
         const name = machineLike(target.name, target.barcode) && product.name ? product.name : target.name;
+
         await prisma.$transaction([
-          prisma.material.update({ where: { id: target.id }, data: { stockOnHand: { increment: quantity }, name, supplier: product.supplier || target.supplier, model: product.model || target.model, photoStorageKey: photo } }),
-          prisma.auditLog.create({ data: { action: "STOCK_SCAN_COMPLETED", entityType: "Material", entityId: target.id, details: { barcode: target.barcode, quantity, jobId: job.id } } }),
-          prisma.scanEnrichmentQueue.update({ where: { id: job.id }, data: { status: "DONE", lastError: null } }),
+          prisma.material.update({
+            where: { id: target.id },
+            data: {
+              stockOnHand: { increment: quantity },
+              name,
+              supplier: product.supplier || target.supplier,
+              model: product.model || target.model,
+              photoStorageKey: photo,
+            },
+          }),
+          prisma.auditLog.create({
+            data: {
+              action: "STOCK_SCAN_COMPLETED",
+              entityType: "Material",
+              entityId: target.id,
+              details: { barcode: target.barcode, quantity, jobId: job.id },
+            },
+          }),
+          prisma.scanEnrichmentQueue.update({
+            where: { id: job.id },
+            data: { status: "DONE", lastError: null },
+          }),
         ]);
+
         console.log(`Completed scan ${job.id}: +${quantity} -> ${name}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        const fresh = await prisma.scanEnrichmentQueue.findUnique({ where: { id: job.id }, select: { attempts: true } });
+        const fresh = await prisma.scanEnrichmentQueue.findUnique({
+          where: { id: job.id },
+          select: { attempts: true },
+        });
         const failed = (fresh?.attempts || 3) >= 3;
-        await prisma.scanEnrichmentQueue.update({ where: { id: job.id }, data: { status: failed ? "FAILED" : "PENDING", lastError: message.slice(0, 500) } });
+
+        await prisma.scanEnrichmentQueue.update({
+          where: { id: job.id },
+          data: {
+            status: failed ? "FAILED" : "PENDING",
+            lastError: message.slice(0, 500),
+          },
+        });
+
         console.error(`Failed ${job.id}: ${message}`);
       }
     }
   } finally {
     await worker.terminate();
   }
+
+  return processed;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-}).finally(() => prisma.$disconnect());
+async function main() {
+  console.log("Scan enrichment worker started");
+
+  while (!stopping) {
+    try {
+      const processed = await processBatch();
+
+      if (processed === 0) {
+        const now = Date.now();
+        if (now - lastIdleLogAt >= IDLE_LOG_INTERVAL_MS) {
+          console.log("No pending scan jobs");
+          lastIdleLogAt = now;
+        }
+        await sleep(IDLE_POLL_MS);
+      } else {
+        await sleep(BUSY_POLL_MS);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Worker loop error: ${message}`);
+      await sleep(ERROR_BACKOFF_MS);
+    }
+  }
+
+  console.log("Scan enrichment worker stopping");
+}
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());
