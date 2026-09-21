@@ -93,10 +93,10 @@ export default function DashboardView({
   return <>
     <TopBar title="Dashboard" subtitle="Deep Work"/>
     <div
-      className="flex-1 overflow-auto px-3 pb-8 pt-3 sm:px-4 md:px-6 xl:px-7"
+      className="flex-1 overflow-auto px-3 pb-10 pt-7 sm:px-4 sm:pt-8 md:px-6 md:pt-9 xl:px-7 xl:pt-10"
       style={{background:"var(--ep-main)"}}
     >
-      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-3 sm:gap-4">
+      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 sm:gap-6">
 
         <section
           className="relative overflow-hidden rounded-2xl p-4 sm:p-5 md:p-6"
@@ -248,7 +248,7 @@ export default function DashboardView({
           </div>
         </section>
 
-        <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
+        <div className="grid gap-5 sm:gap-6 xl:grid-cols-2">
           <Panel
             title="Upcoming reminders"
             action={{href:"/reminders",label:"View all reminders"}}
