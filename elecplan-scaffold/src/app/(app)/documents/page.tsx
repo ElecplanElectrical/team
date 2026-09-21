@@ -11,7 +11,7 @@ export default async function DocumentsPage() {
     prisma.document.findMany({
       where: { businessId },
       orderBy: { uploadedAt: "desc" },
-      select: { id: true, name: true, type: true, fileUrl: true, uploadedAt: true, job: { select: { title: true } } },
+      select: { id: true, name: true, type: true, fileUrl: true, storageKey: true, fileData: true, uploadedAt: true, job: { select: { title: true } } },
     }),
     prisma.job.findMany({
       where: { businessId },
@@ -26,7 +26,7 @@ export default async function DocumentsPage() {
         id: doc.id,
         name: doc.name,
         type: doc.type,
-        fileUrl: doc.fileUrl,
+        fileUrl: doc.fileUrl,\n        available: Boolean(doc.storageKey || doc.fileData || (doc.fileUrl && !doc.fileUrl.startsWith("/api/documents/"))),
         job: doc.job?.title ?? null,
         uploadedAt: doc.uploadedAt.toISOString(),
       }))}
