@@ -26,7 +26,8 @@ export default async function DocumentsPage() {
         id: doc.id,
         name: doc.name,
         type: doc.type,
-        fileUrl: doc.fileUrl,\n        available: Boolean(doc.storageKey || doc.fileData || (doc.fileUrl && !doc.fileUrl.startsWith("/api/documents/"))),
+        fileUrl: doc.fileUrl,
+        available: Boolean(doc.storageKey || doc.fileData || (doc.fileUrl && !doc.fileUrl.startsWith("/api/documents/"))),
         job: doc.job?.title ?? null,
         uploadedAt: doc.uploadedAt.toISOString(),
       }))}
