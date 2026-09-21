@@ -2,116 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071426">
   <meta name="description" content="RACEEDGE — Horse & Greyhound Tips. Smarter Form. Better Tips. More Winners.">
-  <title>RACEEDGE — Horse & Greyhound Tips</title>
+  <title>RACEEDGE</title>
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="shell header-inner">
-      <div class="brand-wrap">
-        <div class="brand-mark">RE</div>
-        <div>
-          <div class="brand"><span>RACE</span><b>EDGE</b></div>
-          <div class="brand-sub">HORSE &amp; GREYHOUND TIPS</div>
-        </div>
-      </div>
-      <div class="header-actions">
-        <div class="live-pill"><span class="status-dot" id="statusDot"></span><span id="statusText">CONNECTING</span></div>
-      </div>
-    </div>
-  </header>
+  <div id="appShell" class="app-shell">
+    <header class="topbar">
+      <button class="brand-button" data-nav="home" aria-label="RaceEdge home">
+        <span class="logo-frame"><img id="brandLogo" alt="RaceEdge horse and greyhound logo"></span>
+        <span class="brand-copy"><strong><i>RACE</i><b>EDGE</b></strong><small>HORSE &amp; GREYHOUND TIPS</small></span>
+      </button>
+      <nav class="desktop-nav">
+        <button data-nav="home">Home</button>
+        <button data-nav="races">Races</button>
+        <button data-nav="tips">Tips</button>
+        <button data-nav="results">Results</button>
+        <button data-nav="more">More</button>
+      </nav>
+      <div class="live-chip"><span id="liveDot"></span><span id="liveText">CONNECTING</span></div>
+    </header>
 
-  <main>
-    <section class="hero">
-      <div class="hero-glow"></div>
-      <div class="shell hero-grid">
-        <div class="hero-copy">
-          <div class="eyebrow">AUSTRALIA'S COMPLETE RACING APP</div>
-          <h1>Smarter Form.<br><span>Better Tips.</span><br>More Winners.</h1>
-          <p>Live Australian horse and greyhound racing, RaceEdge analysis, scratchings, selections and results.</p>
+    <main id="viewRoot" class="view-root" aria-live="polite"></main>
 
-          <div class="feature-row">
-            <div><i>⚡</i><span>Real-time data</span></div>
-            <div><i>▥</i><span>AI-powered analysis</span></div>
-            <div><i>◆</i><span>All Australian meetings</span></div>
-          </div>
+    <nav class="mobile-nav">
+      <button data-nav="home"><span>⌂</span><small>Home</small></button>
+      <button data-nav="races"><span>◆</span><small>Races</small></button>
+      <button data-nav="tips"><span>★</span><small>Tips</small></button>
+      <button data-nav="results"><span>▤</span><small>Results</small></button>
+      <button data-nav="more"><span>•••</span><small>More</small></button>
+    </nav>
+  </div>
 
-          <div class="hero-stats">
-            <div><strong id="meetingCount">—</strong><span>Meetings</span></div>
-            <div><strong id="raceCount">—</strong><span>Races</span></div>
-            <div><strong id="runnerCount">—</strong><span>Runners</span></div>
-          </div>
-        </div>
-
-        <div class="phone-stage">
-          <div class="phone phone-left">
-            <div class="phone-top">9:41 <span>•••</span></div>
-            <div class="app-head"><div class="mini-logo">RE</div><b>RACE<span>EDGE</span></b></div>
-            <div class="segmented"><button class="selected">Horse Racing</button><button>Greyhounds</button></div>
-            <div class="app-section-title">Today's Meetings</div>
-            <div id="phoneMeetings" class="phone-list"></div>
-          </div>
-          <div class="phone phone-main">
-            <div class="phone-top">9:41 <span>•••</span></div>
-            <div class="app-title">RaceEdge Tips</div>
-            <div id="phoneTips" class="phone-tips"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="shell main-section">
-      <div class="section-head">
-        <div>
-          <div class="eyebrow">LIVE RACING</div>
-          <h2>Today's Meetings</h2>
-        </div>
-        <div class="filters">
-          <button class="filter active" data-filter="ALL">All</button>
-          <button class="filter" data-filter="R">Horse Racing</button>
-          <button class="filter" data-filter="G">Greyhounds</button>
-        </div>
-      </div>
-      <div id="meetings" class="meetings-grid"><div class="loading-card">Loading live racing…</div></div>
-    </section>
-
-    <section class="shell two-col">
-      <section class="glass-card">
-        <div class="section-head compact">
-          <div><div class="eyebrow">RACEEDGE PICKS</div><h2>Today's Best Bets</h2></div>
-          <span class="analysis-badge">AI ANALYSIS</span>
-        </div>
-        <div id="tips" class="tips-list"><div class="empty-state">Loading selections…</div></div>
-      </section>
-
-      <section class="glass-card">
-        <div class="eyebrow">PLATFORM STATUS</div>
-        <h2>RaceEdge V1.0</h2>
-        <div class="status-list">
-          <div><span>Live racing feed</span><b id="feedState">Checking…</b></div>
-          <div><span>Scratchings</span><b id="scratchState">Checking…</b></div>
-          <div><span>RaceEdge analysis</span><b id="analysisState">Checking…</b></div>
-          <div><span>Market prices</span><b id="priceState">Checking…</b></div>
-        </div>
-        <p class="legal-note">RaceEdge ratings and selections are analytical estimates, not guaranteed outcomes. RACEEDGE does not place bets or process wagering transactions.</p>
-      </section>
-    </section>
-  </main>
-
-  <footer>
-    <div class="shell footer-inner">
-      <div>
-        <div class="brand small"><span>RACE</span><b>EDGE</b></div>
-        <div class="brand-sub">HORSE &amp; GREYHOUND TIPS</div>
-      </div>
-      <div class="footer-links"><a href="/privacy.html">Privacy</a><a href="/support.html">Support</a></div>
-      <div class="footer-copy">Smarter Form. Better Tips. More Winners.</div>
-    </div>
-  </footer>
-
+  <div id="toast" class="toast" hidden></div>
   <script src="/app.js" defer></script>
 </body>
 </html>
