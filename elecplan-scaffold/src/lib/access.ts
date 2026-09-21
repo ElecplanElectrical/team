@@ -1,7 +1,7 @@
 import type { Role } from "@prisma/client";
 
 export type Screen =
-  | "dashboard" | "aiAssistant" | "leads" | "clients" | "calendar" | "reminders"
+  | "dashboard" | "aiAssistant" | "leads" | "clients" | "calendar" | "reminders" | "notes"
   | "inspections" | "certificates" | "timelines" | "projects"
   | "materials" | "equipment" | "timesheets" | "documents"
   | "quotes" | "invoices" | "bills" | "employees" | "teamChat" | "kpis" | "reviews" | "reels" | "analytics";
@@ -12,7 +12,7 @@ const ADMIN_ONLY: Role[] = ["ADMIN"];
 
 export const SCREEN_ACCESS: Record<Screen, Role[]> = {
   dashboard: ADMIN_ONLY, aiAssistant: ADMIN_ONLY, leads: ADMIN_ONLY, clients: ADMIN_SUP, calendar: ALL,
-  reminders: ADMIN_ONLY, inspections: ADMIN_ONLY, certificates: ADMIN_SUP,
+  reminders: ADMIN_ONLY, notes: ALL, inspections: ADMIN_ONLY, certificates: ADMIN_SUP,
   timelines: ALL, projects: ALL, materials: ALL, equipment: ALL, timesheets: ALL,
   documents: ALL, quotes: ADMIN_ONLY, invoices: ADMIN_ONLY, bills: ADMIN_ONLY, employees: ADMIN_SUP,
   teamChat: ALL, kpis: ADMIN_SUP, reviews: ADMIN_ONLY, reels: ADMIN_ONLY, analytics: ADMIN_ONLY,
@@ -20,7 +20,7 @@ export const SCREEN_ACCESS: Record<Screen, Role[]> = {
 
 export const SCREEN_PATH: Record<Screen, string> = {
   dashboard:"/dashboard", aiAssistant:"/ai-assistant", leads:"/leads", clients:"/clients", calendar:"/calendar",
-  reminders:"/reminders", inspections:"/inspections", certificates:"/certificates",
+  reminders:"/reminders", notes:"/notes", inspections:"/inspections", certificates:"/certificates",
   timelines:"/jobs", projects:"/projects", materials:"/materials", equipment:"/equipment",
   timesheets:"/timesheets", documents:"/documents", quotes:"/quotes", invoices:"/invoices", bills:"/bills",
   employees:"/employees", teamChat:"/team-chat", kpis:"/kpis", reviews:"/reviews", reels:"/reels", analytics:"/analytics",
