@@ -10,6 +10,7 @@ export type DocumentRow = {
   name: string;
   type: string;
   fileUrl: string;
+  available: boolean;
   job: string | null;
   uploadedAt: string;
 };
