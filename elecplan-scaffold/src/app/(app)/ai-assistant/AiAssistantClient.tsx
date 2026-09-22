@@ -1,175 +1,40 @@
 "use client";
-/* eslint-disable @next/next/no-img-element -- object URLs are used for a local, unsaved capture preview. */
+/* eslint-disable @next/next/no-img-element */
+import { useRef, useState } from "react";
+import { ArrowUp, CalendarDays, Camera, CheckCircle2, Clock3, ImagePlus, Loader2, Mic, MicOff, Plus, X } from "lucide-react";
+import { LOGO_MARK } from "@/lib/logo";
+import styles from "./assistant.module.css";
 
-import { useMemo, useRef, useState } from "react";
-import { Camera, CheckCircle2, ImagePlus, Loader2, Mic, MicOff, Sparkles, Upload, X } from "lucide-react";
+type Proposal={kind:"event"|"reminder";title:string;startsAt?:string;endsAt?:string;dueDate?:string;notes?:string;selected:boolean};
+type Recognition={lang:string;continuous:boolean;interimResults:boolean;start():void;stop():void;onresult:((e:{results:ArrayLike<{0:{transcript:string}}>} )=>void)|null;onend:(()=>void)|null;onerror:(()=>void)|null};
 
-type RecognitionEvent = Event & {
-  results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }>;
-};
-
-type Recognition = {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  start(): void;
-  stop(): void;
-  onresult: ((event: RecognitionEvent) => void) | null;
-  onend: (() => void) | null;
-  onerror: (() => void) | null;
-};
-
-type Proposal = {
-  kind: "event" | "reminder";
-  title: string;
-  startsAt?: string;
-  endsAt?: string;
-  dueDate?: string;
-  notes?: string;
-  selected: boolean;
-};
-
-export default function AiAssistantClient() {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [items, setItems] = useState<Proposal[]>([]);
-  const [message, setMessage] = useState("");
-  const [status, setStatus] = useState("");
-  const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<Recognition | null>(null);
-
-  const selected = useMemo(() => items.filter((x) => x.selected).length, [items]);
-
-  function choose(next?: File) {
-    if (!next) return;
-    setFile(next);
-    setItems([]);
-    setStatus("");
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(URL.createObjectURL(next));
-  }
-
-  function toggleVoice() {
-    if (listening) {
-      recognitionRef.current?.stop();
-      return;
-    }
-    const browser = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
-    const RecognitionCtor = browser.SpeechRecognition || browser.webkitSpeechRecognition;
-    if (!RecognitionCtor) {
-      setStatus("Voice input is not available in this browser. You can still type the instruction.");
-      return;
-    }
-    const recognition = new RecognitionCtor();
-    recognition.lang = "en-AU";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognitionRef.current = recognition;
-    setListening(true);
-    setStatus("Listening — tell the assistant what to do.");
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let index = 0; index < event.results.length; index += 1) transcript += event.results[index][0].transcript;
-      setMessage(transcript.trim());
-    };
-    recognition.onerror = () => {
-      setListening(false);
-      setStatus("I couldn’t hear that clearly. Tap the microphone and try again.");
-    };
-    recognition.onend = () => {
-      setListening(false);
-      recognitionRef.current = null;
-      setStatus((current) => current.startsWith("Listening") ? "Voice instruction ready. Check it, then analyse it." : current);
-    };
-    recognition.start();
-  }
-
-  async function analyse() {
-    if (!file && !message.trim()) return;
-    setBusy(true);
-    setStatus("");
-    try {
-      const fd = new FormData();
-      if (file) fd.append("file", file);
-      fd.append("instruction", message || "Read this and turn anything actionable into Elecplan calendar events and reminders.");
-      const response = await fetch("/api/ai-assistant/analyse", { method: "POST", body: fd });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not analyse board");
-      setItems((data.proposals || []).map((x: Proposal) => ({ ...x, selected: x.kind === "reminder" || Boolean(x.startsAt) })));
-      setStatus(data.summary || "Board read. Check the preview before applying.");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not analyse board");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function apply() {
-    const proposals = items.filter((x) => x.selected);
-    if (!proposals.length) return;
-    setBusy(true);
-    try {
-      const response = await fetch("/api/ai-assistant/apply", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ proposals }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not apply changes");
-      setItems([]);
-      setFile(null);
-      if (preview) URL.revokeObjectURL(preview);
-      setPreview(null);
-      setStatus(`Done — ${data.created} item${data.created === 1 ? "" : "s"} added to Elecplan. The proposal list has been cleared so it cannot be applied twice.`);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not apply changes");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-8">
-      <div className="mx-auto max-w-5xl space-y-5">
-        <div>
-          <div className="text-center text-xl font-normal tracking-tight text-slate-100 md:text-2xl">Automated Assistant</div>
-          <p className="mt-1 text-sm text-slate-400">Speak, snap or type. I can organise work and check your Elecplan calendar — including what is booked and when you are free.</p>
-        </div>
-
-        <div className="grid gap-5 lg:grid-cols-2">
-          <section className="rounded-2xl border border-white/10 ep-raised p-4 md:p-5">
-            <h2 className="font-semibold">Add anything</h2>
-            <div className="mt-4 flex min-h-64 items-center justify-center overflow-hidden rounded-xl border border-dashed border-white/20 bg-black/20">
-              {preview ? <img src={preview} alt="Whiteboard preview" className="max-h-[430px] w-full object-contain" /> : <div className="text-center text-slate-400"><ImagePlus className="mx-auto mb-2 h-10 w-10" /><div className="font-medium text-slate-200">Add a photo, screenshot or document</div><div className="mt-1 text-xs">Whiteboard, message, email screenshot, PDF, JPG, PNG, WebP or TXT</div></div>}
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[.06] px-3 py-3 text-sm font-medium text-slate-100">
-                <Camera className="h-4 w-4" />Take photo
-                <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
-              </label>
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-sky-300/25 ep-inset px-3 py-3 text-sm font-medium text-slate-100">
-                <ImagePlus className="h-4 w-4" />Add from library
-                <input className="hidden" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" onChange={(e) => { choose(e.target.files?.[0]); e.currentTarget.value = ""; }} />
-              </label>
-            </div>
-            <div className="relative mt-3">
-              <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Tell the assistant what to do, or tap the microphone…" className="min-h-28 w-full rounded-xl border border-sky-300/20 ep-inset p-3 pr-16 text-sm outline-none focus:border-sky-300/50" />
-              <button type="button" onClick={toggleVoice} aria-label={listening ? "Stop listening" : "Talk to Automated Assistant"} className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full border" style={{ background: listening ? "#fb7185" : "#43D2FF", borderColor: listening ? "#fda4af" : "#7dd3fc", color: "#06213a" }}>{listening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}</button>
-            </div>
-            <button disabled={(!file && !message.trim()) || busy} onClick={analyse} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-sky-400 px-4 py-3 font-semibold text-sky-950 disabled:opacity-40">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}Analyse & organise</button>
-          </section>
-
-          <section className="rounded-2xl border border-white/10 ep-raised p-4 md:p-5">
-            <div className="flex items-center justify-between"><h2 className="font-semibold">Check before adding</h2>{items.length > 0 && <span className="text-xs text-slate-400">{selected} selected</span>}</div>
-            {!items.length ? <div className="mt-4 flex min-h-64 items-center justify-center rounded-xl border border-white/10 bg-black/10 p-8 text-center text-sm text-slate-400">Nothing gets added automatically. Proposed jobs, appointments and reminders appear here first.</div> : <div className="mt-4 space-y-2">{items.map((x, i) => <div key={`${x.kind}-${i}`} className="flex gap-3 rounded-xl border border-white/10 bg-black/20 p-3"><input type="checkbox" checked={x.selected} onChange={() => setItems((value) => value.map((item, n) => n === i ? { ...item, selected: !item.selected } : item))} className="mt-1" /><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase text-slate-300">{x.kind}</span><strong className="truncate text-sm">{x.title}</strong></div><div className="mt-1 text-xs text-slate-400">{x.startsAt ? `${new Date(x.startsAt).toLocaleString()}${x.endsAt ? ` → ${new Date(x.endsAt).toLocaleString()}` : ""}` : x.dueDate ? `Due ${new Date(x.dueDate).toLocaleString()}` : x.kind === "reminder" ? "To-do — no date" : "No reliable date detected"}</div>{x.notes && <div className="mt-1 text-xs text-slate-300">{x.notes}</div>}</div><button onClick={() => setItems((value) => value.filter((_, n) => n !== i))} aria-label="Remove"><X className="h-4 w-4 text-slate-500" /></button></div>)}</div>}
-            <button disabled={!selected || busy} onClick={apply} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 font-semibold text-slate-950 disabled:opacity-40"><CheckCircle2 className="h-4 w-4" />Apply selected to Elecplan</button>
-          </section>
-        </div>
-
-        {status && <div className="rounded-xl border border-white/10 ep-inset p-3 text-sm">{status}</div>}
-        <div className="rounded-2xl border border-white/10 ep-inset p-4"><div className="flex items-center gap-2 text-sm font-medium"><Upload className="h-4 w-4" />Examples</div><p className="mt-2 text-sm text-slate-400">“What’s booked for Tuesday?” · “Do I have any availability next Tuesday?” · “Schedule Warrandyte Friday 8am” · “Add insurance to my to-do list”</p></div>
-      </div>
-    </div>
-  );
+export default function AiAssistantClient(){
+ const [message,setMessage]=useState(""),[file,setFile]=useState<File|null>(null),[items,setItems]=useState<Proposal[]>([]),[answer,setAnswer]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(false),[listening,setListening]=useState(false);
+ const camera=useRef<HTMLInputElement>(null),library=useRef<HTMLInputElement>(null),rec=useRef<Recognition|null>(null),hold=useRef<ReturnType<typeof setTimeout>|null>(null),held=useRef(false),lastTap=useRef(0);
+ const selected=items.filter(x=>x.selected).length;
+ function choose(next?:File){if(!next)return;if(next.size>12*1024*1024){setError("That file is too large. Maximum 12 MB.");return}setFile(next);setItems([]);setAnswer("");setError("")}
+ function startVoice(){if(busy||rec.current)return;const w=window as unknown as {SpeechRecognition?:new()=>Recognition;webkitSpeechRecognition?:new()=>Recognition};const C=w.SpeechRecognition||w.webkitSpeechRecognition;if(!C){setError("Voice input is not available in this browser. You can still type below.");return}const r=new C();r.lang="en-AU";r.continuous=true;r.interimResults=true;rec.current=r;setListening(true);setError("");r.onresult=e=>{let t="";for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript+" ";setMessage(t.trim())};r.onerror=()=>{setListening(false);rec.current=null;setError("Voice input stopped. Try again or type below.")};r.onend=()=>{setListening(false);rec.current=null};r.start()}
+ function stopVoice(){rec.current?.stop()}
+ async function send(text=message,ignoreFile=false){if(busy||(!text.trim()&&!file))return;setBusy(true);setError("");setAnswer("");setItems([]);try{const fd=new FormData();if(file&&!ignoreFile)fd.append("file",file);fd.append("instruction",text.trim()||"Read this and propose anything actionable. Do not add it until I approve.");const res=await fetch("/api/ai-assistant/analyse",{method:"POST",body:fd,cache:"no-store"});const data=await res.json();if(!res.ok)throw new Error(data.error||"Could not complete that request.");setAnswer(data.summary||"Check the result below.");setItems((data.proposals||[]).map((x:Proposal)=>({...x,selected:x.kind==="reminder"||Boolean(x.startsAt)})))}catch(e){setError(e instanceof Error?e.message:"Could not complete that request.")}finally{setBusy(false)}}
+ async function apply(){const proposals=items.filter(x=>x.selected);if(!proposals.length)return;setBusy(true);setError("");try{const res=await fetch("/api/ai-assistant/apply",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({proposals})});const data=await res.json();if(!res.ok)throw new Error(data.error||"Could not add those items.");setItems([]);setFile(null);setMessage("");setAnswer(`Done — ${data.created} item${data.created===1?"":"s"} added to Elecplan.`)}catch(e){setError(e instanceof Error?e.message:"Could not add those items.")}finally{setBusy(false)}}
+ function quick(q:string){setMessage(q);void send(q,true)}
+ function down(){if(busy||listening)return;held.current=false;hold.current=setTimeout(()=>{held.current=true;lastTap.current=0;startVoice()},320)}
+ function up(){if(hold.current){clearTimeout(hold.current);hold.current=null}if(held.current){held.current=false;stopVoice();return}const now=Date.now();if(now-lastTap.current<350){lastTap.current=0;camera.current?.click()}else lastTap.current=now}
+ return <div className={styles.page}><div className={styles.wrap}>
+  <header className={styles.head}><h1>Automated Assistant</h1><p>Speak, snap or type. Check bookings or organise work.</p></header>
+  <section className={styles.hero}>
+   <button type="button" className={`${styles.orb} ${listening?styles.live:""}`} onPointerDown={down} onPointerUp={up} onPointerCancel={()=>{if(hold.current)clearTimeout(hold.current);hold.current=null;if(held.current)stopVoice();held.current=false}} onContextMenu={e=>e.preventDefault()} aria-label="Hold EP to speak; double tap for camera"><img src={LOGO_MARK} alt="EP" draggable={false}/></button>
+   <strong>{listening?"Listening… release to finish":"Press and hold to speak"}</strong><small>Double tap the EP button for camera</small>
+  </section>
+  <input ref={camera} className={styles.hidden} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{choose(e.target.files?.[0]);e.currentTarget.value=""}}/>
+  <input ref={library} className={styles.hidden} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" onChange={e=>{choose(e.target.files?.[0]);e.currentTarget.value=""}}/>
+  <div className={styles.actions}><button type="button" onClick={()=>camera.current?.click()}><Camera/>Take photo</button><button type="button" onClick={()=>library.current?.click()}><ImagePlus/>Choose from library</button></div>
+  {file&&<div className={styles.attach}><ImagePlus/><span>{file.name}</span><button type="button" aria-label="Remove attachment" onClick={()=>setFile(null)}><X/></button></div>}
+  <form className={styles.composer} onSubmit={e=>{e.preventDefault();void send()}}><textarea aria-label="Message Automated Assistant" placeholder="Ask Automated Assistant…" value={message} onChange={e=>setMessage(e.target.value)} maxLength={1000}/><button type="button" className={`${styles.round} ${styles.secondary}`} onClick={listening?stopVoice:startVoice} aria-label={listening?"Stop listening":"Start voice message"}>{listening?<MicOff/>:<Mic/>}</button><button className={styles.round} type="submit" disabled={busy||(!message.trim()&&!file)} aria-label="Send">{busy?<Loader2 className={styles.spin}/>:<ArrowUp/>}</button></form>
+  <div className={styles.quick}><button onClick={()=>quick("What's booked for today?")}><CalendarDays/>Bookings</button><button onClick={()=>quick("Do I have any availability tomorrow?")}><Clock3/>Availability</button><button onClick={()=>setMessage("Schedule ")}><Plus/>Add event</button><button onClick={()=>setMessage("Remind me to ")}><CheckCircle2/>Add task</button></div>
+  <p className={styles.note}>Calendar checks are read-only. Changes wait for your approval.</p>
+  {error&&<div className={styles.error} role="alert">{error}</div>}
+  {answer&&<section className={styles.answer} aria-live="polite"><h2>Assistant</h2><p>{answer}</p></section>}
+  {items.length>0&&<section className={styles.review}><h2>Review before adding</h2>{items.map((x,i)=><div className={styles.proposal} key={i}><input type="checkbox" checked={x.selected} onChange={()=>setItems(v=>v.map((a,n)=>n===i?{...a,selected:!a.selected}:a))}/><div><strong>{x.title}</strong><small>{x.startsAt?new Date(x.startsAt).toLocaleString():x.dueDate?new Date(x.dueDate).toLocaleString():"No date supplied"}</small>{x.notes&&<small>{x.notes}</small>}</div><button type="button" onClick={()=>setItems(v=>v.filter((_,n)=>n!==i))}><X/></button></div>)}<button className={styles.apply} disabled={!selected||busy} onClick={()=>void apply()}>Approve and add {selected||"selected"}</button></section>}
+ </div></div>
 }
