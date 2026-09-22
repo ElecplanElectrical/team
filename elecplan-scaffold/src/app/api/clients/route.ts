@@ -33,6 +33,11 @@ export async function POST(req: Request) {
   const d = parsed.data;
 
   try {
+    const existing = await prisma.client.findFirst({
+      where: { name: { equals: d.name, mode: "insensitive" } },
+    });
+    if (existing) return NextResponse.json(existing, { status: 200 });
+
     const client = await prisma.client.create({
       data: {
         name: d.name,
