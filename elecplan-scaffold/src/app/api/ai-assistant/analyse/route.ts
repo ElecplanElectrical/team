@@ -94,6 +94,81 @@ function localIso(date: Date, hour: number, minute: number) {
   return `${yyyy}-${mm}-${dd}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00${melbourneOffset(date)}`;
 }
 
+function isCalendarCheck(instruction: string) {
+  return /\b(available|availability|free|booked|booking|bookings|what(?:'s| is) on|calendar|schedule)\b/i.test(instruction)
+    && /\b(today|tomorrow|next|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}[\/.\-]\d{1,2})\b/i.test(instruction);
+}
+
+function shortTime(date: Date) {
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Melbourne",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function shortDay(date: Date) {
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Melbourne",
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  }).format(date);
+}
+
+async function answerCalendarCheck(instruction: string) {
+  const day = targetDate(instruction);
+  if (!day) return null;
+
+  const start = new Date(localIso(day, 0, 0));
+  const endDay = new Date(day);
+  endDay.setUTCDate(endDay.getUTCDate() + 1);
+  const end = new Date(localIso(endDay, 0, 0));
+
+  const events = await prisma.jobEvent.findMany({
+    where: { startsAt: { lt: end }, endsAt: { gt: start } },
+    select: { title: true, startsAt: true, endsAt: true, type: true },
+    orderBy: { startsAt: "asc" },
+    take: 100,
+  });
+
+  const label = shortDay(start);
+  if (!events.length) {
+    return `${label}: nothing is booked in the Elecplan calendar.`;
+  }
+
+  const booked = events
+    .map((event) => `${event.title} ${shortTime(event.startsAt)}–${shortTime(event.endsAt)}`)
+    .join("; ");
+
+  const wantsAvailability = /\b(available|availability|free)\b/i.test(instruction);
+  if (!wantsAvailability) return `${label}: ${events.length} booking${events.length === 1 ? "" : "s"} — ${booked}.`;
+
+  const workStart = new Date(localIso(day, 7, 0));
+  const workEnd = new Date(localIso(day, 17, 0));
+  const busy = events
+    .map((event) => ({
+      start: new Date(Math.max(event.startsAt.getTime(), workStart.getTime())),
+      end: new Date(Math.min(event.endsAt.getTime(), workEnd.getTime())),
+    }))
+    .filter((slot) => slot.end > slot.start)
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  const gaps: Array<{ start: Date; end: Date }> = [];
+  let cursor = workStart;
+  for (const slot of busy) {
+    if (slot.start > cursor) gaps.push({ start: cursor, end: slot.start });
+    if (slot.end > cursor) cursor = slot.end;
+  }
+  if (cursor < workEnd) gaps.push({ start: cursor, end: workEnd });
+
+  const free = gaps.length
+    ? gaps.map((gap) => `${shortTime(gap.start)}–${shortTime(gap.end)}`).join(", ")
+    : "no free time between 7:00am and 5:00pm";
+
+  return `${label}: booked — ${booked}. Free — ${free}.`;
+}
+
 function tidyTitle(line: string) {
   return line
     .replace(/^[-*•☐☑✓\s]+/, "")
@@ -186,6 +261,16 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const upload = form.get("file");
   const instruction = String(form.get("instruction") || DEFAULT_INSTRUCTION).slice(0, 1000);
+
+  if (!(upload instanceof File) && isCalendarCheck(instruction)) {
+    try {
+      const answer = await answerCalendarCheck(instruction);
+      if (answer) return NextResponse.json({ summary: answer, proposals: [], mode: "calendar-check" });
+    } catch (error) {
+      console.error("AI_ASSISTANT_CALENDAR_CHECK_FAILED", error);
+      return NextResponse.json({ error: "Could not check the Elecplan calendar right now." }, { status: 502 });
+    }
+  }
 
   if (!(upload instanceof File) && !instruction.trim()) {
     return NextResponse.json({ error: "Add a photo, screenshot, PDF, TXT file or some text to analyse." }, { status: 400 });
