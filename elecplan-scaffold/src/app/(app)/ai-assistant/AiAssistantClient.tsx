@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useRef, useState } from "react";
 import { ArrowUp, CalendarDays, Camera, CheckCircle2, Clock3, ImagePlus, Loader2, Mic, MicOff, Plus, X } from "lucide-react";
-import { LOGO_MARK } from "@/lib/logo";
+
 import styles from "./assistant.module.css";
 
 type Proposal={kind:"event"|"reminder";title:string;startsAt?:string;endsAt?:string;dueDate?:string;notes?:string;selected:boolean};
@@ -23,7 +23,7 @@ export default function AiAssistantClient(){
  return <div className={styles.page}><div className={styles.wrap}>
   <header className={styles.head}><h1>Automated Assistant</h1><p>Speak, snap or type. Check bookings or organise work.</p></header>
   <section className={styles.hero}>
-   <button type="button" className={`${styles.orb} ${listening?styles.live:""}`} onPointerDown={down} onPointerUp={up} onPointerCancel={()=>{if(hold.current)clearTimeout(hold.current);hold.current=null;if(held.current)stopVoice();held.current=false}} onContextMenu={e=>e.preventDefault()} aria-label="Hold EP to speak; double tap for camera"><img src={LOGO_MARK} alt="EP" draggable={false}/></button>
+   <button type="button" className={`${styles.orb} ${listening?styles.live:""}`} onPointerDown={down} onPointerUp={up} onPointerCancel={()=>{if(hold.current)clearTimeout(hold.current);hold.current=null;if(held.current)stopVoice();held.current=false}} onContextMenu={e=>e.preventDefault()} aria-label="Hold EP to speak; double tap for camera"><svg viewBox="0 0 220 220" role="img" aria-label="EP" draggable={false} className={styles.epLogo}><path d="M98 36a76 76 0 0 0 0 148" fill="none" stroke="#32c5f4" strokeWidth="10" strokeLinecap="round"/><path d="M122 36a76 76 0 0 1 0 148" fill="none" stroke="#fff" strokeWidth="10" strokeLinecap="round"/><text x="51" y="142" fill="#32c5f4" fontFamily="Arial,sans-serif" fontSize="112" fontWeight="500">e</text><text x="116" y="142" fill="#fff" fontFamily="Arial,sans-serif" fontSize="112" fontWeight="500">p</text></svg></button>
    <strong>{listening?"Listening… release to finish":"Press and hold to speak"}</strong><small>Double tap the EP button for camera</small>
   </section>
   <input ref={camera} className={styles.hidden} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{choose(e.target.files?.[0]);e.currentTarget.value=""}}/>
