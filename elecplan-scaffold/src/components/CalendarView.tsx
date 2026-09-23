@@ -22,6 +22,7 @@ type DragState = {
   mode: "move" | "span";
   pointerId: number;
   startX: number;
+  startY: number;
   columnWidth: number;
   originalStart: Date;
   originalEnd: Date;
@@ -151,7 +152,7 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     const startAt = parseISO(event.startsAt);
     const endAt = parseISO(event.endsAt);
     pointer.currentTarget.setPointerCapture(pointer.pointerId);
-    dragRef.current = { eventId: event.id, mode, pointerId: pointer.pointerId, startX: pointer.clientX, columnWidth: column?.getBoundingClientRect().width ?? 135, originalStart: startAt, originalEnd: endAt, previewStart: startAt, previewEnd: endAt };
+    dragRef.current = { eventId: event.id, mode, pointerId: pointer.pointerId, startX: pointer.clientX, startY: pointer.clientY, columnWidth: column?.getBoundingClientRect().width ?? 135, originalStart: startAt, originalEnd: endAt, previewStart: startAt, previewEnd: endAt };
     suppressClickRef.current = true;
     setDragError(null);
   }
@@ -162,12 +163,13 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     pointer.preventDefault();
 
     const daysMoved = Math.round((pointer.clientX - drag.startX) / drag.columnWidth);
+    const minutesMoved = Math.round(((pointer.clientY - drag.startY) / CAL_ROW_PX) * 4) * 15;
     let startsAt = drag.originalStart;
     let endsAt = drag.originalEnd;
 
     if (drag.mode === "move") {
-      startsAt = addDays(drag.originalStart, daysMoved);
-      endsAt = addDays(drag.originalEnd, daysMoved);
+      startsAt = new Date(addDays(drag.originalStart, daysMoved).getTime() + minutesMoved * 60_000);
+      endsAt = new Date(addDays(drag.originalEnd, daysMoved).getTime() + minutesMoved * 60_000);
     } else {
       const originalSpanOffset = Math.max(0, differenceInCalendarDays(drag.originalEnd, drag.originalStart));
       const nextSpanOffset = Math.max(0, originalSpanOffset + daysMoved);
@@ -225,7 +227,7 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
 
     return <div
       key={event.id}
-      title={draggable ? "Drag to another day. Drag the right edge to extend across days." : undefined}
+      title={draggable ? "Drag left/right to change day, up/down to change time. Drag the right edge to extend across days." : undefined}
       onPointerDown={(pointer) => beginPointerAction(pointer, event, "move")}
       onPointerMove={movePointerAction}
       onPointerUp={(pointer) => void endPointerAction(pointer, event)}
