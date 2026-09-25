@@ -24,7 +24,7 @@ export default function AiAssistantClient(){
  return <div className={styles.page}><div className={styles.wrap}>
   <header className={styles.head}><h1>Automated Assistant</h1><p>Speak, snap or type. Check bookings or organise work.</p></header>
   <section className={styles.hero}>
-   <button type="button" className={`${styles.orb} ${listening?styles.live:""}`} onPointerDown={down} onPointerUp={up} onPointerCancel={()=>{if(hold.current)clearTimeout(hold.current);hold.current=null;if(held.current)stopVoice();held.current=false}} onContextMenu={e=>e.preventDefault()} aria-label="Hold EP to speak; double tap for camera"><img src="/ep-assistant-exact.svg" alt="EP" className={styles.epLogo}/></button>
+   <button type="button" className={`${styles.orb} ${listening?styles.live:""}`} onPointerDown={down} onPointerUp={up} onPointerCancel={()=>{if(hold.current)clearTimeout(hold.current);hold.current=null;if(held.current)stopVoice();held.current=false}} onContextMenu={e=>e.preventDefault()} aria-label="Hold EP to speak; double tap for camera"><img src="/ep-assistant-clean-20260925.svg" alt="EP" className={styles.epLogo}/></button>
    <strong>{listening?"Listening… release to finish":"Press and hold to speak"}</strong><small>Double tap the EP button for camera</small>
   </section>
   <input ref={camera} className={styles.hidden} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{choose(e.target.files?.[0]);e.currentTarget.value=""}}/>
