@@ -11,7 +11,7 @@ const DEFAULT_INSTRUCTION = "Organise this whiteboard into my calendar and remin
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
 
 type ProposalLike = {
-  kind: "event" | "reminder" | "material";
+  kind: "event" | "reminder" | "material" | "complete_job";
   title: string;
   startsAt?: string;
   endsAt?: string;
@@ -115,6 +115,36 @@ function scoreCandidate(candidate: string, input: string) {
   if (b.includes(a) || a.includes(b)) return 70;
   const words = a.split(" ").filter((word) => word.length > 2);
   return words.reduce((score, word) => score + (b.includes(word) ? 12 : 0), 0);
+}
+
+
+async function jobCompletionProposal(instruction: string): Promise<ProposalLike | null> {
+  const match = instruction.trim().match(/\b(?:mark|set)?\s*(.+?)\s+(?:job\s+)?(?:as\s+)?(?:complete|completed|finished|done)\b/i);
+  if (!match || !/\b(job|complete|completed|finished|done)\b/i.test(instruction)) return null;
+  const jobText = match[1].replace(/^(?:the|my)\s+/i, "").trim();
+  if (!jobText) return null;
+  const jobs = await prisma.job.findMany({
+    where: { status: { in: ["QUOTED", "SCHEDULED", "IN_PROGRESS"] } },
+    select: { id: true, title: true, client: { select: { name: true, contactName: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 150,
+  });
+  const matches = jobs.map((job) => ({
+    job,
+    score: Math.max(
+      scoreCandidate(job.title, jobText),
+      scoreCandidate(job.client.name, jobText),
+      job.client.contactName ? scoreCandidate(job.client.contactName, jobText) : 0,
+    ),
+  })).sort((a, b) => b.score - a.score);
+  const best = matches[0];
+  if (!best || best.score < 20) return null;
+  return {
+    kind: "complete_job",
+    title: "Complete " + best.job.title,
+    jobId: best.job.id,
+    notes: "Completing this job will reconcile any recorded job materials against stock.",
+  };
 }
 
 async function materialUsageProposal(instruction: string): Promise<ProposalLike | null> {
@@ -342,6 +372,15 @@ export async function POST(req: Request) {
   const instruction = String(form.get("instruction") || DEFAULT_INSTRUCTION).slice(0, 1000);
 
   if (!(upload instanceof File)) {
+    const completionProposal = await jobCompletionProposal(instruction);
+    if (completionProposal) {
+      return NextResponse.json({
+        summary: "I matched that job and can mark it complete.",
+        proposals: [completionProposal],
+        mode: "job-completion",
+      });
+    }
+
     const materialProposal = await materialUsageProposal(instruction);
     if (materialProposal) {
       return NextResponse.json({
