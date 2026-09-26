@@ -47,7 +47,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     : [];
   const costById = new Map(catalogue.map((m) => [m.id, m.unitCost == null ? null : Number(m.unitCost)]));
 
-  const pricedMaterials = materials.filter((material) => costById.get(material.materialId) != null);\n  const unpricedMaterials = materials.length - pricedMaterials.length;\n  const materialCost = pricedMaterials.reduce((sum, material) => sum + Number(material.quantity) * Number(costById.get(material.materialId)), 0);
+  const pricedMaterials = materials.filter((material) => costById.get(material.materialId) != null);
+  const unpricedMaterials = materials.length - pricedMaterials.length;
+  const materialCost = pricedMaterials.reduce((sum, material) => sum + Number(material.quantity) * Number(costById.get(material.materialId)), 0);
   let labourMinutes = 0;
   let lastArrival: Date | null = null;
   for (const event of events) {
