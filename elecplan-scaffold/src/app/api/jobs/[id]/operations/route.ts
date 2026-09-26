@@ -44,9 +44,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const catalogue = materialIds.length
     ? await prisma.material.findMany({ where: { id: { in: materialIds } }, select: { id: true, unitCost: true } })
     : [];
-  const costById = new Map(catalogue.map((m) => [m.id, Number(m.unitCost ?? 0)]));
+  const costById = new Map(catalogue.map((m) => [m.id, m.unitCost == null ? null : Number(m.unitCost)]));
 
-  const materialCost = materials.reduce((sum, material) => sum + Number(material.quantity) * (costById.get(material.materialId) ?? 0), 0);
+  const pricedMaterials = materials.filter((material) => costById.get(material.materialId) != null);\n  const unpricedMaterials = materials.length - pricedMaterials.length;\n  const materialCost = pricedMaterials.reduce((sum, material) => sum + Number(material.quantity) * Number(costById.get(material.materialId)), 0);
   let labourMinutes = 0;
   let lastArrival: Date | null = null;
   for (const event of events) {
@@ -68,7 +68,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       name: material.name,
       quantity: String(material.quantity),
       unit: material.unit,
-      unitCost: String(costById.get(material.materialId) ?? 0),
+      unitCost: costById.get(material.materialId) == null ? null : String(costById.get(material.materialId)),
       unitSell: "0",
     })),
     documents: documents.map((document) => ({
@@ -82,6 +82,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     profitability: {
       revenue,
       materialCost,
+      materialCostComplete: unpricedMaterials === 0,
+      unpricedMaterials,
       materialSell: 0,
       labourHours: Math.round(labourMinutes / 6) / 10,
       grossAfterMaterials: revenue - materialCost,
@@ -118,13 +120,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (p.data.type === "MATERIAL") {
     let catalogueItem = await prisma.material.findFirst({
       where: { name: { equals: p.data.name, mode: "insensitive" } },
-      select: { id: true },
+      select: { id: true, unitCost: true },
     });
     if (!catalogueItem) {
       catalogueItem = await prisma.material.create({
         data: { name: p.data.name, unit: p.data.unit || null, unitCost: p.data.unitCost },
-        select: { id: true },
+        select: { id: true, unitCost: true },
       });
+    }
+    if (catalogueItem.unitCost == null && p.data.unitCost > 0) {
+      catalogueItem = await prisma.material.update({ where: { id: catalogueItem.id }, data: { unitCost: p.data.unitCost }, select: { id: true, unitCost: true } });
     }
     return NextResponse.json(await prisma.jobMaterial.create({
       data: { jobId: id, materialId: catalogueItem.id, name: p.data.name, quantity: p.data.quantity, unit: p.data.unit || null },
