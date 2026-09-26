@@ -25,6 +25,12 @@ const proposal = z.discriminatedUnion("kind", [
     notes: z.string().max(2000).optional(),
   }),
   z.object({
+    kind: z.literal("complete_job"),
+    title: z.string().trim().min(1).max(200),
+    jobId: z.string().cuid(),
+    notes: z.string().max(2000).optional(),
+  }),
+  z.object({
     kind: z.literal("reminder"),
     title: z.string().trim().min(1).max(200),
     dueDate: isoDateTime.optional(),
@@ -70,6 +76,20 @@ export async function POST(req: Request) {
             });
             output.push({ kind: "event", id: row.id });
           }
+        } else if (item.kind === "complete_job") {
+          const job = await tx.job.findUnique({ where: { id: item.jobId }, select: { id: true, status: true } });
+          if (!job) throw new Error("JOB_NOT_FOUND");
+          const used = await tx.jobMaterial.findMany({ where: { jobId: job.id, stockAppliedAt: null }, select: { id: true, materialId: true, name: true, quantity: true } });
+          for (const usedItem of used) {
+            const material = await tx.material.findUnique({ where: { id: usedItem.materialId }, select: { stockOnHand: true } });
+            if (!material) continue;
+            const next = Number(material.stockOnHand) - Number(usedItem.quantity);
+            if (next < 0) throw new Error("INSUFFICIENT_STOCK:" + usedItem.name);
+            await tx.material.update({ where: { id: usedItem.materialId }, data: { stockOnHand: next } });
+            await tx.jobMaterial.update({ where: { id: usedItem.id }, data: { stockAppliedAt: new Date() } });
+          }
+          await tx.job.update({ where: { id: job.id }, data: { status: "COMPLETE", ...(item.notes ? { notes: item.notes } : {}) } });
+          output.push({ kind: "complete_job", id: job.id });
         } else if (item.kind === "material") {
           const [job, material] = await Promise.all([
             tx.job.findUnique({ where: { id: item.jobId }, select: { id: true } }),
