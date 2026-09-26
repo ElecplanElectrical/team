@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { canAccess } from "@/lib/access";
+import { assistantIntent, assistantTargetDate, ASSISTANT_CAPABILITIES_SUMMARY, UNSUPPORTED_ACTION_SUMMARY } from "@/lib/assistant-intent";
 
 export const runtime = "nodejs";
 
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const DEFAULT_INSTRUCTION = "Organise this whiteboard into my calendar and reminders.";
-const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
 
 type ProposalLike = {
   kind: "event" | "reminder";
@@ -31,37 +31,7 @@ function melbourneToday() {
 }
 
 function targetDate(line: string): Date | null {
-  const today = melbourneToday();
-
-  const au = line.match(/\b(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?\b/);
-  if (au) {
-    let year = au[3] ? Number(au[3]) : today.getUTCFullYear();
-    if (year < 100) year += 2000;
-    const month = Number(au[2]);
-    const day = Number(au[1]);
-    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return new Date(Date.UTC(year, month - 1, day));
-  }
-
-  const iso = line.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/);
-  if (iso) return new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
-
-  const lower = line.toLowerCase();
-  const target = WEEKDAYS.findIndex((day) => lower.includes(day) || lower.includes(day.slice(0, 3)));
-  if (target >= 0) {
-    const delta = (target - today.getUTCDay() + 7) % 7;
-    const date = new Date(today);
-    date.setUTCDate(date.getUTCDate() + delta);
-    return date;
-  }
-
-  if (/\btoday\b/i.test(line)) return today;
-  if (/\btomorrow\b/i.test(line)) {
-    const date = new Date(today);
-    date.setUTCDate(date.getUTCDate() + 1);
-    return date;
-  }
-
-  return null;
+  return assistantTargetDate(line, melbourneToday());
 }
 
 function timeOfDay(line: string): { hour: number; minute: number } | null {
@@ -261,6 +231,12 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const upload = form.get("file");
   const instruction = String(form.get("instruction") || DEFAULT_INSTRUCTION).slice(0, 1000);
+
+  if (!(upload instanceof File)) {
+    const intent = assistantIntent(instruction);
+    if (intent === "capabilities") return NextResponse.json({ summary: ASSISTANT_CAPABILITIES_SUMMARY, proposals: [], mode: "capabilities" });
+    if (intent === "unsupported") return NextResponse.json({ summary: UNSUPPORTED_ACTION_SUMMARY, proposals: [], mode: "unsupported-action" });
+  }
 
   if (!(upload instanceof File) && isCalendarCheck(instruction)) {
     try {
