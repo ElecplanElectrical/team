@@ -324,8 +324,8 @@ export async function POST(req: Request) {
       const proposals = await attachJobMatches(localProposals(source));
       return NextResponse.json({
         summary: proposals.length
-          ? "OpenAI is not connected, so Elecplan used its local reader. Check every proposed item before applying."
-          : "Elecplan read the content locally but could not find a reliable dated event or reminder.",
+          ? "I read that and found some actionable items. Check them before applying."
+          : "I read that, but I could not find a reliable dated event or reminder.",
         proposals,
         mode: "local",
       });
