@@ -11,12 +11,15 @@ const DEFAULT_INSTRUCTION = "Organise this whiteboard into my calendar and remin
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
 
 type ProposalLike = {
-  kind: "event" | "reminder";
+  kind: "event" | "reminder" | "material";
   title: string;
   startsAt?: string;
   endsAt?: string;
   dueDate?: string;
   notes?: string;
+  jobId?: string;
+  materialId?: string;
+  quantity?: number;
 };
 
 function melbourneToday() {
@@ -97,6 +100,82 @@ function localIso(date: Date, hour: number, minute: number) {
 function isCalendarCheck(instruction: string) {
   return /\b(available|availability|free|booked|booking|bookings|what(?:'s| is) on|calendar|schedule)\b/i.test(instruction)
     && /\b(today|tomorrow|next|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}[\/.\-]\d{1,2})\b/i.test(instruction);
+}
+
+
+function normaliseMatch(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function scoreCandidate(candidate: string, input: string) {
+  const a = normaliseMatch(candidate);
+  const b = normaliseMatch(input);
+  if (!a || !b) return 0;
+  if (a === b) return 100;
+  if (b.includes(a) || a.includes(b)) return 70;
+  const words = a.split(" ").filter((word) => word.length > 2);
+  return words.reduce((score, word) => score + (b.includes(word) ? 12 : 0), 0);
+}
+
+async function materialUsageProposal(instruction: string): Promise<ProposalLike | null> {
+  const match = instruction.trim().match(/\b(?:i\s+)?(?:used|use|took|take|materials?\s+used)\s+(\d+(?:\.\d+)?)\s+(.+?)\s+(?:on|for)\s+(.+?)(?:\s+job)?[.!]?$/i);
+  if (!match) return null;
+
+  const quantity = Number(match[1]);
+  const materialText = match[2].trim();
+  const jobText = match[3].trim();
+  if (!Number.isFinite(quantity) || quantity <= 0) return null;
+
+  const [jobs, materials] = await Promise.all([
+    prisma.job.findMany({
+      where: { status: { in: ["QUOTED", "SCHEDULED", "IN_PROGRESS"] } },
+      select: { id: true, title: true, client: { select: { name: true, contactName: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 150,
+    }),
+    prisma.material.findMany({
+      select: { id: true, name: true, brand: true, model: true, sku: true, supplierSku: true },
+      orderBy: { updatedAt: "desc" },
+      take: 500,
+    }),
+  ]);
+
+  const jobMatches = jobs
+    .map((job) => ({
+      job,
+      score: Math.max(
+        scoreCandidate(job.title, jobText),
+        scoreCandidate(job.client.name, jobText),
+        job.client.contactName ? scoreCandidate(job.client.contactName, jobText) : 0,
+      ),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  const materialMatches = materials
+    .map((material) => ({
+      material,
+      score: Math.max(
+        scoreCandidate(material.name, materialText),
+        material.brand ? scoreCandidate(material.brand + " " + material.name, materialText) : 0,
+        material.model ? scoreCandidate(material.model, materialText) : 0,
+        material.sku ? scoreCandidate(material.sku, materialText) : 0,
+        material.supplierSku ? scoreCandidate(material.supplierSku, materialText) : 0,
+      ),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  const job = jobMatches[0];
+  const material = materialMatches[0];
+  if (!job || job.score < 20 || !material || material.score < 20) return null;
+
+  return {
+    kind: "material",
+    title: quantity + " × " + material.material.name + " used on " + job.job.title,
+    jobId: job.job.id,
+    materialId: material.material.id,
+    quantity,
+    notes: "This will be recorded against the job and deducted from stock when the job is completed.",
+  };
 }
 
 function shortTime(date: Date) {
@@ -261,6 +340,17 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const upload = form.get("file");
   const instruction = String(form.get("instruction") || DEFAULT_INSTRUCTION).slice(0, 1000);
+
+  if (!(upload instanceof File)) {
+    const materialProposal = await materialUsageProposal(instruction);
+    if (materialProposal) {
+      return NextResponse.json({
+        summary: "I matched that material to the job.",
+        proposals: [materialProposal],
+        mode: "material-usage",
+      });
+    }
+  }
 
   if (!(upload instanceof File) && isCalendarCheck(instruction)) {
     try {
