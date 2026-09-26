@@ -35,7 +35,7 @@ export async function POST(req:Request){
       include:{client:{select:{name:true}}},
       orderBy:{createdAt:"desc"},take:200
     }),
-    prisma.material.findMany({orderBy:{updatedAt:"desc"},take:500}),
+    prisma.material.findMany({orderBy:{name:"asc"},take:500}),
     prisma.quote.findMany({
       where:{status:"ACCEPTED"},
       include:{client:{select:{name:true}},job:{select:{title:true}},convertedInvoice:{select:{id:true}}},
