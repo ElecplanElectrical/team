@@ -17,6 +17,14 @@ const proposal = z.discriminatedUnion("kind", [
     notes: z.string().max(2000).optional(),
   }),
   z.object({
+    kind: z.literal("material"),
+    title: z.string().trim().min(1).max(200),
+    jobId: z.string().cuid(),
+    materialId: z.string().cuid(),
+    quantity: z.coerce.number().positive().max(10000),
+    notes: z.string().max(2000).optional(),
+  }),
+  z.object({
     kind: z.literal("reminder"),
     title: z.string().trim().min(1).max(200),
     dueDate: isoDateTime.optional(),
@@ -62,6 +70,15 @@ export async function POST(req: Request) {
             });
             output.push({ kind: "event", id: row.id });
           }
+        } else if (item.kind === "material") {
+          const [job, material] = await Promise.all([
+            tx.job.findUnique({ where: { id: item.jobId }, select: { id: true } }),
+            tx.material.findUnique({ where: { id: item.materialId }, select: { id: true, name: true, unit: true } }),
+          ]);
+          if (!job) throw new Error("JOB_NOT_FOUND");
+          if (!material) throw new Error("MATERIAL_NOT_FOUND");
+          const row = await tx.jobMaterial.create({ data: { jobId: job.id, materialId: material.id, name: material.name, quantity: item.quantity, unit: material.unit } });
+          output.push({ kind: "material", id: row.id });
         } else {
           const row = await tx.reminder.create({ data: { userId: user.id, title: item.title, dueAt: item.dueDate ? new Date(item.dueDate) : new Date() } });
           output.push({ kind: "reminder", id: row.id });
