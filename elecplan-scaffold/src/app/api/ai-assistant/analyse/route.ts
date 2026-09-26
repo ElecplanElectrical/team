@@ -65,8 +65,7 @@ function localIso(date: Date, hour: number, minute: number) {
 }
 
 function isCalendarCheck(instruction: string) {
-  return /\b(available|availability|free|booked|booking|bookings|what(?:'s| is) on|calendar|schedule)\b/i.test(instruction)
-    && /\b(today|tomorrow|next|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}[\/.\-]\d{1,2})\b/i.test(instruction);
+  return assistantIntent(instruction) === "calendar-read" && targetDate(instruction) !== null;
 }
 
 function shortTime(date: Date) {
@@ -300,8 +299,8 @@ export async function POST(req: Request) {
       const proposals = await attachJobMatches(localProposals(source));
       return NextResponse.json({
         summary: proposals.length
-          ? "OpenAI is not connected, so Elecplan used its local reader. Check every proposed item before applying."
-          : "Elecplan read the content locally but could not find a reliable dated event or reminder.",
+          ? "I read that and found some actionable items. Check them before applying."
+          : "I read that, but I could not find a reliable dated event or reminder.",
         proposals,
         mode: "local",
       });
