@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 async function authJob(id: string) {
   const user = await getSessionUser();
@@ -44,9 +45,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const catalogue = materialIds.length
     ? await prisma.material.findMany({ where: { id: { in: materialIds } }, select: { id: true, unitCost: true } })
     : [];
-  const costById = new Map(catalogue.map((m) => [m.id, Number(m.unitCost ?? 0)]));
+  const costById = new Map(catalogue.map((m) => [m.id, m.unitCost == null ? null : Number(m.unitCost)]));
 
-  const materialCost = materials.reduce((sum, material) => sum + Number(material.quantity) * (costById.get(material.materialId) ?? 0), 0);
+  const pricedMaterials = materials.filter((material) => costById.get(material.materialId) != null);\n  const unpricedMaterials = materials.length - pricedMaterials.length;\n  const materialCost = pricedMaterials.reduce((sum, material) => sum + Number(material.quantity) * Number(costById.get(material.materialId)), 0);
   let labourMinutes = 0;
   let lastArrival: Date | null = null;
   for (const event of events) {
@@ -68,7 +69,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       name: material.name,
       quantity: String(material.quantity),
       unit: material.unit,
-      unitCost: String(costById.get(material.materialId) ?? 0),
+      unitCost: costById.get(material.materialId) == null ? null : String(costById.get(material.materialId)),
       unitSell: "0",
     })),
     documents: documents.map((document) => ({
@@ -82,6 +83,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     profitability: {
       revenue,
       materialCost,
+      materialCostComplete: unpricedMaterials === 0,
+      unpricedMaterials,
       materialSell: 0,
       labourHours: Math.round(labourMinutes / 6) / 10,
       grossAfterMaterials: revenue - materialCost,
@@ -118,17 +121,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (p.data.type === "MATERIAL") {
     let catalogueItem = await prisma.material.findFirst({
       where: { name: { equals: p.data.name, mode: "insensitive" } },
-      select: { id: true },
+      select: { id: true, unitCost: true, stockOnHand: true, unit: true },
     });
     if (!catalogueItem) {
       catalogueItem = await prisma.material.create({
-        data: { name: p.data.name, unit: p.data.unit || null, unitCost: p.data.unitCost },
-        select: { id: true },
+        data: { name: p.data.name, unit: p.data.unit || null, unitCost: p.data.unitCost, stockOnHand: 0 },
+        select: { id: true, unitCost: true, stockOnHand: true, unit: true },
       });
     }
-    return NextResponse.json(await prisma.jobMaterial.create({
-      data: { jobId: id, materialId: catalogueItem.id, name: p.data.name, quantity: p.data.quantity, unit: p.data.unit || null },
-    }), { status: 201 });
+    if (catalogueItem.unitCost == null && p.data.unitCost > 0) {
+      catalogueItem = await prisma.material.update({
+        where: { id: catalogueItem.id },
+        data: { unitCost: p.data.unitCost },
+        select: { id: true, unitCost: true, stockOnHand: true, unit: true },
+      });
+    }
+    const before = Number(catalogueItem.stockOnHand);
+    if (before < p.data.quantity) {
+      return NextResponse.json({ error: `Only ${before} ${catalogueItem.unit || p.data.unit || "units"} of ${p.data.name} are in stock` }, { status: 409 });
+    }
+    const used = await prisma.$transaction(async (tx) => {
+      const row = await tx.jobMaterial.create({
+        data: { jobId: id, materialId: catalogueItem.id, name: p.data.name, quantity: p.data.quantity, unit: p.data.unit || catalogueItem.unit || null },
+      });
+      await tx.material.update({ where: { id: catalogueItem.id }, data: { stockOnHand: { decrement: p.data.quantity } } });
+      return row;
+    });
+    await recordAudit({ actor: a.user, action: "JOB_MATERIAL_USED", entityType: "Job", entityId: id, details: { jobMaterialId: used.id, materialId: catalogueItem.id, name: p.data.name, quantity: p.data.quantity, stockBefore: before, stockAfter: before - p.data.quantity } });
+    return NextResponse.json(used, { status: 201 });
   }
 
   if (a.user.role === "EMPLOYEE") return NextResponse.json({ error: "Only admins and supervisors can create reminders" }, { status: 403 });
@@ -179,7 +199,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   if (materialId) {
     if (a.user.role === "EMPLOYEE") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    await prisma.jobMaterial.deleteMany({ where: { id: materialId, jobId: id } });
+    const used = await prisma.jobMaterial.findFirst({ where: { id: materialId, jobId: id } });
+    if (!used) return NextResponse.json({ error: "Material usage not found" }, { status: 404 });
+    await prisma.$transaction([
+      prisma.jobMaterial.delete({ where: { id: used.id } }),
+      prisma.material.update({ where: { id: used.materialId }, data: { stockOnHand: { increment: used.quantity } } }),
+    ]);
+    await recordAudit({ actor: a.user, action: "JOB_MATERIAL_USAGE_REMOVED", entityType: "Job", entityId: id, details: { jobMaterialId: used.id, materialId: used.materialId, name: used.name, quantity: Number(used.quantity), stockRestored: true } });
     return NextResponse.json({ ok: true });
   }
 
