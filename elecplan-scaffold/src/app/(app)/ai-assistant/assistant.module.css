@@ -3,3 +3,10 @@
 /* Centre the supplied artwork within an even inset; the SVG has smooth cubic outlines. */
 .orb{display:flex;align-items:center;justify-content:center;box-sizing:border-box;flex-shrink:0;padding:7px}
 .orb .epLogo{image-rendering:auto;max-width:none}
+
+.proposalBody{min-width:0;flex:1;display:grid;gap:7px}
+.editTitle{width:100%;min-width:0;border:1px solid rgba(197,205,215,.28);border-radius:8px;background:rgba(8,18,31,.72);color:#f7fbff;padding:8px 9px;font:inherit;font-weight:700}
+.editTimes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.editTimes label{display:grid;gap:3px;color:#9aa8b8;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.editTimes input{width:100%;min-width:0;border:1px solid rgba(197,205,215,.22);border-radius:7px;background:rgba(8,18,31,.65);color:#eaf6ff;padding:7px;font:inherit;font-size:11px;text-transform:none;letter-spacing:0}
+@media(max-width:520px){.editTimes{grid-template-columns:1fr}}
