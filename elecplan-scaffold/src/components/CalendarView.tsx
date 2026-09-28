@@ -19,7 +19,7 @@ const HOURS = Array.from({ length: CAL_HOUR_END - CAL_HOUR_START }, (_, index) =
 
 type DragState = {
   eventId: string;
-  mode: "move" | "span";
+  mode: "move" | "span" | "duration";
   pointerId: number;
   startX: number;
   startY: number;
@@ -160,7 +160,7 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     setEditingEvent(event);
   }
 
-  function beginPointerAction(pointer: React.PointerEvent<HTMLDivElement>, event: CalendarEvent, mode: "move" | "span") {
+  function beginPointerAction(pointer: React.PointerEvent<HTMLDivElement>, event: CalendarEvent, mode: "move" | "span" | "duration") {
     if (!canDrag(event)) return;
     pointer.preventDefault();
     pointer.stopPropagation();
@@ -186,11 +186,15 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     if (drag.mode === "move") {
       startsAt = new Date(addDays(drag.originalStart, daysMoved).getTime() + minutesMoved * 60_000);
       endsAt = new Date(addDays(drag.originalEnd, daysMoved).getTime() + minutesMoved * 60_000);
-    } else {
+    } else if (drag.mode === "span") {
       const originalSpanOffset = Math.max(0, differenceInCalendarDays(drag.originalEnd, drag.originalStart));
       const nextSpanOffset = Math.max(0, originalSpanOffset + daysMoved);
       endsAt = addDays(drag.originalEnd, nextSpanOffset - originalSpanOffset);
       if (endsAt <= startsAt) endsAt = new Date(startsAt.getTime() + 60 * 60_000);
+    } else {
+      endsAt = new Date(drag.originalEnd.getTime() + minutesMoved * 60_000);
+      const minimumEnd = new Date(drag.originalStart.getTime() + 15 * 60_000);
+      if (endsAt < minimumEnd) endsAt = minimumEnd;
     }
 
     drag.previewStart = startsAt;
@@ -243,7 +247,7 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
 
     return <div
       key={event.id}
-      title={draggable ? "Drag left/right to change day, up/down to change time. Drag the right edge to extend across days." : undefined}
+      title={draggable ? "Drag to move. Drag the right edge across days. Drag the bottom edge to change duration." : undefined}
       onPointerDown={(pointer) => beginPointerAction(pointer, event, "move")}
       onPointerMove={movePointerAction}
       onPointerUp={(pointer) => void endPointerAction(pointer, event)}
@@ -272,9 +276,21 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
       {draggable && spanAcrossDays && <div
         aria-label="Extend calendar item across days"
         onPointerDown={(pointer) => beginPointerAction(pointer, event, "span")}
+        onPointerMove={movePointerAction}
+        onPointerUp={(pointer) => void endPointerAction(pointer, event)}
+        onPointerCancel={(pointer) => void endPointerAction(pointer, event)}
         className="absolute bottom-0 right-0 top-0 w-3 cursor-ew-resize"
         style={{ background: `linear-gradient(to right,transparent,${colour.border}66)`, touchAction: "none" }}
       ><div className="absolute bottom-2 right-1 top-2 w-0.5 rounded-full" style={{ background: colour.border }} /></div>}
+      {draggable && <div
+        aria-label="Change event duration"
+        onPointerDown={(pointer) => beginPointerAction(pointer, event, "duration")}
+        onPointerMove={movePointerAction}
+        onPointerUp={(pointer) => void endPointerAction(pointer, event)}
+        onPointerCancel={(pointer) => void endPointerAction(pointer, event)}
+        className="absolute bottom-0 left-3 right-3 h-3 cursor-ns-resize"
+        style={{ background: `linear-gradient(to bottom,transparent,${colour.border}55)`, touchAction: "none" }}
+      ><div className="absolute bottom-1 left-1/2 h-0.5 w-7 -translate-x-1/2 rounded-full" style={{ background: colour.border }} /></div>}
     </div>;
   }
 
