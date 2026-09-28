@@ -82,6 +82,7 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
   });
   const dragRef = useRef<DragState | null>(null);
   const suppressClickRef = useRef(false);
+  const weekSwipeRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setCalendarEvents(events));
@@ -124,6 +125,21 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     setEditingEvent(null);
     setSelectedEvent(null);
     router.refresh();
+  }
+
+  function beginWeekSwipe(pointer: React.PointerEvent<HTMLDivElement>) {
+    if (dragRef.current || editingEvent || showModal) return;
+    weekSwipeRef.current = { x: pointer.clientX, y: pointer.clientY, pointerId: pointer.pointerId };
+  }
+
+  function finishWeekSwipe(pointer: React.PointerEvent<HTMLDivElement>) {
+    const swipe = weekSwipeRef.current;
+    weekSwipeRef.current = null;
+    if (!swipe || swipe.pointerId !== pointer.pointerId || dragRef.current) return;
+    const dx = pointer.clientX - swipe.x;
+    const dy = pointer.clientY - swipe.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+    router.push(`/calendar?week=${weekKey(addWeeks(start, dx < 0 ? 1 : -1))}`);
   }
 
   function toggleCrew(id: string) {
@@ -266,7 +282,7 @@ export default function CalendarView({ weekStart, events, jobs, employees, role,
     <TopBar title="Calendar" subtitle="Schedule jobs, appointments and team availability" rightSlot={<div className="flex items-center gap-2"><button onClick={() => setShowVoice(true)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold" style={{ background: "rgba(67,210,255,.14)", color: UI.cyan, border: "1px solid rgba(197,205,215,.30)" }}><Mic size={17} /><span className="hidden sm:inline">Voice</span></button><button onClick={() => setShowModal(true)} className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold" style={{ ...UI.primary, color: "#06213a" }}><Plus size={17} /><span className="hidden sm:inline">New event</span></button></div>} />
     <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "var(--ep-main)" }} onClick={() => setSelectedEvent(null)}>
       <div className="w-full">
-        <main className="relative min-w-0 rounded-xl" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}>
+        <main className="relative min-w-0 rounded-xl" onPointerDown={beginWeekSwipe} onPointerUp={finishWeekSwipe} onPointerCancel={()=>{weekSwipeRef.current=null}} style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}`, touchAction: "pan-y" }}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3" style={{ borderColor: UI.borderSoft }}><div className="flex items-center gap-2"><div className="relative"><button onClick={() => setShowCrewFilter((open) => !open)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{ ...UI.inset, background: UI.panelAlt, color: selectedCrew.length ? UI.cyan : UI.text, border: `1px solid ${UI.border}` }}><Users size={14} /><span>{selectedCrew.length ? `Crew (${selectedCrew.length})` : "Team / crew"}</span><ChevronRight size={13} style={{ transform: showCrewFilter ? "rotate(90deg)" : "none" }} /></button>{showCrewFilter && <div className="absolute left-0 top-11 z-50 w-56 rounded-xl p-2 shadow-2xl" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}><button onClick={() => setSelectedCrew([])} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs" style={{ background: selectedCrew.length === 0 ? "rgba(67,210,255,.14)" : "transparent", color: selectedCrew.length === 0 ? UI.cyan : UI.mute }}><span>All team members</span><Filter size={12} /></button>{employees.map((employee) => <button key={employee.id} onClick={() => toggleCrew(employee.id)} className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs" style={{ background: selectedCrew.includes(employee.id) ? "rgba(67,210,255,.12)" : "transparent", color: selectedCrew.includes(employee.id) ? UI.text : UI.mute }}>{employee.name}</button>)}</div>}</div><button onClick={() => router.push("/calendar")} className="rounded-lg px-3 py-2 text-xs font-semibold" style={{ ...UI.inset, background: UI.panelAlt, color: UI.text, border: `1px solid ${UI.border}` }}>Today</button><NavButton onClick={() => router.push(`/calendar?week=${weekKey(addWeeks(start, -1))}`)} label="Previous week"><ChevronLeft size={15} /></NavButton><NavButton onClick={() => router.push(`/calendar?week=${weekKey(addWeeks(start, 1))}`)} label="Next week"><ChevronRight size={15} /></NavButton><strong className="hidden text-sm sm:block" style={{ color: UI.text }}>{label}</strong></div></div>
           {dragError && <div className="mx-3 mt-3 rounded-lg px-3 py-2 text-xs" style={{ color: "#ff7487" }}>{dragError}</div>}
           <div className="md:hidden"><div className="flex gap-1 overflow-x-auto border-b p-2" style={{ borderColor: UI.borderSoft }}>{days.map((day, index) => <button key={day.toISOString()} onClick={() => setMobileDay(index)} className="min-w-[52px] flex-1 rounded-lg px-2 py-2 text-center" style={{ background: mobileDay === index ? UI.blue : isToday(day) ? "rgba(67,210,255,.12)" : UI.panelAlt, color: mobileDay === index ? "#06213a" : isToday(day) ? UI.cyan : UI.mute }}><div className="text-[9px] font-semibold uppercase">{format(day, "EEE")}</div><div className="mt-1 text-sm font-bold">{format(day, "d")}</div></button>)}</div><div className="px-3 py-2 text-xs font-semibold" style={{ color: UI.text }}>{format(days[mobileDay], "EEEE d MMMM")}</div><div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 245px)" }}><div style={{ display: "grid", gridTemplateColumns: "52px minmax(0,1fr)" }}><div style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX }}>{HOURS.map((hour, index) => <div key={hour} className="pr-2 text-right text-[9px]" style={{ position: "absolute", top: index * CAL_ROW_PX - 6, right: 0, width: "100%", color: UI.faint }}>{hourLabel(hour)}</div>)}</div><div data-day-column style={{ position: "relative", height: (CAL_HOUR_END - CAL_HOUR_START) * CAL_ROW_PX, borderLeft: `1px solid ${UI.borderSoft}`, background: isToday(days[mobileDay]) ? "rgba(67,210,255,.035)" : "transparent" }}>{HOURS.map((hour, index) => <div key={hour} style={{ position: "absolute", top: index * CAL_ROW_PX, left: 0, right: 0, borderTop: `1px solid ${UI.borderSoft}` }} />)}{eventsCoveringDay(mobileDay).map((event) => eventBlock(event, false))}</div></div></div></div>
