@@ -1,107 +1,29 @@
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ExternalLink, ImageIcon, MapPin, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, FileText, Folder, ImageIcon, MapPin, Plus, Upload, X } from "lucide-react";
 import TopBar from "@/components/TopBar";
-
-type UploadTicket = { uploadUrl: string; uploadHeaders: Record<string, string>; commitToken: string };
-type ProjectPhoto = { id: string; fileUrl: string; uploadedAt: string; job: string; address: string; client: string };
-
 import { PORTAL_UI as UI } from "@/lib/carbon-theme";
 
-export default function ProjectsView({
-  photos,
-  jobs,
-  canDelete,
-  storageReady,
-  canConfigureStorage,
-}: {
-  photos: ProjectPhoto[];
-  jobs: { id: string; title: string }[];
-  canDelete: boolean;
-  storageReady: boolean;
-  canConfigureStorage: boolean;
-}) {
-  const router = useRouter();
-  const [showForm, setShowForm] = useState(false);
-  const [jobId, setJobId] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+type Ticket={uploadUrl:string;uploadHeaders:Record<string,string>;commitToken:string};
+type Project={id:string;name:string;description:string;address:string;client:string;completedAt:string;photos:{id:string;url:string;createdAt:string}[];documents:{id:string;name:string;url:string;mimeType:string;createdAt:string}[]};
+type Job={id:string;title:string;address:string;client:string;completedAt:string|null};
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!storageReady) {
-      setError("Private storage is not configured yet.");
-      return;
-    }
-    if (!file) return;
-    setSaving(true); setError(null);
-    const ticketRes = await fetch("/api/storage/upload-ticket", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "project-photos", fileName: file.name, contentType: file.type || "application/octet-stream", sizeBytes: file.size }) });
-    if (!ticketRes.ok) { const body = await ticketRes.json().catch(() => null); setSaving(false); setError(body?.error ?? "Could not prepare private upload."); return; }
-    const ticket = await ticketRes.json() as UploadTicket;
-    const uploadRes = await fetch(ticket.uploadUrl, { method: "PUT", headers: ticket.uploadHeaders, body: file });
-    if (!uploadRes.ok) { setSaving(false); setError("Private photo upload failed. Please try again."); return; }
-    const res = await fetch("/api/projects", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, commitToken: ticket.commitToken }) });
-    setSaving(false);
-    if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not add project photo."); return; }
-    setJobId(""); setFile(null); setShowForm(false); router.refresh();
-  }
-
-  async function deletePhoto(photo: ProjectPhoto) {
-    if (!window.confirm(`Delete this ${photo.job} project photo? This permanently removes the managed file.`)) return;
-    setDeletingId(photo.id);
-    setError(null);
-    const res = await fetch(`/api/projects/${photo.id}`, { method: "DELETE" });
-    setDeletingId(null);
-    if (!res.ok) {
-      const body = await res.json().catch(() => null);
-      setError(body?.error ?? "Could not delete project photo.");
-      return;
-    }
-    router.refresh();
-  }
-
-  const field = { ...{boxShadow:"var(--ep-inset-shadow)"}, background: "var(--ep-input)", border: `1px solid ${UI.border}`, color: UI.text } as const;
-  const uploadButton = storageReady ? (
-    <button type="button" onClick={() => setShowForm((value) => !value)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{ ...UI.primary, color: "#06213a" }}><Plus size={16} /> Upload photo</button>
-  ) : (
-    <button type="button" disabled className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold opacity-55" style={{ ...UI.inset, background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}><Plus size={16} /> Upload unavailable</button>
-  );
-
-  return <>
-    <TopBar title="Past Projects" subtitle="Completed work and project photo archive" rightSlot={uploadButton} />
-    <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "var(--ep-main)" }}>
-      <div className="mx-auto w-full max-w-[1700px] space-y-3">
-        <div className="grid gap-3 sm:grid-cols-3"><Metric label="Project photos" value={String(photos.length)} /><Metric label="Jobs represented" value={String(new Set(photos.map((photo) => photo.job)).size)} /><Metric label="Clients represented" value={String(new Set(photos.map((photo) => photo.client)).size)} /></div>
-
-        {storageReady ? (
-          <div className="rounded-xl px-4 py-3 text-xs leading-5" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}>Private photo storage is ready. JPG, PNG and WebP files are allowed up to 10 MB and use short-lived signed access.</div>
-        ) : (
-          <div className="flex gap-3 rounded-xl px-4 py-4" style={{ background: "rgba(255,159,28,.07)", border: "1px solid rgba(255,159,28,.28)" }}>
-            <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: UI.orange }} />
-            <div><p className="text-sm font-semibold" style={{ color: UI.text }}>Project photo uploads are not configured yet</p><p className="mt-1 text-xs leading-5" style={{ color: UI.mute }}>{canConfigureStorage ? "The app is ready, but Railway production still needs the private S3-compatible bucket credentials. Upload controls are disabled until that is configured." : "Project photo uploads are temporarily unavailable. An Elecplan admin needs to finish private storage setup first."}</p></div>
-          </div>
-        )}
-
-        {showForm && storageReady && <form onSubmit={submit} className="grid grid-cols-1 gap-3 rounded-xl p-4 md:grid-cols-2" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}>
-          <select required value={jobId} onChange={(e) => setJobId(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field}><option value="">Select job</option>{jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}</select>
-          <input required type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="rounded-lg px-3 py-2.5 text-sm outline-none" style={field} />
-          {error && <p className="md:col-span-2 text-xs" style={{ color: UI.red }}>{error}</p>}
-          <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setShowForm(false)} className="rounded-lg px-4 py-2.5 text-sm" style={{ ...UI.inset, background: UI.panelAlt, color: UI.mute, border: `1px solid ${UI.borderSoft}` }}>Cancel</button><button disabled={saving || !file} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60" style={{ ...UI.primary, color: "#06213a" }}>{saving ? "Uploading…" : "Upload photo"}</button></div>
-        </form>}
-
-        {error && !showForm && <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{error}</div>}
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {photos.map((photo) => <article key={photo.id} className="overflow-hidden rounded-xl" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo.fileUrl} alt={`${photo.job} project`} className="aspect-[4/3] w-full object-cover" loading="lazy" /><div className="p-4"><div className="flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "rgba(67,210,255,.11)", color: UI.cyan }}><ImageIcon size={16} /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold" style={{ color: UI.text }}>{photo.job}</p><p className="mt-1 text-xs" style={{ color: UI.mute }}>{photo.client}</p></div></div><p className="mt-3 flex items-center gap-1.5 truncate text-xs" style={{ color: UI.faint }}><MapPin size={12} className="shrink-0" /> {photo.address}</p><div className="mt-4 flex items-center gap-3"><span className="mr-auto text-[11px]" style={{ color: UI.faint }}>{new Date(photo.uploadedAt).toLocaleDateString("en-AU")}</span><a href={photo.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: UI.cyan }}>Open <ExternalLink size={12} /></a>{canDelete && <button type="button" disabled={deletingId === photo.id} onClick={() => void deletePhoto(photo)} className="inline-flex items-center gap-1 text-xs font-semibold disabled:opacity-50" style={{ color: UI.red }}><Trash2 size={12} /> Delete</button>}</div></div></article>)}
-          {photos.length === 0 && <div className="rounded-xl px-5 py-14 text-center text-sm sm:col-span-2 xl:col-span-3" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}`, color: UI.faint }}>No project photos archived yet.</div>}
-        </div>
-      </div>
-    </div>
-  </>;
-}
-
-function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl p-4" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}><p className="text-[11px]" style={{ color: UI.faint }}>{label}</p><p className="mt-1 text-xl font-semibold" style={{ color: UI.text }}>{value}</p></div>; }
+export default function ProjectsView({projects,completedJobs,canManage,storageReady,canConfigureStorage}:{projects:Project[];completedJobs:Job[];canManage:boolean;storageReady:boolean;canConfigureStorage:boolean}){
+ const router=useRouter();const [creating,setCreating]=useState(false);const [openId,setOpenId]=useState<string|null>(null);const [name,setName]=useState("");const [description,setDescription]=useState("");const [address,setAddress]=useState("");const [jobId,setJobId]=useState("");const [busy,setBusy]=useState(false);const [error,setError]=useState<string|null>(null);
+ const open=projects.find(p=>p.id===openId)??null;
+ async function createProject(e:React.FormEvent){e.preventDefault();setBusy(true);setError(null);const res=await fetch("/api/projects",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,description,address,jobId:jobId||null})});setBusy(false);if(!res.ok){const b=await res.json().catch(()=>null);setError(b?.error??"Could not create past project");return}setCreating(false);setName("");setDescription("");setAddress("");setJobId("");router.refresh()}
+ async function upload(projectId:string,files:FileList|null){if(!files?.length)return;if(!storageReady){setError("Private storage is not ready.");return}setBusy(true);setError(null);for(const file of Array.from(files)){const isPhoto=/^image\/(jpeg|png|webp)$/.test(file.type);const kind=isPhoto?"project-photos":"documents";const ticketRes=await fetch("/api/storage/upload-ticket",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kind,fileName:file.name,contentType:file.type||"application/octet-stream",sizeBytes:file.size})});if(!ticketRes.ok){const b=await ticketRes.json().catch(()=>null);setError(b?.error??`Could not prepare ${file.name}`);break}const ticket=await ticketRes.json() as Ticket;const put=await fetch(ticket.uploadUrl,{method:"PUT",headers:ticket.uploadHeaders,body:file});if(!put.ok){setError(`Upload failed for ${file.name}`);break}const commit=await fetch(`/api/projects/${projectId}/assets`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({commitToken:ticket.commitToken,fileName:file.name,kind:isPhoto?"photo":"document"})});if(!commit.ok){const b=await commit.json().catch(()=>null);setError(b?.error??`Could not save ${file.name}`);break}}setBusy(false);router.refresh()}
+ const field={background:"var(--ep-input)",border:`1px solid ${UI.border}`,color:UI.text} as const;
+ return <><TopBar title="Past Projects" subtitle="Completed work, photos, documents and project information" rightSlot={canManage?<button onClick={()=>setCreating(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{...UI.primary,color:"#06213a"}}><Plus size={16}/> Add past project</button>:undefined}/>
+ <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{background:"var(--ep-main)"}}><div className="mx-auto w-full max-w-[1700px] space-y-4">
+ {!storageReady&&<div className="rounded-xl px-4 py-3 text-xs" style={{background:"rgba(255,159,28,.07)",border:"1px solid rgba(255,159,28,.28)",color:UI.mute}}>{canConfigureStorage?"Photo/document storage is configured in the app but is not currently available.":"Photo/document uploads are temporarily unavailable."}</div>}
+ {error&&<div className="rounded-xl px-4 py-3 text-sm" style={{background:"rgba(255,94,114,.08)",color:UI.red}}>{error}</div>}
+ {open?<ProjectFolder project={open} busy={busy} storageReady={storageReady} onBack={()=>setOpenId(null)} onUpload={files=>void upload(open.id,files)}/>:<>
+ <div className="grid gap-3 sm:grid-cols-3"><Metric label="Past projects" value={projects.length}/><Metric label="Photos" value={projects.reduce((n,p)=>n+p.photos.length,0)}/><Metric label="Documents" value={projects.reduce((n,p)=>n+p.documents.length,0)}/></div>
+ <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{projects.map(p=><button key={p.id} onClick={()=>setOpenId(p.id)} className="rounded-xl p-4 text-left" style={{...UI.raised,background:UI.panel,border:`1px solid ${UI.border}`}}><div className="flex items-start gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{background:"rgba(67,210,255,.12)",color:UI.cyan}}><Folder size={21}/></span><div className="min-w-0"><p className="truncate text-sm font-semibold" style={{color:UI.text}}>{p.name}</p><p className="mt-1 text-xs" style={{color:UI.mute}}>{p.client||"Past project"}</p></div></div>{p.address&&<p className="mt-4 flex items-center gap-1.5 truncate text-xs" style={{color:UI.faint}}><MapPin size={12}/>{p.address}</p>}<div className="mt-4 flex gap-4 text-[11px]" style={{color:UI.faint}}><span>{p.photos.length} photos</span><span>{p.documents.length} documents</span><span className="ml-auto">{new Date(p.completedAt).toLocaleDateString("en-AU")}</span></div></button>)}{projects.length===0&&<div className="rounded-xl px-5 py-14 text-center text-sm sm:col-span-2 xl:col-span-3" style={{...UI.raised,background:UI.panel,border:`1px solid ${UI.border}`,color:UI.faint}}>No past project folders yet. Use “Add past project” to create one.</div>}</div></>}
+ </div></div>
+ {creating&&<div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 p-4" onMouseDown={()=>setCreating(false)}><form onSubmit={createProject} onMouseDown={e=>e.stopPropagation()} className="w-full max-w-xl rounded-2xl p-5" style={{...UI.raised,background:UI.panel,border:`1px solid ${UI.border}`}}><div className="flex items-center"><h2 className="text-lg font-semibold" style={{color:UI.text}}>New past project</h2><button type="button" onClick={()=>setCreating(false)} className="ml-auto p-2" style={{color:UI.mute}}><X size={18}/></button></div><div className="mt-4 grid gap-3"><select value={jobId} onChange={e=>{setJobId(e.target.value);const j=completedJobs.find(x=>x.id===e.target.value);if(j){setName(j.title);setAddress(j.address)}}} className="rounded-lg px-3 py-2.5 text-sm" style={field}><option value="">Standalone past project</option>{completedJobs.map(j=><option key={j.id} value={j.id}>{j.title} — {j.client}</option>)}</select><input required placeholder="Project name" value={name} onChange={e=>setName(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm" style={field}/><input placeholder="Address (optional)" value={address} onChange={e=>setAddress(e.target.value)} className="rounded-lg px-3 py-2.5 text-sm" style={field}/><textarea placeholder="Project information / notes" value={description} onChange={e=>setDescription(e.target.value)} rows={5} className="rounded-lg px-3 py-2.5 text-sm" style={field}/></div><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={()=>setCreating(false)} className="rounded-lg px-4 py-2.5 text-sm" style={{color:UI.mute}}>Cancel</button><button disabled={busy} className="rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50" style={{...UI.primary,color:"#06213a"}}>{busy?"Creating…":"Create folder"}</button></div></form></div>}
+ </>}
+function ProjectFolder({project,busy,storageReady,onBack,onUpload}:{project:Project;busy:boolean;storageReady:boolean;onBack:()=>void;onUpload:(files:FileList|null)=>void}){return <div className="space-y-4"><div className="flex flex-wrap items-center gap-3"><button onClick={onBack} className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold" style={{background:UI.panelAlt,color:UI.mute,border:`1px solid ${UI.border}`}}><ChevronLeft size={15}/> All projects</button><div><h2 className="text-lg font-semibold" style={{color:UI.text}}>{project.name}</h2><p className="text-xs" style={{color:UI.mute}}>{project.client}{project.address?` · ${project.address}`:""}</p></div><label className="ml-auto flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{...UI.primary,color:"#06213a",opacity:storageReady&&!busy?1:.5}}><Upload size={15}/> Add photos / documents<input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" disabled={!storageReady||busy} className="hidden" onChange={e=>{onUpload(e.target.files);e.currentTarget.value=""}}/></label></div>{project.description&&<div className="rounded-xl p-4 text-sm whitespace-pre-wrap" style={{...UI.raised,background:UI.panel,border:`1px solid ${UI.border}`,color:UI.mute}}>{project.description}</div>}<section><h3 className="mb-3 flex items-center gap-2 text-sm font-semibold" style={{color:UI.text}}><ImageIcon size={16}/> Photos ({project.photos.length})</h3><div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">{project.photos.map(photo=><a key={photo.id} href={photo.url} target="_blank" rel="noreferrer" className="overflow-hidden rounded-xl" style={{background:UI.panel,border:`1px solid ${UI.border}`}}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={photo.url} alt={project.name} className="aspect-[4/3] w-full object-cover"/></a>)}{!project.photos.length&&<div className="col-span-full rounded-xl p-8 text-center text-xs" style={{border:`1px dashed ${UI.border}`,color:UI.faint}}>No photos yet.</div>}</div></section><section><h3 className="mb-3 flex items-center gap-2 text-sm font-semibold" style={{color:UI.text}}><FileText size={16}/> Documents ({project.documents.length})</h3><div className="grid gap-2">{project.documents.map(doc=><a key={doc.id} href={doc.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl p-3" style={{background:UI.panel,border:`1px solid ${UI.border}`,color:UI.text}}><FileText size={17} style={{color:UI.cyan}}/><span className="min-w-0 flex-1 truncate text-sm">{doc.name}</span><span className="text-[11px]" style={{color:UI.faint}}>{new Date(doc.createdAt).toLocaleDateString("en-AU")}</span></a>)}{!project.documents.length&&<div className="rounded-xl p-8 text-center text-xs" style={{border:`1px dashed ${UI.border}`,color:UI.faint}}>No documents yet.</div>}</div></section></div>}
+function Metric({label,value}:{label:string;value:number}){return <div className="rounded-xl p-4" style={{...UI.raised,background:UI.panel,border:`1px solid ${UI.border}`}}><p className="text-[11px]" style={{color:UI.faint}}>{label}</p><p className="mt-1 text-xl font-semibold" style={{color:UI.text}}>{value}</p></div>}
