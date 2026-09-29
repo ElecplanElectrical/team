@@ -6,6 +6,8 @@ import { ExternalLink, Filter, Plus, Search } from "lucide-react";
 import TopBar from "@/components/TopBar";
 import NewBillModal, { type BillClientOption, type BillJobOption } from "@/components/NewBillModal";
 
+export type SupplierReserveRow = { supplier:string; fundedFromPaidJobs:number; outstandingBills:number; requiredReserve:number; shortfall:number };
+
 export type BillRow = {
   id: string;
   ref: string;
@@ -43,7 +45,7 @@ function StatusPill({ status }: { status: BillStatus }) {
   return <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: style.bg, color: style.fg, border: `1px solid ${style.border}` }}>{status.charAt(0) + status.slice(1).toLowerCase()}</span>;
 }
 
-export default function BillsView({ bills, clients, jobs, storageReady }: { bills: BillRow[]; clients: BillClientOption[]; jobs: BillJobOption[]; storageReady: boolean }) {
+export default function BillsView({ bills, clients, jobs, storageReady, reserves, totalReserve, totalShortfall }: { bills: BillRow[]; clients: BillClientOption[]; jobs: BillJobOption[]; storageReady: boolean; reserves:SupplierReserveRow[]; totalReserve:number; totalShortfall:number }) {
   const router = useRouter();
   const [showNew, setShowNew] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -86,6 +88,16 @@ export default function BillsView({ bills, clients, jobs, storageReady }: { bill
       <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{ background: "var(--ep-main)" }}>
         <div className="mx-auto w-full max-w-[1700px] space-y-3">
           <div className="grid gap-3 sm:grid-cols-3"><Metric label="Receivables" value={money(receivables)} /><Metric label="Payables" value={money(payables)} /><Metric label="Overdue" value={money(overdue)} accent={overdue > 0 ? UI.red : undefined} /></div>
+          <section className="rounded-xl p-4 md:p-5" style={{ ...UI.raised, background:UI.panel, border:`1px solid ${totalShortfall>0?"rgba(255,159,28,.38)":UI.border}` }}>
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div><p className="text-[10px] font-semibold uppercase tracking-[.12em]" style={{color:UI.cyan}}>Supplier reserve</p><h2 className="mt-1 text-lg font-semibold" style={{color:UI.text}}>Money to keep aside for wholesalers</h2><p className="mt-1 max-w-2xl text-xs" style={{color:UI.mute}}>Based on unpaid supplier bills and the trade cost of materials recorded against jobs whose client invoice has been paid.</p></div>
+              <div className="grid grid-cols-2 gap-2 md:min-w-[320px]"><Metric label="Keep aside" value={money(totalReserve)}/><Metric label="Unfunded shortfall" value={money(totalShortfall)} accent={totalShortfall>0?UI.orange:undefined}/></div>
+            </div>
+            <div className="mt-4 grid gap-2">
+              {reserves.map(item=><div key={item.supplier} className="grid gap-2 rounded-lg p-3 text-xs sm:grid-cols-[minmax(150px,1fr)_repeat(3,minmax(110px,.7fr))]" style={{background:UI.panelAlt,border:`1px solid ${UI.borderSoft}`}}><div><p className="font-semibold" style={{color:UI.text}}>{item.supplier}</p><p className="mt-1 text-[10px]" style={{color:UI.faint}}>Trade account reserve</p></div><ReserveStat label="Paid-job materials" value={money(item.fundedFromPaidJobs)}/><ReserveStat label="Bills owing" value={money(item.outstandingBills)}/><ReserveStat label="Keep aside" value={money(item.requiredReserve)} accent={item.shortfall>0?UI.orange:UI.cyan}/></div>)}
+              {!reserves.length&&<div className="rounded-lg p-5 text-center text-xs" style={{background:UI.panelAlt,color:UI.faint}}>Add supplier trade costs to Materials or supplier bills and the reserve will calculate here automatically.</div>}
+            </div>
+          </section>
           {error && <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,94,114,.08)", border: "1px solid rgba(255,94,114,.28)", color: UI.red }}>{error}</div>}
 
           <section className="overflow-hidden rounded-xl" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}>
@@ -115,3 +127,5 @@ export default function BillsView({ bills, clients, jobs, storageReady }: { bill
 function Metric({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return <div className="rounded-xl p-4" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}` }}><div className="text-[11px]" style={{ color: UI.faint }}>{label}</div><div className="mt-1 text-xl font-semibold" style={{ color: accent ?? UI.text }}>{value}</div></div>;
 }
+
+function ReserveStat({label,value,accent}:{label:string;value:string;accent?:string}){return <div><p className="text-[10px]" style={{color:UI.faint}}>{label}</p><p className="mt-1 font-semibold" style={{color:accent??UI.text}}>{value}</p></div>}
