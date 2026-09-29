@@ -29,6 +29,7 @@ export default async function BillsPage() {
         dueDate: true,
         status: true,
         createdAt: true,
+        jobId: true,
         documentStorageKey: true,
         documentSizeBytes: true,
         client: { select: { name: true } },
@@ -54,7 +55,7 @@ export default async function BillsPage() {
 
   const materialMap = new Map(materials.map((material) => [material.id, material]));
   const paidJobIds = new Set(
-    invoiceRows.filter((invoice) => invoice.client && invoice.status === "PAID" && invoice.job).map((invoice) => jobs.find((job) => job.title === invoice.job?.title)?.id).filter(Boolean) as string[],
+    invoiceRows.filter((invoice) => invoice.client && invoice.status === "PAID" && invoice.jobId).map((invoice) => invoice.jobId as string),
   );
   const supplierMaterialCost = new Map<string, number>();
   for (const usage of jobMaterials) {
