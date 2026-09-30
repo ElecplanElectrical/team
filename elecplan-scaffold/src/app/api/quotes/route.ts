@@ -16,6 +16,7 @@ const quoteSchema = z.object({
   jobId: z.string().trim().optional().nullable(),
   lineItems: z.array(lineItemSchema).min(1).max(100),
   status: z.enum(["DRAFT", "SENT", "ACCEPTED", "DECLINED"]).default("DRAFT"),
+  exclusions: z.array(z.string().trim().min(1).max(500)).max(50).default([]),
 });
 
 function quoteNumber() {
@@ -76,11 +77,15 @@ export async function POST(req: Request) {
             gstRate: item.gstRate,
           })),
         },
+        exclusions: {
+          create: d.exclusions.map((description) => ({ description })),
+        },
       },
       include: {
         client: { select: { name: true } },
         job: { select: { title: true } },
         lineItems: true,
+        exclusions: true,
       },
     });
     return NextResponse.json(quote, { status: 201 });
