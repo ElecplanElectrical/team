@@ -19,6 +19,7 @@ export type QuoteRow = {
   amount: number;
   status: QuoteStatus;
   lineItemCount: number;
+  exclusions: { id:string; description:string; convertedAt:string|null }[];
   invoiceRef: string | null;
   createdAt: string;
 };
@@ -53,6 +54,8 @@ export default function QuotesView({ quotes, clients, jobs }: { quotes: QuoteRow
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | QuoteStatus>("ALL");
+  const [extraId,setExtraId]=useState<string|null>(null);
+  const [extraPrice,setExtraPrice]=useState("");
 
   const pipeline = quotes.filter((q) => q.status === "DRAFT" || q.status === "SENT").reduce((sum, q) => sum + q.amount, 0);
   const accepted = quotes.filter((q) => q.status === "ACCEPTED").reduce((sum, q) => sum + q.amount, 0);
@@ -92,6 +95,17 @@ export default function QuotesView({ quotes, clients, jobs }: { quotes: QuoteRow
     router.refresh();
   }
 
+  async function makeExtra(quote:QuoteRow, exclusionId:string) {
+    if(!quote.job){setError("Link this quote to a job before turning an exclusion into an extra.");return}
+    const price=Number(extraPrice);
+    if(!Number.isFinite(price)||price<0){setError("Enter the price for the extra.");return}
+    setExtraId(exclusionId);setError(null);
+    const res=await fetch(`/api/quotes/${quote.id}/exclusions/${exclusionId}/extra`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({unitPrice:price})});
+    setExtraId(null);setExtraPrice("");
+    if(!res.ok){const body=await res.json().catch(()=>null);setError(body?.error??"Could not make this exclusion billable.");return}
+    router.refresh();
+  }
+
   const field = { ...{boxShadow:"var(--ep-inset-shadow)"}, background: "var(--ep-input)", border: `1px solid ${UI.border}`, color: UI.text } as const;
 
   return (
@@ -113,7 +127,7 @@ export default function QuotesView({ quotes, clients, jobs }: { quotes: QuoteRow
             {filtered.map((quote) => <div key={quote.id} className="grid grid-cols-1 gap-3 border-b px-4 py-4 lg:grid-cols-[150px_minmax(180px,1fr)_minmax(180px,1fr)_120px_130px_190px] lg:items-center lg:gap-4" style={{ borderColor: UI.borderSoft }}>
               <div><span className="text-xs font-semibold" style={{ color: UI.text }}>{quote.ref}</span><div className="mt-1 text-[11px]" style={{ color: UI.faint }}>{quote.lineItemCount > 0 ? `${quote.lineItemCount} line item${quote.lineItemCount === 1 ? "" : "s"}` : "Legacy amount"}</div></div>
               <span className="text-sm font-semibold" style={{ color: UI.text }}>{quote.client}</span>
-              <span className="text-xs" style={{ color: UI.mute }}>{quote.job ?? "No linked job"}</span>
+              <span className="text-xs" style={{ color: UI.mute }}>{quote.job ?? "No linked job"}</span>{quote.exclusions.length>0&&<div className="lg:col-span-6 rounded-lg p-3" style={{background:"rgba(255,159,28,.06)",border:"1px solid rgba(255,159,28,.18)"}}><p className="mb-2 text-[10px] font-semibold uppercase tracking-[.1em]" style={{color:UI.orange}}>Exclusions / later extras</p><div className="space-y-2">{quote.exclusions.map(ex=>ex.convertedAt?<div key={ex.id} className="flex items-center gap-2 text-xs" style={{color:UI.mute}}><span className="line-through">{ex.description}</span><span className="ml-auto font-semibold" style={{color:UI.green}}>Moved to unbilled extras</span></div>:<div key={ex.id} className="flex flex-col gap-2 sm:flex-row sm:items-center"><span className="min-w-0 flex-1 text-xs" style={{color:UI.text}}>{ex.description}</span><input type="number" min="0" step=".01" placeholder="Extra price" value={extraId===ex.id?extraPrice:""} onFocus={()=>{setExtraId(ex.id);setExtraPrice("")}} onChange={e=>{setExtraId(ex.id);setExtraPrice(e.target.value)}} className="h-8 w-28 rounded-lg px-2 text-xs outline-none" style={field}/><button type="button" disabled={extraId===ex.id&&!extraPrice} onClick={()=>void makeExtra(quote,ex.id)} className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold" style={{background:"rgba(67,210,255,.11)",color:UI.cyan,border:"1px solid rgba(67,210,255,.22)"}}>Now billable</button></div>)}</div></div>}
               <div><span className="text-sm font-semibold" style={{ color: UI.text }}>{money(quote.amount)}</span>{quote.gstAmount != null && <div className="text-[11px]" style={{ color: UI.faint }}>{money(quote.gstAmount)} GST</div>}</div>
               <div className="flex items-center gap-2"><StatusPill status={quote.status} /><select aria-label={`Update ${quote.ref} status`} value={quote.status} disabled={updatingId === quote.id || Boolean(quote.invoiceRef)} onChange={(e) => void updateStatus(quote.id, e.target.value as QuoteStatus)} className="min-w-0 rounded-lg px-2 py-1.5 text-[11px] outline-none disabled:opacity-60" style={field}>{STATUSES.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></div>
               {quote.invoiceRef ? <span className="text-xs font-semibold" style={{ color: UI.cyan }}>{quote.invoiceRef}</span> : quote.status === "ACCEPTED" ? <button type="button" disabled={convertingId === quote.id} onClick={() => void convert(quote.id)} className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-60" style={{ background: "rgba(67,210,255,.13)", color: UI.cyan, border: "1px solid rgba(67,210,255,.28)" }}><FileDown size={14} />{convertingId === quote.id ? "Creating…" : "Create invoice"}</button> : <span className="text-xs" style={{ color: UI.faint }}>Accept quote first</span>}
