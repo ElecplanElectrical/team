@@ -568,3 +568,27 @@ model JobMaterial {
   @@index([jobId])
   @@index([stockAppliedAt])
 }
+
+
+model SupplierProduct {
+  id                 String   @id @default(cuid())
+  supplierEntityCode String
+  supplierName       String
+  productCode        String
+  description        String
+  productGroup       String?
+  priceExTax         Decimal?
+  priceIncTax        Decimal?
+  retailPrice        Decimal?
+  currency           String   @default("AUD")
+  unitOfMeasure      String?
+  pricePer           Decimal?
+  reviewRequired     Boolean  @default(false)
+  sourceImportedAt   DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([supplierEntityCode, productCode])
+  @@index([supplierName, description])
+  @@index([productCode])
+}
