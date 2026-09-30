@@ -178,6 +178,7 @@ model Job {
   tasks        JobTask[]
   materials    JobMaterial[]
   pastProject  Project?
+  extras       JobExtra[]
 }
 
 model JobEvent {
@@ -208,6 +209,32 @@ model Quote {
   createdAt        DateTime    @default(now())
   lineItems        QuoteLineItem[]
   convertedInvoice Invoice?    @relation("ConvertedQuote")
+  exclusions       QuoteExclusion[]
+}
+
+model QuoteExclusion {
+  id          String   @id @default(cuid())
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId     String
+  description String
+  convertedAt DateTime?
+  createdAt   DateTime @default(now())
+  @@index([quoteId])
+}
+
+model JobExtra {
+  id          String   @id @default(cuid())
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId       String
+  description String
+  quantity    Decimal  @default(1)
+  unitPrice   Decimal?
+  gstRate     Decimal  @default(0.10)
+  source      String   @default("EXTRA")
+  invoicedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([jobId, invoicedAt])
 }
 
 model QuoteLineItem {
