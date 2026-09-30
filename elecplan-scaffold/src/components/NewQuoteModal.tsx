@@ -15,6 +15,7 @@ export default function NewQuoteModal({ clients, jobs, onClose, onDone }: { clie
   const [jobId, setJobId] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([blankLine()]);
   const [status, setStatus] = useState("DRAFT");
+  const [exclusions, setExclusions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -39,7 +40,7 @@ export default function NewQuoteModal({ clients, jobs, onClose, onDone }: { clie
     if (!clientId || lineItems.some((line) => !line.description || !Number.isFinite(line.quantity) || line.quantity <= 0 || !Number.isFinite(line.unitPrice) || line.unitPrice < 0)) return setError("Choose a client and complete each line item.");
 
     setSaving(true);
-    const res = await fetch("/api/quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientId, jobId: jobId || null, lineItems, status }) });
+    const res = await fetch("/api/quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientId, jobId: jobId || null, lineItems, status, exclusions: exclusions.map((item) => item.trim()).filter(Boolean) }) });
     setSaving(false);
     if (!res.ok) { const body = await res.json().catch(() => null); setError(body?.error ?? "Could not create the quote."); return; }
     onDone();
@@ -73,6 +74,11 @@ export default function NewQuoteModal({ clients, jobs, onClose, onDone }: { clie
               <button type="button" aria-label="Remove line" disabled={lines.length === 1} onClick={() => setLines((current) => current.filter((_, lineIndex) => lineIndex !== index))} className="flex h-10 items-center justify-center rounded-lg disabled:opacity-30" style={{ color: UI.red, border: `1px solid ${UI.borderSoft}` }}><Trash2 size={15} /></button>
             </div>)}
           </div>
+        </div>
+
+        <div className="mt-5">
+          <div className="mb-2 flex items-center justify-between gap-3"><span className="text-[10px] font-semibold uppercase tracking-[.12em]" style={{ color: UI.faint }}>Exclusions — not included in this price</span><button type="button" onClick={() => setExclusions((current) => [...current, ""])} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold" style={{ background: "rgba(255,159,28,.09)", color: UI.orange, border: "1px solid rgba(255,159,28,.22)" }}><Plus size={13}/> Add exclusion</button></div>
+          <div className="space-y-2">{exclusions.map((item,index)=><div key={index} className="flex gap-2"><input placeholder="e.g. LED strip supply and installation not included" value={item} onChange={e=>setExclusions(current=>current.map((value,i)=>i===index?e.target.value:value))} className="h-10 min-w-0 flex-1 rounded-lg px-3 text-sm outline-none" style={field}/><button type="button" aria-label="Remove exclusion" onClick={()=>setExclusions(current=>current.filter((_,i)=>i!==index))} className="flex h-10 w-10 items-center justify-center rounded-lg" style={{color:UI.red,border:`1px solid ${UI.borderSoft}`}}><Trash2 size={15}/></button></div>)}</div>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl p-3" style={{ ...{boxShadow:"var(--ep-inset-shadow)"}, background: "var(--ep-input)", border: `1px solid ${UI.borderSoft}` }}><Total label="Subtotal" value={money(totals.subtotal)} /><Total label="GST" value={money(totals.gst)} /><Total label="Total" value={money(totals.subtotal + totals.gst)} strong /></div>
