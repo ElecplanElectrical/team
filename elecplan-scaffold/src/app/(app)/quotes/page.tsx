@@ -16,6 +16,7 @@ export default async function QuotesPage() {
         job: { select: { title: true } },
         convertedInvoice: { select: { invoiceNumber: true } },
         lineItems: { select: { id: true } },
+        exclusions: { select: { id: true, description: true, convertedAt: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -33,6 +34,7 @@ export default async function QuotesPage() {
     amount: Number(q.amount),
     status: q.status,
     lineItemCount: q.lineItems.length,
+    exclusions: q.exclusions.map((item) => ({ id:item.id, description:item.description, convertedAt:item.convertedAt?.toISOString() ?? null })),
     invoiceRef: q.convertedInvoice?.invoiceNumber ?? null,
     createdAt: q.createdAt.toISOString(),
   }));
