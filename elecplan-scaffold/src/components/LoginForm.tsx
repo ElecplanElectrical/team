@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { AlertTriangle, ArrowUpRight, LockKeyhole, LogIn, ShieldCheck, Zap } from "lucide-react";
 import { LOGO_MARK, LOGO_WORDMARK } from "@/lib/logo";
@@ -163,7 +164,12 @@ export default function LoginForm({
 
           <div className="mt-6 flex items-start gap-2 rounded-xl px-3 py-3" style={{ background: "rgba(255,255,255,.025)", border: "1px solid rgba(255,255,255,.06)" }}>
             <LockKeyhole size={14} className="mt-0.5 shrink-0" style={{ color: UI.cyan }}/>
-            <p className="text-[11px] leading-5" style={{ color: UI.faint }}>Forgot your password? Ask an Elecplan admin to issue a secure reset link.</p>
+            <p className="text-[11px] leading-5" style={{ color: UI.faint }}>
+              Forgot your password?{" "}
+              <Link href="/forgot-password" className="font-semibold hover:underline" style={{ color: UI.cyan }}>
+                Reset it by email
+              </Link>
+            </p>
           </div>
 
           {demoLogins && demoLogins.length > 0 && (
