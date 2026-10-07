@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Copy, Printer, RotateCcw, Ruler } from "lucide-react";
 
 type AxisMode = "even" | "fixed";
@@ -51,6 +51,7 @@ export default function DownlightPlanner() {
   const [startSide, setStartSide] = useState<Side>("right");
   const [startEnd, setStartEnd] = useState<End>("front");
   const [copied, setCopied] = useState(false);
+  const [inputResetKey, setInputResetKey] = useState(0);
 
   const width = useMemo(() => axisLayout(roomWidth, columns, sideMode, sideOffset), [roomWidth, columns, sideMode, sideOffset]);
   const length = useMemo(() => axisLayout(roomLength, rows, endMode, endOffset), [roomLength, rows, endMode, endOffset]);
@@ -123,6 +124,7 @@ export default function DownlightPlanner() {
     setEndOffset(930);
     setStartSide("right");
     setStartEnd("front");
+    setInputResetKey((value) => value + 1);
   };
 
   const copyMeasurements = async () => {
@@ -183,7 +185,7 @@ export default function DownlightPlanner() {
         </div>
 
         <div className="grid min-w-0 gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
-          <section className="downlight-controls min-w-0 rounded-2xl border border-white/10 bg-[#111923] p-5 shadow-2xl shadow-black/20">
+          <section key={inputResetKey} className="downlight-controls min-w-0 rounded-2xl border border-white/10 bg-[#111923] p-5 shadow-2xl shadow-black/20">
             <h2 className="text-base font-bold">Room & layout</h2>
             <p className="mt-1 text-xs leading-5 text-slate-500">All measurements are centre-to-centre in millimetres.</p>
 
@@ -349,26 +351,12 @@ function NumberField({ label, value, onChange, min, max, suffix }: {
   max?: number;
   suffix?: string;
 }) {
-  const [draft, setDraft] = useState(String(value));
-
-  useEffect(() => {
-    setDraft(String(value));
-  }, [value]);
-
-  const commit = (raw: string) => {
-    if (raw.trim() === "") {
-      setDraft(String(value));
-      return;
-    }
+  const clamp = (raw: string) => {
     let next = Number(raw);
-    if (!Number.isFinite(next)) {
-      setDraft(String(value));
-      return;
-    }
+    if (!Number.isFinite(next)) return value;
     if (min != null) next = Math.max(min, next);
     if (max != null) next = Math.min(max, next);
-    onChange(next);
-    setDraft(String(next));
+    return next;
   };
 
   return <label className="block min-w-0">
@@ -378,14 +366,24 @@ function NumberField({ label, value, onChange, min, max, suffix }: {
         type="text"
         inputMode="numeric"
         enterKeyHint="done"
-        value={draft}
+        defaultValue={String(value)}
         onFocus={(event) => event.currentTarget.select()}
-        onChange={(event) => {
-          const next = event.target.value.replace(/[^0-9]/g, "");
-          setDraft(next);
-          if (next !== "") onChange(Number(next));
+        onInput={(event) => {
+          const input = event.currentTarget;
+          const cleaned = input.value.replace(/[^0-9]/g, "");
+          if (input.value !== cleaned) input.value = cleaned;
+          if (cleaned !== "") onChange(Number(cleaned));
         }}
-        onBlur={(event) => commit(event.currentTarget.value)}
+        onBlur={(event) => {
+          const input = event.currentTarget;
+          if (input.value.trim() === "") {
+            input.value = String(value);
+            return;
+          }
+          const next = clamp(input.value);
+          input.value = String(next);
+          onChange(next);
+        }}
         className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm font-semibold text-white outline-none"
       />
       {suffix && <span className="pr-3 text-xs font-semibold text-slate-500">{suffix}</span>}
