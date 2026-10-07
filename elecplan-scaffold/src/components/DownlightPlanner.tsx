@@ -6,6 +6,17 @@ import { Copy, Printer, RotateCcw, Ruler, TriangleAlert } from "lucide-react";
 type AxisMode = "even" | "fixed";
 type Side = "left" | "right";
 type End = "front" | "back";
+type ClashTarget = "column" | "row" | "light";
+type ClashDirection = "left" | "right" | "front" | "back";
+type ClashAdjustment = {
+  id: number;
+  target: ClashTarget;
+  column: number;
+  row: number;
+  direction: ClashDirection;
+  amount: number;
+  label: string;
+};
 
 type AxisLayout = {
   valid: boolean;
@@ -52,12 +63,69 @@ export default function DownlightPlanner() {
   const [startEnd, setStartEnd] = useState<End>("front");
   const [copied, setCopied] = useState(false);
   const [inputResetKey, setInputResetKey] = useState(0);
+  const [cutoutDiameter, setCutoutDiameter] = useState(90);
+  const [clashTarget, setClashTarget] = useState<ClashTarget>("column");
+  const [clashColumn, setClashColumn] = useState(0);
+  const [clashRow, setClashRow] = useState(0);
+  const [clashDirection, setClashDirection] = useState<ClashDirection>("left");
+  const [clashAmount, setClashAmount] = useState(45);
+  const [clashLabel, setClashLabel] = useState("Timber");
+  const [clashAdjustments, setClashAdjustments] = useState<ClashAdjustment[]>([]);
+  const [clashError, setClashError] = useState<string | null>(null);
+  const [clashInputKey, setClashInputKey] = useState(0);
 
   const width = useMemo(() => axisLayout(roomWidth, columns, sideMode, sideOffset), [roomWidth, columns, sideMode, sideOffset]);
   const length = useMemo(() => axisLayout(roomLength, rows, endMode, endOffset), [roomLength, rows, endMode, endOffset]);
   const hasLayoutInputs = roomWidth > 0 && roomLength > 0 && columns > 0 && rows > 0;
   const valid = hasLayoutInputs && width.valid && length.valid && columns <= 10 && rows <= 10;
   const lightCount = Math.max(0, columns * rows);
+
+  const clashOffsets = useMemo(() => {
+    const columnX = Array.from({ length: columns }, () => 0);
+    const rowY = Array.from({ length: rows }, () => 0);
+    const single = new Map<string, { x: number; y: number }>();
+
+    clashAdjustments.forEach((adjustment) => {
+      const signed = adjustment.direction === "left" || adjustment.direction === "front"
+        ? -adjustment.amount
+        : adjustment.amount;
+
+      if (adjustment.target === "column" && columnX[adjustment.column] != null) {
+        columnX[adjustment.column] += signed;
+      } else if (adjustment.target === "row" && rowY[adjustment.row] != null) {
+        rowY[adjustment.row] += signed;
+      } else if (adjustment.target === "light") {
+        const key = `${adjustment.row}-${adjustment.column}`;
+        const current = single.get(key) ?? { x: 0, y: 0 };
+        if (adjustment.direction === "left" || adjustment.direction === "right") current.x += signed;
+        else current.y += signed;
+        single.set(key, current);
+      }
+    });
+
+    return { columnX, rowY, single };
+  }, [clashAdjustments, columns, rows]);
+
+  const adjustedColumnPositions = useMemo(
+    () => width.positions.map((position, index) => position + (clashOffsets.columnX[index] ?? 0)),
+    [width.positions, clashOffsets.columnX]
+  );
+  const adjustedRowPositions = useMemo(
+    () => length.positions.map((position, index) => position + (clashOffsets.rowY[index] ?? 0)),
+    [length.positions, clashOffsets.rowY]
+  );
+  const cellPositions = useMemo(
+    () => Array.from({ length: rows }, (_, rowIndex) =>
+      Array.from({ length: columns }, (_, colIndex) => {
+        const single = clashOffsets.single.get(`${rowIndex}-${colIndex}`) ?? { x: 0, y: 0 };
+        return {
+          x: (adjustedColumnPositions[colIndex] ?? 0) + single.x,
+          y: (adjustedRowPositions[rowIndex] ?? 0) + single.y,
+        };
+      })
+    ),
+    [rows, columns, clashOffsets.single, adjustedColumnPositions, adjustedRowPositions]
+  );
 
   const sequence = useMemo(() => {
     if (!valid) return [];
@@ -72,11 +140,12 @@ export default function DownlightPlanner() {
         ? Array.from({ length: columns }, (_, index) => index)
         : Array.from({ length: columns }, (_, index) => columns - 1 - index);
       colIndexes.forEach((colIndex) => {
-        points.push({ row: rowIndex, col: colIndex, x: width.positions[colIndex], y: length.positions[rowIndex] });
+        const cell = cellPositions[rowIndex]?.[colIndex] ?? { x: 0, y: 0 };
+        points.push({ row: rowIndex, col: colIndex, x: cell.x, y: cell.y });
       });
     });
     return points;
-  }, [valid, rows, columns, startEnd, startSide, width.positions, length.positions]);
+  }, [valid, rows, columns, startEnd, startSide, cellPositions]);
 
   const numberByPoint = useMemo(() => {
     const map = new Map<string, number>();
@@ -104,15 +173,15 @@ export default function DownlightPlanner() {
 
   const acrossSegments = useMemo(() => {
     if (!valid) return [];
-    const points = [0, ...width.positions, roomWidth];
+    const points = [0, ...adjustedColumnPositions, roomWidth];
     return points.slice(1).map((value, index) => value - points[index]);
-  }, [valid, width.positions, roomWidth]);
+  }, [valid, adjustedColumnPositions, roomWidth]);
 
   const lengthSegments = useMemo(() => {
     if (!valid) return [];
-    const points = [0, ...length.positions, roomLength];
+    const points = [0, ...adjustedRowPositions, roomLength];
     return points.slice(1).map((value, index) => value - points[index]);
-  }, [valid, length.positions, roomLength]);
+  }, [valid, adjustedRowPositions, roomLength]);
 
   const reset = () => {
     setRoomWidth(0);
@@ -125,7 +194,102 @@ export default function DownlightPlanner() {
     setEndOffset(0);
     setStartSide("right");
     setStartEnd("front");
+    setCutoutDiameter(90);
+    setClashTarget("column");
+    setClashColumn(0);
+    setClashRow(0);
+    setClashDirection("left");
+    setClashAmount(45);
+    setClashLabel("Timber");
+    setClashAdjustments([]);
+    setClashError(null);
     setInputResetKey((value) => value + 1);
+    setClashInputKey((value) => value + 1);
+  };
+
+  const halfCutout = Math.max(0, Math.round(cutoutDiameter / 2));
+
+  const changeClashTarget = (target: ClashTarget) => {
+    setClashTarget(target);
+    setClashError(null);
+    if (target === "column") setClashDirection("left");
+    else if (target === "row") setClashDirection("front");
+    else setClashDirection("left");
+  };
+
+  const useHalfCutout = () => {
+    setClashAmount(halfCutout);
+    setClashInputKey((value) => value + 1);
+  };
+
+  const applyClash = () => {
+    if (!valid || clashAmount <= 0) {
+      setClashError("Enter a valid movement amount.");
+      return;
+    }
+
+    const signed = clashDirection === "left" || clashDirection === "front" ? -clashAmount : clashAmount;
+
+    if (clashTarget === "column") {
+      const current = adjustedColumnPositions[clashColumn];
+      if (current == null) {
+        setClashError("Choose a valid front-to-back run.");
+        return;
+      }
+      const next = current + signed;
+      const previous = clashColumn > 0 ? adjustedColumnPositions[clashColumn - 1] : 0;
+      const following = clashColumn < columns - 1 ? adjustedColumnPositions[clashColumn + 1] : roomWidth;
+      if (next <= 0 || next >= roomWidth || next <= previous || next >= following) {
+        setClashError("That movement would push the run outside the room or across another run.");
+        return;
+      }
+    }
+
+    if (clashTarget === "row") {
+      const current = adjustedRowPositions[clashRow];
+      if (current == null) {
+        setClashError("Choose a valid left-to-right row.");
+        return;
+      }
+      const next = current + signed;
+      const previous = clashRow > 0 ? adjustedRowPositions[clashRow - 1] : 0;
+      const following = clashRow < rows - 1 ? adjustedRowPositions[clashRow + 1] : roomLength;
+      if (next <= 0 || next >= roomLength || next <= previous || next >= following) {
+        setClashError("That movement would push the row outside the room or across another row.");
+        return;
+      }
+    }
+
+    if (clashTarget === "light") {
+      const current = cellPositions[clashRow]?.[clashColumn];
+      if (!current) {
+        setClashError("Choose a valid downlight.");
+        return;
+      }
+      const nextX = current.x + (clashDirection === "left" || clashDirection === "right" ? signed : 0);
+      const nextY = current.y + (clashDirection === "front" || clashDirection === "back" ? signed : 0);
+      if (nextX <= 0 || nextX >= roomWidth || nextY <= 0 || nextY >= roomLength) {
+        setClashError("That movement would put the downlight outside the room.");
+        return;
+      }
+    }
+
+    const nextId = clashAdjustments.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+    setClashAdjustments((items) => [...items, {
+      id: nextId,
+      target: clashTarget,
+      column: clashColumn,
+      row: clashRow,
+      direction: clashDirection,
+      amount: clashAmount,
+      label: clashLabel,
+    }]);
+    setClashError(null);
+  };
+
+  const removeClash = (id: number) => {
+    setClashAdjustments((items) => items.filter((item) => item.id !== id));
+    setClashError(null);
   };
 
   const copyMeasurements = async () => {
