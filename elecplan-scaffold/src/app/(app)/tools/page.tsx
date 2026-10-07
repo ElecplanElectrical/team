@@ -5,7 +5,6 @@ import { requireAccess } from "@/lib/session";
 const plannedTools = [
   { name: "Voltage Drop", description: "Cable voltage-drop helper for common site calculations." },
   { name: "Cable Sizing", description: "Quick cable-selection workflow with installation inputs." },
-  { name: "Conduit Fill", description: "Check conduit capacity before you pull the run." },
   { name: "Load Calculator", description: "Fast current and load calculations for site work." },
 ];
 
@@ -34,7 +33,7 @@ export default async function ToolsPage() {
 
       <section className="mt-8">
         <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Planned tools</p>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {plannedTools.map((tool) => <div key={tool.name} className="rounded-2xl border border-white/[0.08] bg-[#111923] p-5">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] text-slate-400"><Calculator size={19}/></div>
             <div className="flex items-center gap-2"><h3 className="font-bold">{tool.name}</h3><span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500">Planned</span></div>
