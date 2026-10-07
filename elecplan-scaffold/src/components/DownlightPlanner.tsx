@@ -1,11 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Copy, Printer, RotateCcw, Ruler } from "lucide-react";
+import { Copy, Printer, RotateCcw, Ruler, TriangleAlert, Trash2 } from "lucide-react";
 
 type AxisMode = "even" | "fixed";
 type Side = "left" | "right";
 type End = "front" | "back";
+type ClashTarget = "column" | "row" | "light";
+type ClashDirection = "left" | "right" | "front" | "back";
+type ClashAdjustment = {
+  id: number;
+  target: ClashTarget;
+  column: number;
+  row: number;
+  direction: ClashDirection;
+  amount: number;
+  label: string;
+};
 
 type AxisLayout = {
   valid: boolean;
@@ -52,12 +63,69 @@ export default function DownlightPlanner() {
   const [startEnd, setStartEnd] = useState<End>("front");
   const [copied, setCopied] = useState(false);
   const [inputResetKey, setInputResetKey] = useState(0);
+  const [cutoutDiameter, setCutoutDiameter] = useState(90);
+  const [clashTarget, setClashTarget] = useState<ClashTarget>("column");
+  const [clashColumn, setClashColumn] = useState(0);
+  const [clashRow, setClashRow] = useState(0);
+  const [clashDirection, setClashDirection] = useState<ClashDirection>("left");
+  const [clashAmount, setClashAmount] = useState(45);
+  const [clashLabel, setClashLabel] = useState("Timber");
+  const [clashAdjustments, setClashAdjustments] = useState<ClashAdjustment[]>([]);
+  const [clashError, setClashError] = useState<string | null>(null);
+  const [clashInputKey, setClashInputKey] = useState(0);
 
   const width = useMemo(() => axisLayout(roomWidth, columns, sideMode, sideOffset), [roomWidth, columns, sideMode, sideOffset]);
   const length = useMemo(() => axisLayout(roomLength, rows, endMode, endOffset), [roomLength, rows, endMode, endOffset]);
   const hasLayoutInputs = roomWidth > 0 && roomLength > 0 && columns > 0 && rows > 0;
   const valid = hasLayoutInputs && width.valid && length.valid && columns <= 10 && rows <= 10;
   const lightCount = Math.max(0, columns * rows);
+
+  const clashOffsets = useMemo(() => {
+    const columnX = Array.from({ length: columns }, () => 0);
+    const rowY = Array.from({ length: rows }, () => 0);
+    const single = new Map<string, { x: number; y: number }>();
+
+    clashAdjustments.forEach((adjustment) => {
+      const signed = adjustment.direction === "left" || adjustment.direction === "front"
+        ? -adjustment.amount
+        : adjustment.amount;
+
+      if (adjustment.target === "column" && columnX[adjustment.column] != null) {
+        columnX[adjustment.column] += signed;
+      } else if (adjustment.target === "row" && rowY[adjustment.row] != null) {
+        rowY[adjustment.row] += signed;
+      } else if (adjustment.target === "light") {
+        const key = `${adjustment.row}-${adjustment.column}`;
+        const current = single.get(key) ?? { x: 0, y: 0 };
+        if (adjustment.direction === "left" || adjustment.direction === "right") current.x += signed;
+        else current.y += signed;
+        single.set(key, current);
+      }
+    });
+
+    return { columnX, rowY, single };
+  }, [clashAdjustments, columns, rows]);
+
+  const adjustedColumnPositions = useMemo(
+    () => width.positions.map((position, index) => position + (clashOffsets.columnX[index] ?? 0)),
+    [width.positions, clashOffsets.columnX]
+  );
+  const adjustedRowPositions = useMemo(
+    () => length.positions.map((position, index) => position + (clashOffsets.rowY[index] ?? 0)),
+    [length.positions, clashOffsets.rowY]
+  );
+  const cellPositions = useMemo(
+    () => Array.from({ length: rows }, (_, rowIndex) =>
+      Array.from({ length: columns }, (_, colIndex) => {
+        const single = clashOffsets.single.get(`${rowIndex}-${colIndex}`) ?? { x: 0, y: 0 };
+        return {
+          x: (adjustedColumnPositions[colIndex] ?? 0) + single.x,
+          y: (adjustedRowPositions[rowIndex] ?? 0) + single.y,
+        };
+      })
+    ),
+    [rows, columns, clashOffsets.single, adjustedColumnPositions, adjustedRowPositions]
+  );
 
   const sequence = useMemo(() => {
     if (!valid) return [];
@@ -72,11 +140,12 @@ export default function DownlightPlanner() {
         ? Array.from({ length: columns }, (_, index) => index)
         : Array.from({ length: columns }, (_, index) => columns - 1 - index);
       colIndexes.forEach((colIndex) => {
-        points.push({ row: rowIndex, col: colIndex, x: width.positions[colIndex], y: length.positions[rowIndex] });
+        const cell = cellPositions[rowIndex]?.[colIndex] ?? { x: 0, y: 0 };
+        points.push({ row: rowIndex, col: colIndex, x: cell.x, y: cell.y });
       });
     });
     return points;
-  }, [valid, rows, columns, startEnd, startSide, width.positions, length.positions]);
+  }, [valid, rows, columns, startEnd, startSide, cellPositions]);
 
   const numberByPoint = useMemo(() => {
     const map = new Map<string, number>();
@@ -104,15 +173,15 @@ export default function DownlightPlanner() {
 
   const acrossSegments = useMemo(() => {
     if (!valid) return [];
-    const points = [0, ...width.positions, roomWidth];
+    const points = [0, ...adjustedColumnPositions, roomWidth];
     return points.slice(1).map((value, index) => value - points[index]);
-  }, [valid, width.positions, roomWidth]);
+  }, [valid, adjustedColumnPositions, roomWidth]);
 
   const lengthSegments = useMemo(() => {
     if (!valid) return [];
-    const points = [0, ...length.positions, roomLength];
+    const points = [0, ...adjustedRowPositions, roomLength];
     return points.slice(1).map((value, index) => value - points[index]);
-  }, [valid, length.positions, roomLength]);
+  }, [valid, adjustedRowPositions, roomLength]);
 
   const reset = () => {
     setRoomWidth(0);
@@ -125,7 +194,102 @@ export default function DownlightPlanner() {
     setEndOffset(0);
     setStartSide("right");
     setStartEnd("front");
+    setCutoutDiameter(90);
+    setClashTarget("column");
+    setClashColumn(0);
+    setClashRow(0);
+    setClashDirection("left");
+    setClashAmount(45);
+    setClashLabel("Timber");
+    setClashAdjustments([]);
+    setClashError(null);
     setInputResetKey((value) => value + 1);
+    setClashInputKey((value) => value + 1);
+  };
+
+  const halfCutout = Math.max(0, Math.round(cutoutDiameter / 2));
+
+  const changeClashTarget = (target: ClashTarget) => {
+    setClashTarget(target);
+    setClashError(null);
+    if (target === "column") setClashDirection("left");
+    else if (target === "row") setClashDirection("front");
+    else setClashDirection("left");
+  };
+
+  const useHalfCutout = () => {
+    setClashAmount(halfCutout);
+    setClashInputKey((value) => value + 1);
+  };
+
+  const applyClash = () => {
+    if (!valid || clashAmount <= 0) {
+      setClashError("Enter a valid movement amount.");
+      return;
+    }
+
+    const signed = clashDirection === "left" || clashDirection === "front" ? -clashAmount : clashAmount;
+
+    if (clashTarget === "column") {
+      const current = adjustedColumnPositions[clashColumn];
+      if (current == null) {
+        setClashError("Choose a valid front-to-back run.");
+        return;
+      }
+      const next = current + signed;
+      const previous = clashColumn > 0 ? adjustedColumnPositions[clashColumn - 1] : 0;
+      const following = clashColumn < columns - 1 ? adjustedColumnPositions[clashColumn + 1] : roomWidth;
+      if (next <= 0 || next >= roomWidth || next <= previous || next >= following) {
+        setClashError("That movement would push the run outside the room or across another run.");
+        return;
+      }
+    }
+
+    if (clashTarget === "row") {
+      const current = adjustedRowPositions[clashRow];
+      if (current == null) {
+        setClashError("Choose a valid left-to-right row.");
+        return;
+      }
+      const next = current + signed;
+      const previous = clashRow > 0 ? adjustedRowPositions[clashRow - 1] : 0;
+      const following = clashRow < rows - 1 ? adjustedRowPositions[clashRow + 1] : roomLength;
+      if (next <= 0 || next >= roomLength || next <= previous || next >= following) {
+        setClashError("That movement would push the row outside the room or across another row.");
+        return;
+      }
+    }
+
+    if (clashTarget === "light") {
+      const current = cellPositions[clashRow]?.[clashColumn];
+      if (!current) {
+        setClashError("Choose a valid downlight.");
+        return;
+      }
+      const nextX = current.x + (clashDirection === "left" || clashDirection === "right" ? signed : 0);
+      const nextY = current.y + (clashDirection === "front" || clashDirection === "back" ? signed : 0);
+      if (nextX <= 0 || nextX >= roomWidth || nextY <= 0 || nextY >= roomLength) {
+        setClashError("That movement would put the downlight outside the room.");
+        return;
+      }
+    }
+
+    const nextId = clashAdjustments.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+    setClashAdjustments((items) => [...items, {
+      id: nextId,
+      target: clashTarget,
+      column: clashColumn,
+      row: clashRow,
+      direction: clashDirection,
+      amount: clashAmount,
+      label: clashLabel,
+    }]);
+    setClashError(null);
+  };
+
+  const removeClash = (id: number) => {
+    setClashAdjustments((items) => items.filter((item) => item.id !== id));
+    setClashError(null);
   };
 
   const copyMeasurements = async () => {
@@ -135,6 +299,18 @@ export default function DownlightPlanner() {
       `${columns} columns x ${rows} rows = ${lightCount} downlights`,
       `Across: ${acrossSegments.map(mm).join(" / ")} mm`,
       `Front to back: ${lengthSegments.map(mm).join(" / ")} mm`,
+      ...(clashAdjustments.length > 0 ? [
+        "",
+        "CLASH ADJUSTMENTS",
+        ...clashAdjustments.map((item) => {
+          const target = item.target === "column"
+            ? `front-to-back run ${item.column + 1}`
+            : item.target === "row"
+              ? `left-to-right row ${item.row + 1}`
+              : `downlight at row ${item.row + 1}, column ${item.column + 1}`;
+          return `${item.label}: ${target}, move ${item.amount} mm ${item.direction}`;
+        }),
+      ] : []),
       "",
       ...steps,
     ].join("\n");
@@ -268,15 +444,22 @@ export default function DownlightPlanner() {
 
                     <rect x={mobileRoomX} y={mobileRoomY} width={mobileRoomW} height={mobileRoomH} rx="2" fill="#101820" stroke="#b9c7d5" strokeWidth="1.5" />
 
-                    {width.positions.map((position, index) => (
-                      <line key={`m-vg-${index}`} x1={mobileSvgX(position)} y1={mobileRoomY} x2={mobileSvgX(position)} y2={mobileRoomY + mobileRoomH} stroke="#43D2FF" strokeOpacity="0.2" strokeDasharray="4 5" />
+                    {width.positions.map((position, index) => (clashOffsets.columnX[index] ?? 0) !== 0 ? (
+                      <line key={`m-vg-original-${index}`} x1={mobileSvgX(position)} y1={mobileRoomY} x2={mobileSvgX(position)} y2={mobileRoomY + mobileRoomH} stroke="#f59e0b" strokeOpacity="0.28" strokeDasharray="2 5" />
+                    ) : null)}
+                    {length.positions.map((position, index) => (clashOffsets.rowY[index] ?? 0) !== 0 ? (
+                      <line key={`m-hg-original-${index}`} x1={mobileRoomX} y1={mobileSvgY(position)} x2={mobileRoomX + mobileRoomW} y2={mobileSvgY(position)} stroke="#f59e0b" strokeOpacity="0.28" strokeDasharray="2 5" />
+                    ) : null)}
+
+                    {adjustedColumnPositions.map((position, index) => (
+                      <line key={`m-vg-${index}`} x1={mobileSvgX(position)} y1={mobileRoomY} x2={mobileSvgX(position)} y2={mobileRoomY + mobileRoomH} stroke={(clashOffsets.columnX[index] ?? 0) !== 0 ? "#f59e0b" : "#43D2FF"} strokeOpacity={(clashOffsets.columnX[index] ?? 0) !== 0 ? "0.75" : "0.2"} strokeDasharray="4 5" />
                     ))}
-                    {length.positions.map((position, index) => (
-                      <line key={`m-hg-${index}`} x1={mobileRoomX} y1={mobileSvgY(position)} x2={mobileRoomX + mobileRoomW} y2={mobileSvgY(position)} stroke="#43D2FF" strokeOpacity="0.2" strokeDasharray="4 5" />
+                    {adjustedRowPositions.map((position, index) => (
+                      <line key={`m-hg-${index}`} x1={mobileRoomX} y1={mobileSvgY(position)} x2={mobileRoomX + mobileRoomW} y2={mobileSvgY(position)} stroke={(clashOffsets.rowY[index] ?? 0) !== 0 ? "#f59e0b" : "#43D2FF"} strokeOpacity={(clashOffsets.rowY[index] ?? 0) !== 0 ? "0.75" : "0.2"} strokeDasharray="4 5" />
                     ))}
 
                     {columns <= 5 && acrossSegments.map((segment, index) => {
-                      const boundaries = [0, ...width.positions, roomWidth];
+                      const boundaries = [0, ...adjustedColumnPositions, roomWidth];
                       const x1 = mobileSvgX(boundaries[index]);
                       const x2 = mobileSvgX(boundaries[index + 1]);
                       return <g key={`m-wd-${index}`}>
@@ -286,7 +469,7 @@ export default function DownlightPlanner() {
                     })}
 
                     {rows <= 5 && lengthSegments.map((segment, index) => {
-                      const boundaries = [0, ...length.positions, roomLength];
+                      const boundaries = [0, ...adjustedRowPositions, roomLength];
                       const y1 = mobileSvgY(boundaries[index]);
                       const y2 = mobileSvgY(boundaries[index + 1]);
                       return <g key={`m-ld-${index}`}>
@@ -295,12 +478,15 @@ export default function DownlightPlanner() {
                       </g>;
                     })}
 
-                    {length.positions.flatMap((y, rowIndex) => width.positions.map((x, colIndex) => {
+                    {cellPositions.flatMap((rowCells, rowIndex) => rowCells.map((cell, colIndex) => {
                       const number = numberByPoint.get(`${rowIndex}-${colIndex}`) ?? 0;
+                      const adjusted = (clashOffsets.columnX[colIndex] ?? 0) !== 0
+                        || (clashOffsets.rowY[rowIndex] ?? 0) !== 0
+                        || clashOffsets.single.has(`${rowIndex}-${colIndex}`);
                       return <g key={`m-light-${rowIndex}-${colIndex}`}>
-                        <circle cx={mobileSvgX(x)} cy={mobileSvgY(y)} r="9" fill="#43D2FF" stroke="#e8f9ff" strokeWidth="2" />
-                        <circle cx={mobileSvgX(x)} cy={mobileSvgY(y)} r="3" fill="#0b1016" />
-                        <text x={mobileSvgX(x)} y={mobileSvgY(y) - 14} textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">{number}</text>
+                        <circle cx={mobileSvgX(cell.x)} cy={mobileSvgY(cell.y)} r="9" fill={adjusted ? "#f59e0b" : "#43D2FF"} stroke="#e8f9ff" strokeWidth="2" />
+                        <circle cx={mobileSvgX(cell.x)} cy={mobileSvgY(cell.y)} r="3" fill="#0b1016" />
+                        <text x={mobileSvgX(cell.x)} y={mobileSvgY(cell.y) - 14} textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">{number}</text>
                       </g>;
                     }))}
                   </svg>
@@ -321,15 +507,22 @@ export default function DownlightPlanner() {
 
                     <rect x={roomX} y={roomY} width={roomW} height={roomH} rx="2" fill="#101820" stroke="#b9c7d5" strokeWidth="2" />
 
-                    {width.positions.map((position, index) => (
-                      <line key={`vg-${index}`} x1={svgX(position)} y1={roomY} x2={svgX(position)} y2={roomY + roomH} stroke="#43D2FF" strokeOpacity="0.2" strokeDasharray="5 6" />
+                    {width.positions.map((position, index) => (clashOffsets.columnX[index] ?? 0) !== 0 ? (
+                      <line key={`vg-original-${index}`} x1={svgX(position)} y1={roomY} x2={svgX(position)} y2={roomY + roomH} stroke="#f59e0b" strokeOpacity="0.28" strokeDasharray="3 7" />
+                    ) : null)}
+                    {length.positions.map((position, index) => (clashOffsets.rowY[index] ?? 0) !== 0 ? (
+                      <line key={`hg-original-${index}`} x1={roomX} y1={svgY(position)} x2={roomX + roomW} y2={svgY(position)} stroke="#f59e0b" strokeOpacity="0.28" strokeDasharray="3 7" />
+                    ) : null)}
+
+                    {adjustedColumnPositions.map((position, index) => (
+                      <line key={`vg-${index}`} x1={svgX(position)} y1={roomY} x2={svgX(position)} y2={roomY + roomH} stroke={(clashOffsets.columnX[index] ?? 0) !== 0 ? "#f59e0b" : "#43D2FF"} strokeOpacity={(clashOffsets.columnX[index] ?? 0) !== 0 ? "0.75" : "0.2"} strokeDasharray="5 6" />
                     ))}
-                    {length.positions.map((position, index) => (
-                      <line key={`hg-${index}`} x1={roomX} y1={svgY(position)} x2={roomX + roomW} y2={svgY(position)} stroke="#43D2FF" strokeOpacity="0.2" strokeDasharray="5 6" />
+                    {adjustedRowPositions.map((position, index) => (
+                      <line key={`hg-${index}`} x1={roomX} y1={svgY(position)} x2={roomX + roomW} y2={svgY(position)} stroke={(clashOffsets.rowY[index] ?? 0) !== 0 ? "#f59e0b" : "#43D2FF"} strokeOpacity={(clashOffsets.rowY[index] ?? 0) !== 0 ? "0.75" : "0.2"} strokeDasharray="5 6" />
                     ))}
 
                     {columns <= 5 && acrossSegments.map((segment, index) => {
-                      const boundaries = [0, ...width.positions, roomWidth];
+                      const boundaries = [0, ...adjustedColumnPositions, roomWidth];
                       const x1 = svgX(boundaries[index]);
                       const x2 = svgX(boundaries[index + 1]);
                       return <g key={`wd-${index}`}>
@@ -339,7 +532,7 @@ export default function DownlightPlanner() {
                     })}
 
                     {rows <= 5 && lengthSegments.map((segment, index) => {
-                      const boundaries = [0, ...length.positions, roomLength];
+                      const boundaries = [0, ...adjustedRowPositions, roomLength];
                       const y1 = svgY(boundaries[index]);
                       const y2 = svgY(boundaries[index + 1]);
                       return <g key={`ld-${index}`}>
@@ -348,18 +541,131 @@ export default function DownlightPlanner() {
                       </g>;
                     })}
 
-                    {length.positions.flatMap((y, rowIndex) => width.positions.map((x, colIndex) => {
+                    {cellPositions.flatMap((rowCells, rowIndex) => rowCells.map((cell, colIndex) => {
                       const number = numberByPoint.get(`${rowIndex}-${colIndex}`) ?? 0;
+                      const adjusted = (clashOffsets.columnX[colIndex] ?? 0) !== 0
+                        || (clashOffsets.rowY[rowIndex] ?? 0) !== 0
+                        || clashOffsets.single.has(`${rowIndex}-${colIndex}`);
                       return <g key={`light-${rowIndex}-${colIndex}`}>
-                        <circle cx={svgX(x)} cy={svgY(y)} r="15" fill="#43D2FF" stroke="#e8f9ff" strokeWidth="3" />
-                        <circle cx={svgX(x)} cy={svgY(y)} r="5" fill="#0b1016" />
-                        <text x={svgX(x)} y={svgY(y) - 23} textAnchor="middle" fill="#ffffff" fontSize="13" fontWeight="800">{number}</text>
+                        <circle cx={svgX(cell.x)} cy={svgY(cell.y)} r="15" fill={adjusted ? "#f59e0b" : "#43D2FF"} stroke="#e8f9ff" strokeWidth="3" />
+                        <circle cx={svgX(cell.x)} cy={svgY(cell.y)} r="5" fill="#0b1016" />
+                        <text x={svgX(cell.x)} y={svgY(cell.y) - 23} textAnchor="middle" fill="#ffffff" fontSize="13" fontWeight="800">{number}</text>
                       </g>;
                     }))}
                   </svg>
                 </div>
               ) : <div className="rounded-xl border border-dashed border-white/15 p-10 text-center text-sm text-slate-500">Fix the room measurements to generate the plan.</div>}
             </section>
+
+            {valid && <section key={clashInputKey} className="rounded-2xl border border-amber-400/20 bg-[#111923] p-5 sm:p-6">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300">
+                  <TriangleAlert size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">Clash adjustment</h2>
+                  <p className="mt-1 text-sm leading-6 text-slate-400">Hit timber, pipe or another service? Shift one light or the whole run and the plan updates automatically.</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Clash affects</span>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <ModeButton active={clashTarget === "column"} onClick={() => changeClashTarget("column")}>Front-to-back run</ModeButton>
+                      <ModeButton active={clashTarget === "row"} onClick={() => changeClashTarget("row")}>Left-to-right row</ModeButton>
+                      <ModeButton active={clashTarget === "light"} onClick={() => changeClashTarget("light")}>Single light</ModeButton>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {(clashTarget === "column" || clashTarget === "light") && <SelectField
+                      label={clashTarget === "column" ? "Run" : "Column"}
+                      value={String(Math.min(clashColumn, Math.max(columns - 1, 0)))}
+                      onChange={(value) => setClashColumn(Number(value))}
+                      options={Array.from({ length: columns }, (_, index) => {
+                        const position = index === 0 ? "leftmost" : index === columns - 1 ? "rightmost" : "";
+                        return [String(index), `Run ${index + 1}${position ? ` — ${position}` : ""}`] as [string, string];
+                      })}
+                    />}
+                    {(clashTarget === "row" || clashTarget === "light") && <SelectField
+                      label="Row"
+                      value={String(Math.min(clashRow, Math.max(rows - 1, 0)))}
+                      onChange={(value) => setClashRow(Number(value))}
+                      options={Array.from({ length: rows }, (_, index) => {
+                        const position = index === 0 ? "front" : index === rows - 1 ? "back" : "";
+                        return [String(index), `Row ${index + 1}${position ? ` — ${position}` : ""}`] as [string, string];
+                      })}
+                    />}
+                  </div>
+
+                  <div>
+                    <span className="mb-2 block text-xs font-semibold text-slate-400">Move direction</span>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {(clashTarget === "column" || clashTarget === "light") && <>
+                        <ModeButton active={clashDirection === "left"} onClick={() => setClashDirection("left")}>Left</ModeButton>
+                        <ModeButton active={clashDirection === "right"} onClick={() => setClashDirection("right")}>Right</ModeButton>
+                      </>}
+                      {(clashTarget === "row" || clashTarget === "light") && <>
+                        <ModeButton active={clashDirection === "front"} onClick={() => setClashDirection("front")}>Front</ModeButton>
+                        <ModeButton active={clashDirection === "back"} onClick={() => setClashDirection("back")}>Back</ModeButton>
+                      </>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <NumberField label="Downlight cutout" value={cutoutDiameter} onChange={setCutoutDiameter} min={0} suffix="mm" />
+                    <NumberField label="Move by" value={clashAmount} onChange={setClashAmount} min={1} suffix="mm" />
+                  </div>
+
+                  <button type="button" onClick={useHalfCutout} className="w-full rounded-lg border border-amber-400/20 bg-amber-400/[0.08] px-3 py-2.5 text-sm font-bold text-amber-200 hover:bg-amber-400/[0.12]">
+                    Use half cutout: {halfCutout} mm
+                  </button>
+
+                  <SelectField
+                    label="Clash type"
+                    value={clashLabel}
+                    onChange={setClashLabel}
+                    options={[["Timber","Timber"],["Pipe","Pipe"],["Duct","Duct"],["Cable / service","Cable / service"],["Other","Other"]]}
+                  />
+
+                  <button type="button" onClick={applyClash} className="w-full rounded-lg bg-amber-400 px-4 py-3 text-sm font-black text-[#211500] hover:bg-amber-300">
+                    Apply clash adjustment
+                  </button>
+
+                  {clashError && <p className="rounded-lg border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-200">{clashError}</p>}
+                </div>
+              </div>
+
+              {clashAdjustments.length > 0 && <div className="mt-5 border-t border-white/10 pt-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-bold">Active adjustments</h3>
+                  <span className="text-xs text-slate-500">{clashAdjustments.length} applied</span>
+                </div>
+                <div className="space-y-2">
+                  {clashAdjustments.map((item) => {
+                    const target = item.target === "column"
+                      ? `Front-to-back run ${item.column + 1}`
+                      : item.target === "row"
+                        ? `Left-to-right row ${item.row + 1}`
+                        : `Light — row ${item.row + 1}, column ${item.column + 1}`;
+                    return <div key={item.id} className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-black/15 p-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold text-amber-200">{item.label} · {target}</div>
+                        <div className="mt-1 text-xs text-slate-500">Move {item.amount} mm {item.direction}</div>
+                      </div>
+                      <button type="button" onClick={() => removeClash(item.id)} aria-label="Remove clash adjustment" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-400 hover:bg-white/[0.06] hover:text-white">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>;
+                  })}
+                </div>
+                <p className="mt-3 text-xs leading-5 text-amber-100/70">Orange dashed lines show the original run. Orange lights and guide lines show the adjusted position.</p>
+              </div>}
+            </section>}
 
             {valid && <section className="grid gap-4 md:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-[#111923] p-5">
@@ -369,8 +675,9 @@ export default function DownlightPlanner() {
                   <MeasurementRow label="Lights" value={`${columns} × ${rows} = ${lightCount}`} />
                   <MeasurementRow label="Across each row" value={acrossSegments.map(mm).join(" / ") + " mm"} />
                   <MeasurementRow label="Front to back" value={lengthSegments.map(mm).join(" / ") + " mm"} />
-                  <MeasurementRow label="Light centres across" value={columns > 1 ? mm(width.spacing) + " mm" : "Single centre"} />
-                  <MeasurementRow label="Row centres" value={rows > 1 ? mm(length.spacing) + " mm" : "Single centre"} />
+                  <MeasurementRow label="Light centres across" value={clashAdjustments.length > 0 ? "Adjusted — see plan" : columns > 1 ? mm(width.spacing) + " mm" : "Single centre"} />
+                  <MeasurementRow label="Row centres" value={clashAdjustments.length > 0 ? "Adjusted — see plan" : rows > 1 ? mm(length.spacing) + " mm" : "Single centre"} />
+                  {clashAdjustments.length > 0 && <MeasurementRow label="Clash adjustments" value={`${clashAdjustments.length} active`} />}
                 </div>
               </div>
 
@@ -398,7 +705,7 @@ export default function DownlightPlanner() {
             </section>}
 
             <div className="downlight-safety rounded-xl border border-amber-400/15 bg-amber-400/[0.06] px-4 py-3 text-xs leading-5 text-amber-100/80">
-              Layout aid only. Before cutting, check framing, services, insulation clearances, fire/acoustic requirements and the selected fitting manufacturer&apos;s installation requirements.
+              Layout aid only. A half-cutout move is a quick starting point, not guaranteed clearance. Confirm the actual obstruction before cutting, and check framing, services, insulation clearances, fire/acoustic requirements and the selected fitting manufacturer&apos;s installation requirements.
             </div>
           </div>
         </div>
