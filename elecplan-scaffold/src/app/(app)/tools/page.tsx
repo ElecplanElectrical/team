@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calculator, ChevronRight, Ruler } from "lucide-react";
+import { Calculator, ChevronRight, Ruler, Search } from "lucide-react";
 import { requireAccess } from "@/lib/session";
 
 const plannedTools = [
@@ -21,14 +21,25 @@ export default async function ToolsPage() {
 
       <section>
         <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Available now</p>
-        <Link href="/tools/downlight-planner" className="group flex max-w-3xl items-center gap-4 rounded-2xl border border-[#43D2FF]/25 bg-[#43D2FF]/[0.07] p-5 transition hover:border-[#43D2FF]/50 hover:bg-[#43D2FF]/[0.1]">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#43D2FF] text-[#06213a]"><Ruler size={23}/></div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">Downlight Planner</h2><span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300">Live</span></div>
-            <p className="mt-1 text-sm leading-6 text-slate-400">Enter room measurements, rows and columns, wall offsets and a starting point. Get a dimensioned plan plus a point-to-point marking sequence.</p>
-          </div>
-          <ChevronRight className="shrink-0 text-[#43D2FF] transition group-hover:translate-x-1" size={20}/>
-        </Link>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <Link href="/tools/downlight-planner" className="group flex items-center gap-4 rounded-2xl border border-[#43D2FF]/25 bg-[#43D2FF]/[0.07] p-5 transition hover:border-[#43D2FF]/50 hover:bg-[#43D2FF]/[0.1]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#43D2FF] text-[#06213a]"><Ruler size={23}/></div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">Downlight Planner</h2><span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300">Live</span></div>
+              <p className="mt-1 text-sm leading-6 text-slate-400">Build a downlight grid, adjust for clashes and get a point-to-point marking sequence.</p>
+            </div>
+            <ChevronRight className="shrink-0 text-[#43D2FF] transition group-hover:translate-x-1" size={20}/>
+          </Link>
+
+          <Link href="/tools/fault-finding" className="group flex items-center gap-4 rounded-2xl border border-white/[0.08] bg-[#111923] p-5 transition hover:border-[#43D2FF]/30 hover:bg-white/[0.04]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-[#7ce2ff]"><Search size={23}/></div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-bold">Fault Finding Guide</h2><span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-300">Live</span></div>
+              <p className="mt-1 text-sm leading-6 text-slate-400">A structured troubleshooting flow for common circuit, RCD, lighting and outlet faults.</p>
+            </div>
+            <ChevronRight className="shrink-0 text-[#43D2FF] transition group-hover:translate-x-1" size={20}/>
+          </Link>
+        </div>
       </section>
 
       <section className="mt-8">
