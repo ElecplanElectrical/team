@@ -332,7 +332,7 @@ export default function DownlightPlanner() {
             </section>}
 
             <div className="downlight-safety rounded-xl border border-amber-400/15 bg-amber-400/[0.06] px-4 py-3 text-xs leading-5 text-amber-100/80">
-              Layout aid only. Before cutting, check framing, services, insulation clearances, fire/acoustic requirements and the selected fitting manufacturer's installation requirements.
+              Layout aid only. Before cutting, check framing, services, insulation clearances, fire/acoustic requirements and the selected fitting manufacturer&apos;s installation requirements.
             </div>
           </div>
         </div>
