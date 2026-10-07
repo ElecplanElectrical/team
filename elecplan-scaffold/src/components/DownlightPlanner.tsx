@@ -40,14 +40,14 @@ function oppositeSide(side: Side): Side {
 }
 
 export default function DownlightPlanner() {
-  const [roomWidth, setRoomWidth] = useState(4980);
-  const [roomLength, setRoomLength] = useState(5580);
-  const [columns, setColumns] = useState(3);
-  const [rows, setRows] = useState(3);
-  const [sideMode, setSideMode] = useState<AxisMode>("fixed");
-  const [sideOffset, setSideOffset] = useState(700);
+  const [roomWidth, setRoomWidth] = useState(0);
+  const [roomLength, setRoomLength] = useState(0);
+  const [columns, setColumns] = useState(0);
+  const [rows, setRows] = useState(0);
+  const [sideMode, setSideMode] = useState<AxisMode>("even");
+  const [sideOffset, setSideOffset] = useState(0);
   const [endMode, setEndMode] = useState<AxisMode>("even");
-  const [endOffset, setEndOffset] = useState(930);
+  const [endOffset, setEndOffset] = useState(0);
   const [startSide, setStartSide] = useState<Side>("right");
   const [startEnd, setStartEnd] = useState<End>("front");
   const [copied, setCopied] = useState(false);
@@ -55,7 +55,8 @@ export default function DownlightPlanner() {
 
   const width = useMemo(() => axisLayout(roomWidth, columns, sideMode, sideOffset), [roomWidth, columns, sideMode, sideOffset]);
   const length = useMemo(() => axisLayout(roomLength, rows, endMode, endOffset), [roomLength, rows, endMode, endOffset]);
-  const valid = width.valid && length.valid && columns <= 10 && rows <= 10;
+  const hasLayoutInputs = roomWidth > 0 && roomLength > 0 && columns > 0 && rows > 0;
+  const valid = hasLayoutInputs && width.valid && length.valid && columns <= 10 && rows <= 10;
   const lightCount = Math.max(0, columns * rows);
 
   const sequence = useMemo(() => {
@@ -114,14 +115,14 @@ export default function DownlightPlanner() {
   }, [valid, length.positions, roomLength]);
 
   const reset = () => {
-    setRoomWidth(4980);
-    setRoomLength(5580);
-    setColumns(3);
-    setRows(3);
-    setSideMode("fixed");
-    setSideOffset(700);
+    setRoomWidth(0);
+    setRoomLength(0);
+    setColumns(0);
+    setRows(0);
+    setSideMode("even");
+    setSideOffset(0);
     setEndMode("even");
-    setEndOffset(930);
+    setEndOffset(0);
     setStartSide("right");
     setStartEnd("front");
     setInputResetKey((value) => value + 1);
@@ -149,6 +150,13 @@ export default function DownlightPlanner() {
   const svgX = (x: number) => roomX + (x / Math.max(roomWidth, 1)) * roomW;
   const svgY = (y: number) => roomY + (y / Math.max(roomLength, 1)) * roomH;
 
+  const mobileRoomX = 58;
+  const mobileRoomY = 92;
+  const mobileRoomW = 270;
+  const mobileRoomH = 350;
+  const mobileSvgX = (x: number) => mobileRoomX + (x / Math.max(roomWidth, 1)) * mobileRoomW;
+  const mobileSvgY = (y: number) => mobileRoomY + (y / Math.max(roomLength, 1)) * mobileRoomH;
+
   return (
     <div className="min-h-full bg-[#0d1117] px-4 py-5 text-white sm:px-6 lg:px-8">
       <style>{`
@@ -173,7 +181,7 @@ export default function DownlightPlanner() {
           </div>
           <div className="downlight-actions flex flex-wrap gap-2">
             <button type="button" onClick={reset} className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-slate-200 hover:bg-white/[0.08]">
-              <RotateCcw size={15} /> Example
+              <RotateCcw size={15} /> Clear
             </button>
             <button type="button" onClick={copyMeasurements} disabled={!valid} className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#43D2FF]/30 bg-[#43D2FF]/10 px-4 text-sm font-semibold text-[#7ce2ff] hover:bg-[#43D2FF]/15 disabled:opacity-40">
               <Copy size={15} /> {copied ? "Copied" : "Copy measurements"}
@@ -190,10 +198,10 @@ export default function DownlightPlanner() {
             <p className="mt-1 text-xs leading-5 text-slate-500">All measurements are centre-to-centre in millimetres.</p>
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <NumberField label="Width — left to right" value={roomWidth} onChange={setRoomWidth} min={1} suffix="mm" />
-              <NumberField label="Length — front to back" value={roomLength} onChange={setRoomLength} min={1} suffix="mm" />
-              <NumberField label="Columns — left to right" value={columns} onChange={(value) => setColumns(Math.max(1, Math.min(10, Math.round(value))))} min={1} max={10} />
-              <NumberField label="Rows — front to back" value={rows} onChange={(value) => setRows(Math.max(1, Math.min(10, Math.round(value))))} min={1} max={10} />
+              <NumberField label="Width — left to right" value={roomWidth} onChange={setRoomWidth} min={0} suffix="mm" />
+              <NumberField label="Length — front to back" value={roomLength} onChange={setRoomLength} min={0} suffix="mm" />
+              <NumberField label="Columns — left to right" value={columns} onChange={(value) => setColumns(Math.max(0, Math.min(10, Math.round(value))))} min={0} max={10} />
+              <NumberField label="Rows — front to back" value={rows} onChange={(value) => setRows(Math.max(0, Math.min(10, Math.round(value))))} min={0} max={10} />
             </div>
 
             <div className="mt-5 border-t border-white/10 pt-5">
@@ -222,7 +230,10 @@ export default function DownlightPlanner() {
               </div>
             </div>
 
-            {!valid && <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-200">
+            {!hasLayoutInputs && <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-slate-400">
+              Enter the room measurements and number of downlights to generate the plan.
+            </div>}
+            {hasLayoutInputs && !valid && <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-200">
               The offsets are too large for this room, or one of the measurements is invalid. Reduce the wall offset or check the room size.
             </div>}
           </section>
@@ -240,8 +251,61 @@ export default function DownlightPlanner() {
               </div>
 
               {valid ? (
-                <div className="overflow-x-auto rounded-xl border border-white/10 bg-[#0b1016] p-2 sm:p-4">
-                  <svg viewBox="0 0 780 680" className="mx-auto min-w-[620px] max-w-[900px]" role="img" aria-label="Downlight layout plan">
+                <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1016] p-2 sm:p-4">
+                  <svg viewBox="0 0 360 500" className="mx-auto block h-auto w-full sm:hidden" role="img" aria-label="Downlight layout plan">
+                    <defs>
+                      <marker id="mobile-arrow" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse">
+                        <path d="M0,0 L7,3.5 L0,7 z" fill="#8da2b8" />
+                      </marker>
+                    </defs>
+
+                    <text x="193" y="20" textAnchor="middle" fill="#ffffff" fontSize="13" fontWeight="800">{mm(roomWidth)} mm — LEFT TO RIGHT</text>
+                    <text x="15" y="267" transform="rotate(-90 15 267)" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="800">{mm(roomLength)} mm — FRONT TO BACK</text>
+                    <text x="193" y="47" textAnchor="middle" fill="#43D2FF" fontSize="10" fontWeight="800">FRONT / DOOR END</text>
+                    <text x="193" y="474" textAnchor="middle" fill="#75889b" fontSize="9" fontWeight="800">BACK END</text>
+                    <text x="43" y="267" transform="rotate(-90 43 267)" textAnchor="middle" fill="#75889b" fontSize="9" fontWeight="800">LEFT WALL</text>
+                    <text x="347" y="267" transform="rotate(90 347 267)" textAnchor="middle" fill="#75889b" fontSize="9" fontWeight="800">RIGHT WALL</text>
+
+                    <rect x={mobileRoomX} y={mobileRoomY} width={mobileRoomW} height={mobileRoomH} rx="2" fill="#101820" stroke="#b9c7d5" strokeWidth="1.5" />
+
+                    {width.positions.map((position, index) => (
+                      <line key={`m-vg-${index}`} x1={mobileSvgX(position)} y1={mobileRoomY} x2={mobileSvgX(position)} y2={mobileRoomY + mobileRoomH} stroke="#43D2FF" strokeOpacity="0.2" strokeDasharray="4 5" />
+                    ))}
+                    {length.positions.map((position, index) => (
+                      <line key={`m-hg-${index}`} x1={mobileRoomX} y1={mobileSvgY(position)} x2={mobileRoomX + mobileRoomW} y2={mobileSvgY(position)} stroke="#43D2FF" strokeOpacity="0.2" strokeDasharray="4 5" />
+                    ))}
+
+                    {columns <= 5 && acrossSegments.map((segment, index) => {
+                      const boundaries = [0, ...width.positions, roomWidth];
+                      const x1 = mobileSvgX(boundaries[index]);
+                      const x2 = mobileSvgX(boundaries[index + 1]);
+                      return <g key={`m-wd-${index}`}>
+                        <line x1={x1} y1="70" x2={x2} y2="70" stroke="#8da2b8" markerStart="url(#mobile-arrow)" markerEnd="url(#mobile-arrow)" />
+                        <text x={(x1 + x2) / 2} y="65" textAnchor="middle" fill="#dbe6ef" fontSize="8" fontWeight="800">{mm(segment)}</text>
+                      </g>;
+                    })}
+
+                    {rows <= 5 && lengthSegments.map((segment, index) => {
+                      const boundaries = [0, ...length.positions, roomLength];
+                      const y1 = mobileSvgY(boundaries[index]);
+                      const y2 = mobileSvgY(boundaries[index + 1]);
+                      return <g key={`m-ld-${index}`}>
+                        <line x1="31" y1={y1} x2="31" y2={y2} stroke="#8da2b8" markerStart="url(#mobile-arrow)" markerEnd="url(#mobile-arrow)" />
+                        <text x="26" y={(y1 + y2) / 2} textAnchor="middle" dominantBaseline="middle" transform={`rotate(-90 26 ${(y1 + y2) / 2})`} fill="#dbe6ef" fontSize="8" fontWeight="800">{mm(segment)}</text>
+                      </g>;
+                    })}
+
+                    {length.positions.flatMap((y, rowIndex) => width.positions.map((x, colIndex) => {
+                      const number = numberByPoint.get(`${rowIndex}-${colIndex}`) ?? 0;
+                      return <g key={`m-light-${rowIndex}-${colIndex}`}>
+                        <circle cx={mobileSvgX(x)} cy={mobileSvgY(y)} r="9" fill="#43D2FF" stroke="#e8f9ff" strokeWidth="2" />
+                        <circle cx={mobileSvgX(x)} cy={mobileSvgY(y)} r="3" fill="#0b1016" />
+                        <text x={mobileSvgX(x)} y={mobileSvgY(y) - 14} textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">{number}</text>
+                      </g>;
+                    }))}
+                  </svg>
+
+                  <svg viewBox="0 0 780 680" className="mx-auto hidden h-auto w-full max-w-[900px] sm:block" role="img" aria-label="Downlight layout plan">
                     <defs>
                       <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
                         <path d="M0,0 L8,4 L0,8 z" fill="#8da2b8" />
