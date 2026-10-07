@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Copy, Printer, RotateCcw, Ruler } from "lucide-react";
+import { Copy, Printer, RotateCcw, Ruler, TriangleAlert } from "lucide-react";
 
 type AxisMode = "even" | "fixed";
 type Side = "left" | "right";
