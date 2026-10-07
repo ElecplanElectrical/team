@@ -51,6 +51,7 @@ export default function DownlightPlanner() {
   const [startSide, setStartSide] = useState<Side>("right");
   const [startEnd, setStartEnd] = useState<End>("front");
   const [copied, setCopied] = useState(false);
+  const [inputResetKey, setInputResetKey] = useState(0);
 
   const width = useMemo(() => axisLayout(roomWidth, columns, sideMode, sideOffset), [roomWidth, columns, sideMode, sideOffset]);
   const length = useMemo(() => axisLayout(roomLength, rows, endMode, endOffset), [roomLength, rows, endMode, endOffset]);
@@ -123,6 +124,7 @@ export default function DownlightPlanner() {
     setEndOffset(930);
     setStartSide("right");
     setStartEnd("front");
+    setInputResetKey((value) => value + 1);
   };
 
   const copyMeasurements = async () => {
@@ -182,12 +184,12 @@ export default function DownlightPlanner() {
           </div>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
-          <section className="downlight-controls rounded-2xl border border-white/10 bg-[#111923] p-5 shadow-2xl shadow-black/20">
+        <div className="grid min-w-0 gap-5 xl:grid-cols-[390px_minmax(0,1fr)]">
+          <section key={inputResetKey} className="downlight-controls min-w-0 rounded-2xl border border-white/10 bg-[#111923] p-5 shadow-2xl shadow-black/20">
             <h2 className="text-base font-bold">Room & layout</h2>
             <p className="mt-1 text-xs leading-5 text-slate-500">All measurements are centre-to-centre in millimetres.</p>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <NumberField label="Width — left to right" value={roomWidth} onChange={setRoomWidth} min={1} suffix="mm" />
               <NumberField label="Length — front to back" value={roomLength} onChange={setRoomLength} min={1} suffix="mm" />
               <NumberField label="Columns — left to right" value={columns} onChange={(value) => setColumns(Math.max(1, Math.min(10, Math.round(value))))} min={1} max={10} />
@@ -225,7 +227,7 @@ export default function DownlightPlanner() {
             </div>}
           </section>
 
-          <div className="downlight-print space-y-5">
+          <div className="downlight-print min-w-0 space-y-5">
             <section className="rounded-2xl border border-white/10 bg-[#111923] p-4 shadow-2xl shadow-black/20 sm:p-6">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -349,16 +351,39 @@ function NumberField({ label, value, onChange, min, max, suffix }: {
   max?: number;
   suffix?: string;
 }) {
-  return <label className="block">
+  const clamp = (raw: string) => {
+    let next = Number(raw);
+    if (!Number.isFinite(next)) return value;
+    if (min != null) next = Math.max(min, next);
+    if (max != null) next = Math.min(max, next);
+    return next;
+  };
+
+  return <label className="block min-w-0">
     <span className="mb-1.5 block text-xs font-semibold text-slate-400">{label}</span>
-    <div className="flex items-center rounded-lg border border-white/10 bg-black/20 focus-within:border-[#43D2FF]/60">
+    <div className="flex min-w-0 items-center rounded-lg border border-white/10 bg-black/20 focus-within:border-[#43D2FF]/60">
       <input
-        type="number"
+        type="text"
         inputMode="numeric"
-        value={Number.isFinite(value) ? value : 0}
-        min={min}
-        max={max}
-        onChange={(event) => onChange(Number(event.target.value))}
+        enterKeyHint="done"
+        defaultValue={String(value)}
+        onFocus={(event) => event.currentTarget.select()}
+        onInput={(event) => {
+          const input = event.currentTarget;
+          const cleaned = input.value.replace(/[^0-9]/g, "");
+          if (input.value !== cleaned) input.value = cleaned;
+          if (cleaned !== "") onChange(Number(cleaned));
+        }}
+        onBlur={(event) => {
+          const input = event.currentTarget;
+          if (input.value.trim() === "") {
+            input.value = String(value);
+            return;
+          }
+          const next = clamp(input.value);
+          input.value = String(next);
+          onChange(next);
+        }}
         className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm font-semibold text-white outline-none"
       />
       {suffix && <span className="pr-3 text-xs font-semibold text-slate-500">{suffix}</span>}
