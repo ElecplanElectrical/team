@@ -6,14 +6,22 @@ import DocumentsView from "@/components/DocumentsView";
 export default async function DocumentsPage() {
   const user = await requireAccess("documents");
 
+  const employeeJobScope = user.role === "EMPLOYEE"
+    ? { OR: [{ assignedToId: user.id }, { crew: { some: { id: user.id } } }] }
+    : {};
+
   const [documents, jobs] = await Promise.all([
     prisma.document.findMany({
+      where: user.role === "EMPLOYEE"
+        ? { job: { is: { ...employeeJobScope } } }
+        : {},
       orderBy: { createdAt: "desc" },
-      include: { job: { select: { title: true } } },
+      include: { job: { select: { id: true, title: true, address: true } } },
     }),
     prisma.job.findMany({
+      where: employeeJobScope,
       orderBy: { createdAt: "desc" },
-      select: { id: true, title: true },
+      select: { id: true, title: true, address: true },
     }),
   ]);
 
@@ -24,7 +32,9 @@ export default async function DocumentsPage() {
         name: doc.name,
         type: doc.kind ?? "General",
         fileUrl: doc.url,
+        jobId: doc.job?.id ?? null,
         job: doc.job?.title ?? null,
+        address: doc.job?.address ?? null,
         uploadedAt: doc.createdAt.toISOString(),
       }))}
       jobs={jobs}
