@@ -27,8 +27,9 @@ export async function POST(req: Request) {
   if (!upload) return NextResponse.json({ error: "Upload ticket is invalid or expired" }, { status: 400 });
 
   if (jobId) {
-    const job = await prisma.job.findUnique({ where: { id: jobId }, select: { id: true } });
+    const job = await prisma.job.findUnique({ where: { id: jobId }, select: { id: true, assignedToId: true, crew: { select: { id: true } } } });
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 400 });
+    if (user.role === "EMPLOYEE" && job.assignedToId !== user.id && !job.crew.some((member) => member.id === user.id)) return NextResponse.json({ error: "This job is not assigned to you" }, { status: 403 });
   }
 
   const id = randomUUID();
