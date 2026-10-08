@@ -29,11 +29,7 @@ export default function GlobalSearchView() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setSites([]);
-      setClients([]);
-      return;
-    }
+    if (query.trim().length < 2) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setLoading(true);
@@ -67,7 +63,14 @@ export default function GlobalSearchView() {
           autoFocus
           type="search"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            const next = event.target.value;
+            setQuery(next);
+            if (next.trim().length < 2) {
+              setSites([]);
+              setClients([]);
+            }
+          }}
           placeholder="Search address, job or client…"
           className="h-14 w-full rounded-2xl pl-12 pr-4 text-base outline-none"
           style={{ ...UI.inset, background: "var(--ep-input)", border: `1px solid ${UI.border}`, color: UI.text }}
