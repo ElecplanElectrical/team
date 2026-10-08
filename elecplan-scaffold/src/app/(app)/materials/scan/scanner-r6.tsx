@@ -31,6 +31,7 @@ export default function ScannerR10(){
   const[review,setReview]=useState(false);
   const[known,setKnown]=useState(false);
   const[itemName,setItemName]=useState("");
+  const[boxQty,setBoxQty]=useState("");
   const[originalName,setOriginalName]=useState("");
   const[editing,setEditing]=useState(false);
   const[manual,setManual]=useState("");
@@ -82,6 +83,7 @@ export default function ScannerR10(){
     setReview(false);
     setKnown(false);
     setItemName("");
+    setBoxQty("");
     setOriginalName("");
     setEditing(false);
     setStatus(message);
@@ -100,8 +102,9 @@ export default function ScannerR10(){
         if(!u.ok)throw new Error(ub.error||"Could not update item name");
       }
 
-      setStatus("QUEUING PHOTO — server will read THIS box quantity");
-      const r=await fetch("/api/materials/scan-queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({barcode:code,dataUrl:photo,itemName:name})});
+      const qty=Number(boxQty);
+      setStatus(qty>0?`QUEUING PHOTO — adding ${qty} from this box`:"QUEUING PHOTO — server will read THIS box quantity");
+      const r=await fetch("/api/materials/scan-queue",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({barcode:code,dataUrl:photo,itemName:name,...(Number.isInteger(qty)&&qty>0?{quantityOverride:qty}:{})})});
       const b=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(b.error||"Queue failed");
       setStatus("QUEUED ✓ — ready for next box");
@@ -153,7 +156,7 @@ export default function ScannerR10(){
       {!review&&<div className="pointer-events-none absolute inset-[8%_3%] z-20 rounded-xl border-4 border-[#43D2FF]"/>}
     </div><div className="p-4 text-center font-semibold text-[#18d3a0]">{status}</div></div>
 
-    {review&&<div className="rounded-2xl border border-[#18d3a055] bg-[#181e27] p-4"><div className="flex items-center justify-between"><div className="text-xl font-semibold">{known?"Item recognised":"Teach this barcode"}</div>{known&&!editing&&<button type="button" onClick={()=>setEditing(true)} className="flex items-center gap-2 rounded-lg border border-[#43D2FF55] px-3 py-2 text-sm"><Pencil size={15}/>Edit Item</button>}</div><div className="mt-1 text-sm text-[#c5cdd7]">Barcode {code}. Quantity is read separately from THIS box photo.</div>{editing||!known?<><div className="mt-4 text-sm text-[#c5cdd7]">Item name — type exactly what you want saved</div><input autoFocus value={itemName} onChange={e=>setItemName(e.target.value)} placeholder="e.g. HYMF5 Mounting Flange 18mm Shallow" className="mt-2 w-full rounded-xl border border-[#18d3a077] bg-[#10151b] px-3 py-4 text-lg text-white outline-none focus:border-[#18d3a0]"/></>:<div className="mt-4 rounded-xl border border-[#18d3a055] bg-[#0b302c] p-4"><Check className="mr-2 inline"/> {itemName}</div>}<button type="button" onClick={()=>void queue()} className="mt-4 w-full rounded-xl bg-[#18d3a0] py-4 text-lg font-bold text-[#0d1117]"><Check className="mr-2 inline"/>Confirm Item & Scan Next</button><button type="button" onClick={()=>resumeScanning()} className="mt-2 w-full rounded-xl border border-[#43D2FF44] py-3">Cancel / Scan Next</button></div>}
+    {review&&<div className="rounded-2xl border border-[#18d3a055] bg-[#181e27] p-4"><div className="flex items-center justify-between"><div className="text-xl font-semibold">{known?"Item recognised":"Teach this barcode"}</div>{known&&!editing&&<button type="button" onClick={()=>setEditing(true)} className="flex items-center gap-2 rounded-lg border border-[#43D2FF55] px-3 py-2 text-sm"><Pencil size={15}/>Edit Item</button>}</div><div className="mt-1 text-sm text-[#c5cdd7]">Barcode {code}. Quantity is read separately from THIS box photo.</div>{editing||!known?<><div className="mt-4 text-sm text-[#c5cdd7]">Item name — type exactly what you want saved</div><input autoFocus value={itemName} onChange={e=>setItemName(e.target.value)} placeholder="e.g. HYMF5 Mounting Flange 18mm Shallow" className="mt-2 w-full rounded-xl border border-[#18d3a077] bg-[#10151b] px-3 py-4 text-lg text-white outline-none focus:border-[#18d3a0]"/></>:<div className="mt-4 rounded-xl border border-[#18d3a055] bg-[#0b302c] p-4"><Check className="mr-2 inline"/> {itemName}</div>}<div className="mt-4 text-sm text-[#c5cdd7]">Box quantity <span className="text-[#8d99a8]">(optional)</span></div><input inputMode="numeric" type="number" min="1" max="9999" step="1" value={boxQty} onChange={e=>setBoxQty(e.target.value)} placeholder="Leave blank to auto-read the label" className="mt-2 w-full rounded-xl border border-[#43D2FF55] bg-[#10151b] px-3 py-4 text-lg text-white outline-none focus:border-[#43D2FF]"/><p className="mt-2 text-xs text-[#8d99a8]">For a fast stocktake, type the quantity if you know it. Otherwise the scanner worker will read Qty / Pack / Rolls from the box photo.</p><button type="button" onClick={()=>void queue()} className="mt-4 w-full rounded-xl bg-[#18d3a0] py-4 text-lg font-bold text-[#0d1117]"><Check className="mr-2 inline"/>Confirm Item & Scan Next</button><button type="button" onClick={()=>resumeScanning()} className="mt-2 w-full rounded-xl border border-[#43D2FF44] py-3">Cancel / Scan Next</button></div>}
 
     {!review&&<div className="rounded-2xl border border-[#43D2FF33] bg-[#181e27] p-4"><div className="mb-2 flex items-center gap-2 font-semibold"><Barcode size={17}/> Enter barcode</div><form onSubmit={e=>{e.preventDefault();const c=manual.trim();if(c){void capture(c);setManual("")}}} className="flex gap-2"><input value={manual} onChange={e=>setManual(e.target.value)} placeholder="Barcode number" className="min-w-0 flex-1 rounded-xl border border-[#43D2FF44] bg-[#10151b] px-3 py-3"/><button className="rounded-xl bg-[#43D2FF] px-4 font-semibold">Add</button></form></div>}
   </div></div>
