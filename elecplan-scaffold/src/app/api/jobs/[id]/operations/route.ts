@@ -6,9 +6,9 @@ import { getSessionUser } from "@/lib/session";
 async function authJob(id: string) {
   const user = await getSessionUser();
   if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
-  const job = await prisma.job.findUnique({ where: { id }, select: { id: true, assignedToId: true, clientId: true, address: true } });
+  const job = await prisma.job.findUnique({ where: { id }, select: { id: true, assignedToId: true, clientId: true, address: true, crew: { select: { id: true } } } });
   if (!job) return { error: NextResponse.json({ error: "Job not found" }, { status: 404 }) } as const;
-  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) } as const;
+  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id && !job.crew.some((member) => member.id === user.id)) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) } as const;
   return { user, job } as const;
 }
 
@@ -34,7 +34,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     prisma.jobEvent.findMany({
       where: { jobId: id, type: { in: ["field-arrived", "field-complete", "field-revisit"] } },
       orderBy: { startsAt: "asc" },
-      select: { type: true, startsAt: true },
+      select: { type: true, startsAt: true, assignedToId: true },
     }),
     prisma.quote.findMany({ where: { jobId: id, status: "ACCEPTED" }, select: { amount: true } }),
     prisma.invoice.findMany({ where: { jobId: id }, select: { amount: true, status: true } }),
@@ -42,12 +42,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const materialCost = materials.reduce((sum, material) => sum + Number(material.quantity) * Number(material.unitCost ?? 0), 0);
   let labourMinutes = 0;
-  let lastArrival: Date | null = null;
+  const activeStarts = new Map<string, Date>();
   for (const event of events) {
-    if (event.type === "field-arrived") lastArrival = event.startsAt;
-    else if (lastArrival && (event.type === "field-complete" || event.type === "field-revisit")) {
-      labourMinutes += Math.max(0, (event.startsAt.getTime() - lastArrival.getTime()) / 60000);
-      lastArrival = null;
+    const key = event.assignedToId ?? "unknown";
+    if (event.type === "field-arrived") {
+      activeStarts.set(key, event.startsAt);
+      continue;
+    }
+    const start = activeStarts.get(key);
+    if (!start) continue;
+    if (event.type === "field-complete" || event.type === "field-revisit") {
+      labourMinutes += Math.max(0, (event.startsAt.getTime() - start.getTime()) / 60000);
+      activeStarts.delete(key);
     }
   }
 

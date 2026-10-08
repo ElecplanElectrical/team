@@ -27,8 +27,9 @@ export async function POST(req: Request) {
   if (legacy.success) {
     const upload = verifyCommitToken(legacy.data.commitToken, "project-photos");
     if (!upload) return NextResponse.json({ error: "Upload ticket is invalid or expired" }, { status: 400 });
-    const job = await prisma.job.findUnique({ where: { id: legacy.data.jobId }, select: { id: true } });
+    const job = await prisma.job.findUnique({ where: { id: legacy.data.jobId }, select: { id: true, assignedToId: true, crew: { select: { id: true } } } });
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 400 });
+    if (user.role === "EMPLOYEE" && job.assignedToId !== user.id && !job.crew.some((member) => member.id === user.id)) return NextResponse.json({ error: "This job is not assigned to you" }, { status: 403 });
     const id = randomUUID();
     const photo = await prisma.projectPhoto.create({ data: { id, jobId: job.id, url: `/api/projects/${id}/file`, storageKey: upload.key, mimeType: upload.contentType, sizeBytes: upload.sizeBytes } });
     await recordAudit({ actor: user, action: "PROJECT_PHOTO_UPLOADED", entityType: "ProjectPhoto", entityId: photo.id, details: { jobId: job.id, contentType: upload.contentType, sizeBytes: upload.sizeBytes } });

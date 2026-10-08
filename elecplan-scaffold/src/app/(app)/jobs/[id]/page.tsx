@@ -25,23 +25,32 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     include: {
       client: { select: { id: true, name: true, contactName: true, phone: true, email: true, address: true } },
       assignedTo: { select: { id: true, name: true } },
+      crew: { select: { id: true, name: true } },
       photos: { orderBy: { createdAt: "desc" }, select: { id: true, url: true, createdAt: true } },
     },
   });
   if (!job) notFound();
-  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id) notFound();
+  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id && !job.crew.some((member) => member.id === user.id)) notFound();
 
   const activity = await prisma.jobEvent.findMany({
     where: { jobId: id, type: { in: ["field-arrived", "field-complete", "field-revisit"] } },
     orderBy: { startsAt: "asc" },
-    select: { type: true, startsAt: true },
+    select: { type: true, startsAt: true, assignedToId: true },
   });
   let totalMinutes = 0;
-  for (let i = 0; i < activity.length; i++) {
-    const arrival = activity[i];
-    if (arrival.type !== "field-arrived") continue;
-    const stop = activity.slice(i + 1).find((e) => (e.type === "field-complete" || e.type === "field-revisit") && e.startsAt >= arrival.startsAt);
-    if (stop) totalMinutes += Math.max(0, Math.round((stop.startsAt.getTime() - arrival.startsAt.getTime()) / 60000));
+  const activeStarts = new Map<string, Date>();
+  for (const event of activity) {
+    const key = event.assignedToId ?? "unknown";
+    if (event.type === "field-arrived") {
+      activeStarts.set(key, event.startsAt);
+      continue;
+    }
+    const start = activeStarts.get(key);
+    if (!start) continue;
+    if (event.type === "field-complete" || event.type === "field-revisit") {
+      totalMinutes += Math.max(0, Math.round((event.startsAt.getTime() - start.getTime()) / 60000));
+      activeStarts.delete(key);
+    }
   }
 
   const [crew, clients] = user.role === "EMPLOYEE"

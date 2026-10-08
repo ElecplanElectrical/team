@@ -37,7 +37,7 @@ export default async function SiteFilePage({ params }: { params: Promise<{ id: s
   if (user.role === "EMPLOYEE" && seed.assignedToId !== user.id && !seed.crew.some((member) => member.id === user.id)) notFound();
 
   const jobs = await prisma.job.findMany({
-    where: { address: { equals: seed.address, mode: "insensitive" } },
+    where: { AND: [{ address: { equals: seed.address, mode: "insensitive" } }, user.role === "EMPLOYEE" ? { OR: [{ assignedToId: user.id }, { crew: { some: { id: user.id } } }] } : {}] },
     orderBy: [{ scheduledStart: "desc" }, { createdAt: "desc" }],
     include: {
       client: { select: { id: true, name: true, contactName: true, phone: true, email: true } },
