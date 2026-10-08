@@ -111,32 +111,33 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   if (p.data.type === "MATERIAL") {
-    let catalogueItem = p.data.materialId
+    const materialInput = p.data;
+    let catalogueItem = materialInput.materialId
       ? await prisma.material.findUnique({
-          where: { id: p.data.materialId },
+          where: { id: materialInput.materialId },
           select: { id: true, name: true, unit: true, unitCost: true, stockOnHand: true },
         })
       : await prisma.material.findFirst({
-          where: { name: { equals: p.data.name, mode: "insensitive" } },
+          where: { name: { equals: materialInput.name, mode: "insensitive" } },
           select: { id: true, name: true, unit: true, unitCost: true, stockOnHand: true },
         });
 
-    if (p.data.materialId && !catalogueItem) {
+    if (materialInput.materialId && !catalogueItem) {
       return NextResponse.json({ error: "Material no longer exists in the catalogue" }, { status: 404 });
     }
 
     if (!catalogueItem) {
       catalogueItem = await prisma.material.create({
-        data: { name: p.data.name, unit: p.data.unit || null, unitCost: p.data.unitCost, stockOnHand: 0 },
+        data: { name: materialInput.name, unit: materialInput.unit || null, unitCost: materialInput.unitCost, stockOnHand: 0 },
         select: { id: true, name: true, unit: true, unitCost: true, stockOnHand: true },
       });
     }
 
     const now = new Date();
-    const quantityUsed = Number(p.data.quantity);
+    const quantityUsed = Number(materialInput.quantity);
     const stockBefore = Math.max(0, Number(catalogueItem.stockOnHand));
     const quantityFromStock = Math.min(stockBefore, quantityUsed);
-    const unitCost = Number(catalogueItem.unitCost ?? p.data.unitCost ?? 0);
+    const unitCost = Number(catalogueItem.unitCost ?? materialInput.unitCost ?? 0);
 
     const created = await prisma.$transaction(async (tx) => {
       if (quantityFromStock > 0) {
@@ -151,10 +152,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           jobId: id,
           materialId: catalogueItem.id,
           name: catalogueItem.name,
-          quantity: p.data.quantity,
-          unit: catalogueItem.unit || p.data.unit || null,
+          quantity: materialInput.quantity,
+          unit: catalogueItem.unit || materialInput.unit || null,
           unitCost,
-          unitSell: p.data.unitSell,
+          unitSell: materialInput.unitSell,
           stockQuantityApplied: quantityFromStock,
           stockAppliedAt: now,
         },
