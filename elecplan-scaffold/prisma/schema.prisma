@@ -537,8 +537,9 @@ model ScanEnrichmentQueue {
   barcode     String?
   photoUrl    String?
   status      ScanEnrichmentStatus @default(PENDING)
-  attempts    Int                  @default(0)
-  lastError   String?
+  attempts         Int                  @default(0)
+  quantityOverride Int?
+  lastError        String?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   @@index([status, createdAt])
