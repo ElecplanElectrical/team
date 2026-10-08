@@ -17,6 +17,7 @@ const schema = z.object({
   barcode: z.string().min(1).max(64),
   dataUrl: z.string().startsWith("data:image/jpeg;base64,").max(1800000),
   itemName: z.string().max(160).optional(),
+  quantityOverride: z.number().int().min(1).max(9999).optional(),
   selection: selectionSchema,
 });
 
@@ -57,11 +58,11 @@ export async function POST(req: Request) {
   }
 
   const job = await prisma.scanEnrichmentQueue.create({
-    data: { materialId: item.id, barcode, photoUrl: key, status: "PENDING" },
+    data: { materialId: item.id, barcode, photoUrl: key, quantityOverride: parsed.data.quantityOverride, status: "PENDING" },
   });
 
   await prisma.auditLog.create({
-    data: { action: "STOCK_SCAN_QUEUED", entityType: "ScanEnrichmentQueue", entityId: job.id, details: { barcode, selection: parsed.data.selection ?? null } },
+    data: { action: "STOCK_SCAN_QUEUED", entityType: "ScanEnrichmentQueue", entityId: job.id, details: { barcode, quantityOverride: parsed.data.quantityOverride ?? null, selection: parsed.data.selection ?? null } },
   });
 
   return NextResponse.json({ ok: true, queued: true, jobId: job.id, itemId: item.id, knownName: taughtName || item.name });
