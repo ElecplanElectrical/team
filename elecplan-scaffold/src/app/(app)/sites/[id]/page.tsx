@@ -68,9 +68,9 @@ export default async function SiteFilePage({ params }: { params: Promise<{ id: s
   const materialIds = [...new Set(jobs.flatMap((job) => job.materials.map((material) => material.materialId)))];
   const catalogue = materialIds.length ? await prisma.material.findMany({
     where: { id: { in: materialIds } },
-    select: { id: true, unitCost: true, supplier: true },
+    select: { id: true, supplier: true },
   }) : [];
-  const catalogueById = new Map(catalogue.map((item) => [item.id, { unitCost: Number(item.unitCost ?? 0), supplier: item.supplier }]));
+  const catalogueById = new Map(catalogue.map((item) => [item.id, { supplier: item.supplier }]));
 
   let totalMinutes = 0;
   const employeeMinutes = new Map<string, { name: string; minutes: number }>();
@@ -114,7 +114,7 @@ export default async function SiteFilePage({ params }: { params: Promise<{ id: s
       };
       const qty = Number(material.quantity);
       current.quantity += qty;
-      current.cost += qty * (catalogueItem?.unitCost ?? 0);
+      current.cost += qty * Number(material.unitCost ?? 0);
       materialGroups.set(key, current);
     }
   }
