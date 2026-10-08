@@ -6,9 +6,9 @@ import { getSessionUser } from "@/lib/session";
 async function authJob(id: string) {
   const user = await getSessionUser();
   if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
-  const job = await prisma.job.findUnique({ where: { id }, select: { id: true, assignedToId: true, clientId: true, address: true } });
+  const job = await prisma.job.findUnique({ where: { id }, select: { id: true, assignedToId: true, clientId: true, address: true, crew: { select: { id: true } } } });
   if (!job) return { error: NextResponse.json({ error: "Job not found" }, { status: 404 }) } as const;
-  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) } as const;
+  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id && !job.crew.some((member) => member.id === user.id)) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) } as const;
   return { user, job } as const;
 }
 
