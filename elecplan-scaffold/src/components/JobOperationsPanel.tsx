@@ -157,9 +157,9 @@ export default function JobOperationsPanel({ jobId, canManage }: { jobId: string
             <p className="text-sm" style={{ color: U.text }}>{material.name}</p>
             <p className="text-xs" style={{ color: U.mute }}>{Number(material.quantity)} {material.unit || ""} · cost {money(Number(material.unitCost))} ea</p>
           </div>
-          {canManage && <button onClick={() => remove("materialId", material.id)} style={{ color: U.red }}><Trash2 size={15} /></button>}
+          <button onClick={() => remove("materialId", material.id)} aria-label={`Remove ${material.name}`} style={{ color: U.red }}><Trash2 size={15} /></button>
         </div>) : <Empty text="No materials recorded." />}
-        <p className="mt-2 text-[10px] leading-4" style={{ color: U.mute }}>Catalogue pricing is used for job costing. Available stock is applied when the site visit is completed; any shortfall remains recorded as a job cost.</p>
+        <p className="mt-2 text-[10px] leading-4" style={{ color: U.mute }}>Catalogue pricing is saved against the job when you add the material. Available stock is deducted immediately; any shortfall still remains recorded as a job cost.</p>
       </Box>
 
       {canManage && <Box title="Job profitability" icon={<FileText size={17} />}>

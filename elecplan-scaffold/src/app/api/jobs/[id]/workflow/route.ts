@@ -49,7 +49,7 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
       for(const item of used){
         const material=await tx.material.findUnique({where:{id:item.materialId},select:{stockOnHand:true}});
         if(!material){
-          await tx.jobMaterial.update({where:{id:item.id},data:{stockAppliedAt:now}});
+          await tx.jobMaterial.update({where:{id:item.id},data:{stockAppliedAt:now,stockQuantityApplied:0}});
           stockShortfallItems+=1;
           continue;
         }
@@ -64,7 +64,7 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
           stockShortfallItems+=1;
           await tx.auditLog.create({data:{action:"JOB_MATERIAL_STOCK_SHORTFALL",entityType:"JobMaterial",entityId:item.id,actorId:auth.user.id,actorName:auth.user.name,actorEmail:auth.user.email,actorRole:auth.user.role,details:{jobId:id,materialId:item.materialId,name:item.name,quantityUsed:usedQty,quantityFromStock:fromStock,quantityShortfall:usedQty-fromStock}}});
         }
-        await tx.jobMaterial.update({where:{id:item.id},data:{stockAppliedAt:now}});
+        await tx.jobMaterial.update({where:{id:item.id},data:{stockAppliedAt:now,stockQuantityApplied:fromStock}});
       }
       await tx.jobEvent.create({data:{jobId:id,type:"field-complete",title:data.notes||"Job completed",startsAt:now,endsAt:now,assignedToId:auth.user.id}});
       await tx.job.update({where:{id},data:{status:"COMPLETE",...(data.notes?{notes:auth.job.notes?`${auth.job.notes}\n\nCompletion: ${data.notes}`:`Completion: ${data.notes}`}:{})}});
