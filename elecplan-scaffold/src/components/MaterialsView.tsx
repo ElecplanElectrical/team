@@ -1,7 +1,8 @@
 "use client";
 import {useMemo,useState}from"react";
+import Link from"next/link";
 import{useRouter}from"next/navigation";
-import{Camera,ImageIcon,Minus,PackageSearch,Plus,Search,X}from"lucide-react";
+import{Camera,ImageIcon,Minus,PackageSearch,Plus,ScanBarcode,Search,X}from"lucide-react";
 import TopBar from"@/components/TopBar";
 
 export type StockRow={id:string;name:string;unit:string;onHand:number;parLevel:number;supplier:string|null;hasPhoto:boolean};
@@ -16,7 +17,7 @@ export default function MaterialsView({items}:{items:StockRow[]}){
   async function update(item:StockRow,delta:number){setBusy(item.id);setError(null);const res=await fetch(`/api/materials/${item.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({delta})});setBusy(null);if(!res.ok){const b=await res.json().catch(()=>null);setError(b?.error??"Could not update stock.")}router.refresh()}
   async function photo(item:StockRow,file?:File){if(!file)return;try{setBusy(item.id);const commitToken=await upload(file);const r=await fetch("/api/item-photos/commit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({target:"material",targetId:item.id,commitToken})});const b=await r.json().catch(()=>null);if(!r.ok)throw new Error(b?.error||"Could not save photo");router.refresh()}catch(e){setError(e instanceof Error?e.message:"Could not save photo")}finally{setBusy(null)}}
   return <>
-    <TopBar title="Materials" subtitle="Track stock levels" rightSlot={<button onClick={()=>setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{...UI.primary,color:"#06213a"}}><Plus size={16}/> New stock item</button>}/>
+    <TopBar title="Materials" subtitle="Track stock levels" rightSlot={<div className="flex items-center gap-2"><Link href="/materials/scan" className="hidden h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold md:flex" style={{background:"rgba(67,210,255,.10)",border:`1px solid ${UI.border}`,color:UI.cyan}}><ScanBarcode size={16}/> Scan stock</Link><button onClick={()=>setShowNew(true)} className="flex h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold" style={{...UI.primary,color:"#06213a"}}><Plus size={16}/> New stock item</button></div>}/>
     <div className="flex-1 overflow-auto p-3 md:p-4 xl:p-5" style={{background: "var(--ep-main)"}}><div className="mx-auto w-full max-w-[1700px] space-y-3">
       <div className="grid gap-3 sm:grid-cols-3"><Metric label="Stock items" value={String(items.length)}/><Metric label="In stock" value={String(items.filter(i=>i.onHand>0).length)}/><Metric label="Out of stock" value={String(items.filter(i=>i.onHand<=0).length)}/></div>
       {error&&<div className="rounded-xl px-4 py-3 text-sm" style={{color:UI.red,background:"rgba(255,94,114,.08)"}}>{error}</div>}
