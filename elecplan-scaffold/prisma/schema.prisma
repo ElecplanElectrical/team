@@ -556,15 +556,18 @@ model JobTask {
 }
 
 model JobMaterial {
-  id             String    @id @default(cuid())
-  job            Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId          String
-  materialId     String
-  name           String
-  quantity       Decimal   @default(1)
-  unit           String?
-  stockAppliedAt DateTime?
-  createdAt      DateTime  @default(now())
+  id                   String    @id @default(cuid())
+  job                  Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId                String
+  materialId           String
+  name                 String
+  quantity             Decimal   @default(1)
+  unit                 String?
+  unitCost             Decimal   @default(0)
+  unitSell             Decimal   @default(0)
+  stockQuantityApplied Decimal   @default(0)
+  stockAppliedAt       DateTime?
+  createdAt            DateTime  @default(now())
   @@index([jobId])
   @@index([stockAppliedAt])
 }
