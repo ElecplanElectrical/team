@@ -87,7 +87,7 @@ export default function TopBar({ title, subtitle, rightSlot }: { title: string; 
         {title === "Calendar" && <div className="mt-2 flex max-w-full flex-wrap gap-x-4 gap-y-1.5">{CALENDAR_KEY.map(([type,label]) => { const c=EVENT_COLOR[type]; return <span key={type} className="inline-flex items-center gap-1.5 text-[10px] font-medium md:text-[11px]" style={{color:UI.mute}}><span className="h-2.5 w-2.5 rounded-full" style={{background:c.border}}/>{label}</span>; })}</div>}
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <div className="relative hidden lg:block"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.mute }} /><input aria-label="Search" placeholder="Search jobs, clients, quotes..." className="h-10 w-60 rounded-lg bg-transparent pl-9 pr-3 text-xs outline-none xl:w-72" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text }} /></div>
+        <Link href="/search" aria-label="Search Elecplan" className="relative hidden h-10 w-60 items-center rounded-lg pl-9 pr-3 text-xs lg:flex xl:w-72" style={{ ...UI.raised, background: UI.panel, border: `1px solid ${UI.border}`, color: UI.mute }}><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" />Search address, job or client...</Link>
         {rightSlot}
         <Link href="/jobs" aria-label="Open jobs" className="hidden h-10 w-10 items-center justify-center rounded-lg sm:flex" style={{ ...UI.primary, color: "#06213a", boxShadow: "0 8px 24px rgba(67,210,255,.22)" }}><Plus size={18} /></Link>
         <div className="relative hidden md:block" ref={dropdownRef}>
