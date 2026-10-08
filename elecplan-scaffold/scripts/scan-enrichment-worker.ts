@@ -154,7 +154,7 @@ async function processBatch() {
 
         const output = await worker.recognize(bytes);
         const text = output.data.text || "";
-        const quantity = parseQuantity(text);
+        const quantity = job.quantityOverride || parseQuantity(text);
         if (!quantity) throw new Error("No reliable Qty / Pack / Rolls quantity found on label");
 
         const product = parseProduct(text, target.barcode || "");
