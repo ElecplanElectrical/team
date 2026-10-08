@@ -49,7 +49,7 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
       for(const item of used){
         const material=await tx.material.findUnique({where:{id:item.materialId},select:{stockOnHand:true}});
         if(!material){
-          await tx.jobMaterial.update({where:{id:item.id},data:{stockAppliedAt:now}});
+          await tx.jobMaterial.update({where:{id:item.id},data:{stockAppliedAt:now,stockQuantityApplied:fromStock}});
           stockShortfallItems+=1;
           continue;
         }
