@@ -42,8 +42,36 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
   const existingStop=await prisma.jobEvent.findFirst({where:{jobId:id,type:{in:["field-complete","field-revisit"]},startsAt:{gte:latestArrival.startsAt}}});if(existingStop)return NextResponse.json({error:"This site visit has already been closed"},{status:409});
   const durationMinutes=Math.max(0,Math.round((now.getTime()-latestArrival.startsAt.getTime())/60000));
   if(data.action==="COMPLETE"){
-    const stockResult=await prisma.$transaction(async(tx)=>{const used=await tx.jobMaterial.findMany({where:{jobId:id,stockAppliedAt:null},select:{id:true,materialId:true,name:true,quantity:true}});for(const item of used){const material=await tx.material.findUnique({where:{id:item.materialId},select:{stockOnHand:true}});if(!material)continue;const next=Number(material.stockOnHand)-Number(item.quantity);if(next<0)throw new Error(`INSUFFICIENT_STOCK:${item.name}`);await tx.material.update({where:{id:item.materialId},data:{stockOnHand:next}});await tx.jobMaterial.update({where:{id:item.id},data:{stockAppliedAt:now}})}await tx.jobEvent.create({data:{jobId:id,type:"field-complete",title:data.notes||"Job completed",startsAt:now,endsAt:now,assignedToId:auth.user.id}});await tx.job.update({where:{id},data:{status:"COMPLETE",...(data.notes?{notes:auth.job.notes?`${auth.job.notes}\n\nCompletion: ${data.notes}`:`Completion: ${data.notes}`}:{})}});return used.length});
-    await recordAudit({actor:auth.user,action:"JOB_COMPLETED_FIELD",entityType:"Job",entityId:id,details:{title:auth.job.title,durationMinutes,notes:data.notes||null,stockItemsApplied:stockResult}});return NextResponse.json({ok:true,durationMinutes,stockItemsApplied:stockResult});
+    const stockResult=await prisma.$transaction(async(tx)=>{
+      const used=await tx.jobMaterial.findMany({where:{jobId:id,stockAppliedAt:null},select:{id:true,materialId:true,name:true,quantity:true}});
+      let stockItemsApplied=0;
+      let stockShortfallItems=0;
+      for(const item of used){
+        const material=await tx.material.findUnique({where:{id:item.materialId},select:{stockOnHand:true}});
+        if(!material){
+          await tx.jobMaterial.update({where:{id:item.id},data:{stockAppliedAt:now}});
+          stockShortfallItems+=1;
+          continue;
+        }
+        const onHand=Math.max(0,Number(material.stockOnHand));
+        const usedQty=Math.max(0,Number(item.quantity));
+        const fromStock=Math.min(onHand,usedQty);
+        if(fromStock>0){
+          await tx.material.update({where:{id:item.materialId},data:{stockOnHand:onHand-fromStock}});
+          stockItemsApplied+=1;
+        }
+        if(fromStock<usedQty){
+          stockShortfallItems+=1;
+          await tx.auditLog.create({data:{action:"JOB_MATERIAL_STOCK_SHORTFALL",entityType:"JobMaterial",entityId:item.id,actorId:auth.user.id,actorName:auth.user.name,actorEmail:auth.user.email,actorRole:auth.user.role,details:{jobId:id,materialId:item.materialId,name:item.name,quantityUsed:usedQty,quantityFromStock:fromStock,quantityShortfall:usedQty-fromStock}}});
+        }
+        await tx.jobMaterial.update({where:{id:item.id},data:{stockAppliedAt:now}});
+      }
+      await tx.jobEvent.create({data:{jobId:id,type:"field-complete",title:data.notes||"Job completed",startsAt:now,endsAt:now,assignedToId:auth.user.id}});
+      await tx.job.update({where:{id},data:{status:"COMPLETE",...(data.notes?{notes:auth.job.notes?`${auth.job.notes}\n\nCompletion: ${data.notes}`:`Completion: ${data.notes}`}:{})}});
+      return {stockItemsApplied,stockShortfallItems,materialsProcessed:used.length};
+    });
+    await recordAudit({actor:auth.user,action:"JOB_COMPLETED_FIELD",entityType:"Job",entityId:id,details:{title:auth.job.title,durationMinutes,notes:data.notes||null,...stockResult}});
+    return NextResponse.json({ok:true,durationMinutes,...stockResult});
   }
   const scheduledStart=data.scheduledStart?new Date(data.scheduledStart):null,scheduledEnd=data.scheduledEnd?new Date(data.scheduledEnd):null;
   if((scheduledStart&&!scheduledEnd)||(!scheduledStart&&scheduledEnd)|| (scheduledStart&&scheduledEnd&&scheduledEnd<=scheduledStart))return NextResponse.json({error:"Choose a valid revisit start and end time"},{status:400});
