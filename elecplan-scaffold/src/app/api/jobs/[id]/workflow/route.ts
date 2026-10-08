@@ -13,9 +13,9 @@ const actionSchema = z.discriminatedUnion("action", [
 async function loadAuthorizedJob(id: string) {
   const user = await getSessionUser();
   if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
-  const job = await prisma.job.findUnique({ where: { id }, select: { id:true,title:true,address:true,notes:true,status:true,assignedToId:true,scheduledStart:true,scheduledEnd:true,client:{select:{name:true,contactName:true,phone:true}} } });
+  const job = await prisma.job.findUnique({ where: { id }, select: { id:true,title:true,address:true,notes:true,status:true,assignedToId:true,scheduledStart:true,scheduledEnd:true,crew:{select:{id:true}},client:{select:{name:true,contactName:true,phone:true}} } });
   if (!job) return { error: NextResponse.json({ error: "Job not found" }, { status: 404 }) } as const;
-  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id) return { error: NextResponse.json({ error: "This job is not assigned to you" }, { status: 403 }) } as const;
+  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id && !job.crew.some((member) => member.id === user.id)) return { error: NextResponse.json({ error: "This job is not assigned to you" }, { status: 403 }) } as const;
   return { user, job } as const;
 }
 
