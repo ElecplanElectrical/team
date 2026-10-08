@@ -14,6 +14,52 @@ const schema = z.object({
   photoCommitToken: z.string().optional().nullable(),
 });
 
+export async function GET(req: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const url = new URL(req.url);
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const limit = Math.min(50, Math.max(1, Number(url.searchParams.get("limit")) || 30));
+
+  const items = await prisma.material.findMany({
+    where: q ? {
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { supplier: { contains: q, mode: "insensitive" } },
+        { sku: { contains: q, mode: "insensitive" } },
+        { supplierSku: { contains: q, mode: "insensitive" } },
+        { barcode: { contains: q, mode: "insensitive" } },
+      ],
+    } : undefined,
+    orderBy: [{ stockOnHand: "desc" }, { name: "asc" }],
+    take: limit,
+    select: {
+      id: true,
+      name: true,
+      unit: true,
+      stockOnHand: true,
+      unitCost: true,
+      supplier: true,
+      sku: true,
+      supplierSku: true,
+      barcode: true,
+    },
+  });
+
+  return NextResponse.json(items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    unit: item.unit ?? "each",
+    onHand: Number(item.stockOnHand),
+    unitCost: Number(item.unitCost ?? 0),
+    supplier: item.supplier,
+    sku: item.sku,
+    supplierSku: item.supplierSku,
+    barcode: item.barcode,
+  })));
+}
+
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

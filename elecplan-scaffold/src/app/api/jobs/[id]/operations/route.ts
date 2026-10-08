@@ -93,6 +93,7 @@ const post = z.discriminatedUnion("type", [
   z.object({ type: z.literal("TASK"), title: z.string().trim().min(1).max(160) }),
   z.object({
     type: z.literal("MATERIAL"),
+    materialId: z.string().trim().min(1).optional(),
     name: z.string().trim().min(1).max(160),
     quantity: z.coerce.number().positive(),
     unit: z.string().trim().max(30).optional(),
@@ -116,18 +117,35 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   if (p.data.type === "MATERIAL") {
-    let catalogueItem = await prisma.material.findFirst({
-      where: { name: { equals: p.data.name, mode: "insensitive" } },
-      select: { id: true },
-    });
+    let catalogueItem = p.data.materialId
+      ? await prisma.material.findUnique({
+          where: { id: p.data.materialId },
+          select: { id: true, name: true, unit: true },
+        })
+      : await prisma.material.findFirst({
+          where: { name: { equals: p.data.name, mode: "insensitive" } },
+          select: { id: true, name: true, unit: true },
+        });
+
+    if (p.data.materialId && !catalogueItem) {
+      return NextResponse.json({ error: "Material no longer exists in the catalogue" }, { status: 404 });
+    }
+
     if (!catalogueItem) {
       catalogueItem = await prisma.material.create({
         data: { name: p.data.name, unit: p.data.unit || null, unitCost: p.data.unitCost },
-        select: { id: true },
+        select: { id: true, name: true, unit: true },
       });
     }
+
     return NextResponse.json(await prisma.jobMaterial.create({
-      data: { jobId: id, materialId: catalogueItem.id, name: p.data.name, quantity: p.data.quantity, unit: p.data.unit || null },
+      data: {
+        jobId: id,
+        materialId: catalogueItem.id,
+        name: catalogueItem.name,
+        quantity: p.data.quantity,
+        unit: catalogueItem.unit || p.data.unit || null,
+      },
     }), { status: 201 });
   }
 
