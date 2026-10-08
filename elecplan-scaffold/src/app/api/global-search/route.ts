@@ -13,18 +13,20 @@ export async function GET(req: Request) {
   const q = (new URL(req.url).searchParams.get("q") ?? "").trim();
   if (q.length < 2) return NextResponse.json({ sites: [], clients: [] });
 
-  const employeeScope = user.role === "EMPLOYEE"
-    ? { OR: [{ assignedToId: user.id }, { crew: { some: { id: user.id } } }] }
-    : {};
-
   const jobs = await prisma.job.findMany({
     where: {
-      ...employeeScope,
-      OR: [
-        { address: { contains: q, mode: "insensitive" } },
-        { title: { contains: q, mode: "insensitive" } },
-        { client: { name: { contains: q, mode: "insensitive" } } },
-        { client: { contactName: { contains: q, mode: "insensitive" } } },
+      AND: [
+        user.role === "EMPLOYEE"
+          ? { OR: [{ assignedToId: user.id }, { crew: { some: { id: user.id } } }] }
+          : {},
+        {
+          OR: [
+            { address: { contains: q, mode: "insensitive" } },
+            { title: { contains: q, mode: "insensitive" } },
+            { client: { name: { contains: q, mode: "insensitive" } } },
+            { client: { contactName: { contains: q, mode: "insensitive" } } },
+          ],
+        },
       ],
     },
     orderBy: [{ scheduledStart: "desc" }, { createdAt: "desc" }],
