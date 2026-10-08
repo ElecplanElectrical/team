@@ -25,11 +25,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     include: {
       client: { select: { id: true, name: true, contactName: true, phone: true, email: true, address: true } },
       assignedTo: { select: { id: true, name: true } },
+      crew: { select: { id: true, name: true } },
       photos: { orderBy: { createdAt: "desc" }, select: { id: true, url: true, createdAt: true } },
     },
   });
   if (!job) notFound();
-  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id) notFound();
+  if (user.role === "EMPLOYEE" && job.assignedToId !== user.id && !job.crew.some((member) => member.id === user.id)) notFound();
 
   const activity = await prisma.jobEvent.findMany({
     where: { jobId: id, type: { in: ["field-arrived", "field-complete", "field-revisit"] } },
