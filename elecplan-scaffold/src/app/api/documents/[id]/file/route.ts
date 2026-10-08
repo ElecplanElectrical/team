@@ -15,9 +15,12 @@ export async function GET(
   const { id } = await context.params;
   const document = await prisma.document.findUnique({
     where: { id },
-    select: { storageKey: true, url: true },
+    select: { storageKey: true, url: true, jobId: true, job: { select: { assignedToId: true, crew: { select: { id: true } } } } },
   });
   if (!document) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+  if (user.role === "EMPLOYEE" && document.jobId && document.job && document.job.assignedToId !== user.id && !document.job.crew.some((member) => member.id === user.id)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   if (document.storageKey) return NextResponse.redirect(createDownloadUrl(document.storageKey));
 
