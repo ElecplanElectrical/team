@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, Menu, X } from "lucide-react";
+import { Bell, Menu, Search, X } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { LOGO_WORDMARK } from "@/lib/logo";
 import CarbonNavigation from "@/components/CarbonNavigation";
@@ -35,7 +35,7 @@ export default function MobileNav({ role, name = "Team member" }: { role: Role; 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={LOGO_WORDMARK} alt="elecplan" style={{ width: 112, height: "auto", objectFit: "contain", display: "block" }} />
       </Link>
-      {role === "ADMIN" ? <Link href="/reminders" aria-label="To do list" className="ep-mobile-action flex h-9 w-9 items-center justify-center rounded-lg"><Bell size={16} /></Link> : <span className="w-9" />}
+      <div className="flex items-center gap-1"><Link href="/search" aria-label="Search Elecplan" className="ep-mobile-action flex h-9 w-9 items-center justify-center rounded-lg"><Search size={16} /></Link>{role === "ADMIN" && <Link href="/reminders" aria-label="To do list" className="ep-mobile-action flex h-9 w-9 items-center justify-center rounded-lg"><Bell size={16} /></Link>}</div>
     </div>
     {open && <div className="fixed inset-0 z-[60] md:hidden">
       <button type="button" tabIndex={-1} aria-label="Close navigation overlay" className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={() => setOpen(false)} />
