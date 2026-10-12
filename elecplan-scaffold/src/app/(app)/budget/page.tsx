@@ -1,0 +1,4 @@
+import { requireAccess } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
+import BudgetView from "@/components/BudgetView";
+export default async function BudgetPage(){await requireAccess("budget");const rows=await prisma.recurringExpense.findMany({include:{payments:{orderBy:{dueDate:"desc"},take:6}},orderBy:{nextDue:"asc"}});return <BudgetView initial={rows.map(r=>({id:r.id,name:r.name,category:r.category,amount:Number(r.amount),frequency:r.frequency,nextDue:r.nextDue.toISOString().slice(0,10),active:r.active,notes:r.notes,payments:r.payments.map(p=>({id:p.id,dueDate:p.dueDate.toISOString().slice(0,10),amount:Number(p.amount),paidAt:p.paidAt.toISOString()}))}))}/>;}
