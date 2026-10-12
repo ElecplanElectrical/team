@@ -34,6 +34,11 @@ export default function CarbonNavigation({ role, name, onNavigate }: {
           const href = SCREEN_PATH[item.screen];
           const active = pathname === href || pathname.startsWith(href + "/");
           const Icon = item.icon;
+          if (item.screen === "calendar") return <a key={item.screen} href="/calendar" title={item.label} aria-current={active ? "page" : undefined} className="ep-carbon-link" onClick={onNavigate}>
+            <Icon className="ep-carbon-icon" aria-hidden="true" strokeWidth={active ? 2.3 : 1.9} />
+            <span className="ep-carbon-label">{item.label}</span>
+            {active && <ChevronRight className="ep-carbon-arrow" aria-hidden="true" />}
+          </a>;
           return <Link key={item.screen} href={href} title={item.label} aria-current={active ? "page" : undefined} className="ep-carbon-link" onClick={onNavigate}>
             <Icon className="ep-carbon-icon" aria-hidden="true" strokeWidth={active ? 2.3 : 1.9} />
             <span className="ep-carbon-label">{item.label}</span>
