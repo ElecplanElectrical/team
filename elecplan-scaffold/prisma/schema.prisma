@@ -572,3 +572,28 @@ model JobMaterial {
   @@index([jobId])
   @@index([stockAppliedAt])
 }
+
+model RecurringExpense {
+  id String @id @default(cuid())
+  name String
+  category String @default("Other")
+  amount Decimal @db.Decimal(12,2)
+  frequency String @default("MONTHLY")
+  nextDue DateTime @db.Date
+  active Boolean @default(true)
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  payments RecurringExpensePayment[]
+  @@index([active,nextDue])
+}
+
+model RecurringExpensePayment {
+  id String @id @default(cuid())
+  expense RecurringExpense @relation(fields: [expenseId],references:[id],onDelete:Cascade)
+  expenseId String
+  dueDate DateTime @db.Date
+  amount Decimal @db.Decimal(12,2)
+  paidAt DateTime @default(now())
+  @@unique([expenseId,dueDate])
+}
