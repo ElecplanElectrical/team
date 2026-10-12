@@ -91,7 +91,7 @@ export default function DashboardView({
   const openReminders=reminders.slice(0,5);
 
   return <>
-    <TopBar title="Dashboard" subtitle="Deep Work"/>
+    <TopBar title="Dashboard"/>
     <div
       className="flex-1 overflow-auto px-3 pb-10 pt-7 sm:px-4 sm:pt-8 md:px-6 md:pt-9 xl:px-7 xl:pt-10"
       style={{background:"var(--ep-main)"}}
@@ -116,10 +116,10 @@ export default function DashboardView({
                 Today
               </p>
               <h2 className="mt-1 text-xl font-bold sm:text-2xl" style={{color:UI.text}}>
-                Focus
+                Today’s Schedule
               </h2>
               <p className="mt-1 text-xs sm:text-sm" style={{color:UI.mute}}>
-                The work that matters now. Everything else stays underneath.
+                Your upcoming electrical jobs and appointments.
               </p>
             </div>
             <Link
@@ -173,7 +173,7 @@ export default function DashboardView({
                   </div>)}
                 </div>
               ):(
-                <Empty icon={CalendarDays} text="No scheduled jobs. Your focus lane is clear."/>
+                <Empty icon={CalendarDays} text="No upcoming jobs scheduled."/>
               )}
             </div>
 
